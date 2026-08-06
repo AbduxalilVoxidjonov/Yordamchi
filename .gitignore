@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+publish/
+
+# Installer output — these are 60 MB binaries and belong in GitHub Releases, not in git
+artifacts/
+*.wixpdb
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+launchSettings.json
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store

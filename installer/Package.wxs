@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    PdfEdit MSI.
+
+    Installs the self-contained publish output (app + private .NET runtime + pdfium/Skia
+    natives) into Program Files, adds Start Menu and Desktop shortcuts, and registers a
+    proper entry in Add or Remove Programs.
+
+    Built by build-installer.ps1; expects -d PublishDir=<folder> and -arch x64.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="PdfEdit"
+           Manufacturer="PdfEdit"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="5ACEDECA-2D08-49FE-9CE6-D6B41801065F"
+           Scope="perMachine"
+           Compressed="yes"
+           InstallerVersion="500">
+
+    <!-- Installing 1.0.1 over 1.0.0 replaces it instead of stacking a second copy. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of PdfEdit is already installed. Uninstall it first." />
+
+    <!-- LZX:high keeps the ~168 MB payload down to roughly a third. -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="PdfEditIcon" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="PdfEditIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/AbduxalilVoxidjonov/PdfEditor" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/AbduxalilVoxidjonov/PdfEditor" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <!-- License -> install folder -> progress -> finish. -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseFile)" />
+
+    <Feature Id="Main" Title="PdfEdit" Level="1">
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+  </Package>
+
+  <!-- ================= Directories ================= -->
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="PdfEdit" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationMenuFolder" Name="PdfEdit" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+  </Fragment>
+
+  <!-- ================= Payload =================
+       <Files> harvests the whole publish tree automatically, preserving subdirectories,
+       so new runtime files never need to be listed by hand.
+  -->
+  <Fragment>
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**" />
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- ================= Shortcuts ================= -->
+  <Fragment>
+    <Component Id="StartMenuShortcut"
+               Directory="ApplicationMenuFolder"
+               Guid="8FB0CD15-96F7-4AC7-8302-605A245CF64A">
+      <Shortcut Id="StartMenuPdfEdit"
+                Name="PdfEdit"
+                Description="Organize, merge and build PDF files"
+                Target="[INSTALLFOLDER]PdfEdit.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="PdfEditIcon" />
+      <RemoveFolder Id="RemoveApplicationMenuFolder" Directory="ApplicationMenuFolder" On="uninstall" />
+      <RegistryValue Root="HKLM" Key="Software\PdfEdit" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcut"
+               Directory="DesktopFolder"
+               Guid="02852839-B7D9-42F2-86BC-BDB6DB48AFA9">
+      <Shortcut Id="DesktopPdfEdit"
+                Name="PdfEdit"
+                Description="Organize, merge and build PDF files"
+                Target="[INSTALLFOLDER]PdfEdit.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="PdfEditIcon" />
+      <RegistryValue Root="HKLM" Key="Software\PdfEdit" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

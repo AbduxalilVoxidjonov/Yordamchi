@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>PdfEdit</RootNamespace>
+    <AssemblyName>PdfEdit</AssemblyName>
+    <ApplicationIcon>Assets\PdfEdit.ico</ApplicationIcon>
+    <!-- pdfium (PDFtoImage) is a native x64 library. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- Shown in the file properties dialog, the installer, and Add/Remove Programs. -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Product>PdfEdit</Product>
+    <Company>PdfEdit</Company>
+    <Authors>PdfEdit</Authors>
+    <Copyright>Copyright © 2026</Copyright>
+    <Description>Fluent-styled PDF page organizer for Windows 11</Description>
+  </PropertyGroup>
+
+  <!--
+    Ship no debug symbols. This is not cosmetic: SkiaSharp's native package carries an
+    85 MB libSkiaSharp.pdb, which is a third of the whole self-contained payload.
+  -->
+  <Target Name="StripSymbolsFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish
+          Remove="@(ResolvedFileToPublish)"
+          Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <!-- MVVM (source generators: [ObservableProperty], [RelayCommand]) -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+
+    <!-- PDF manipulation: merge / reorder / rotate / image import (MIT) -->
+    <PackageReference Include="PDFsharp" Version="6.2.4" />
+
+    <!-- PDF rasterization for thumbnails: pdfium + SkiaSharp (MIT) -->
+    <PackageReference Include="PDFtoImage" Version="5.3.0" />
+  </ItemGroup>
+
+</Project>

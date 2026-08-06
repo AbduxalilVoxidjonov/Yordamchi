@@ -1,0 +1,293 @@
+<UserControl x:Class="PdfEdit.Views.PdfBuilderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:behaviors="clr-namespace:PdfEdit.Behaviors"
+             xmlns:viewModels="clr-namespace:PdfEdit.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="1080" d:DesignHeight="760"
+             d:DataContext="{d:DesignInstance Type=viewModels:PdfBuilderViewModel}">
+
+    <UserControl.Resources>
+
+        <!-- One source document: cover page, order number, and a hover-revealed remove button. -->
+        <DataTemplate x:Key="SourceCardTemplate" DataType="{x:Type viewModels:PdfSourceViewModel}">
+            <Grid x:Name="Root" Width="176" ToolTip="{Binding FilePath}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border x:Name="Card"
+                        Grid.Row="0"
+                        Height="232"
+                        Background="{DynamicResource ThumbnailBackgroundBrush}"
+                        BorderBrush="{DynamicResource CardStrokeBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource CardCornerRadius}"
+                        Effect="{DynamicResource CardShadowEffect}"
+                        RenderTransformOrigin="0.5,0.5"
+                        ClipToBounds="True">
+
+                    <Border.RenderTransform>
+                        <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1" />
+                    </Border.RenderTransform>
+
+                    <Grid>
+                        <Image Source="{Binding Preview}" Margin="10" Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
+
+                        <TextBlock Text="Reading…"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12"
+                                    Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="&#xE783;" FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="30" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource DangerBrush}" />
+                            <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" FontSize="11"
+                                       TextAlignment="Center" Margin="0,8,0,0"
+                                       Foreground="{DynamicResource DangerBrush}" />
+                        </StackPanel>
+
+                        <Border x:Name="Scrim" Background="{DynamicResource ScrimBrush}"
+                                Opacity="0" IsHitTestVisible="False" />
+
+                        <!-- Merge order -->
+                        <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
+                                Width="28" Height="28"
+                                CornerRadius="{DynamicResource PillCornerRadius}"
+                                Background="{DynamicResource AccentBrush}">
+                            <TextBlock Text="{Binding OrderNumber}"
+                                       Foreground="{DynamicResource TextOnAccentBrush}"
+                                       FontSize="13" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <Button x:Name="RemoveButton"
+                                Style="{DynamicResource ThumbnailDangerActionButtonStyle}"
+                                Content="&#xE74D;"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
+                                Opacity="0"
+                                ToolTip="Remove from the list"
+                                Command="{Binding RemoveCommand}" />
+                    </Grid>
+                </Border>
+
+                <StackPanel Grid.Row="1" Margin="2,8,2,0">
+                    <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis"
+                               FontWeight="SemiBold" FontSize="13" />
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <TextBlock Text="{Binding PageCountText}" Style="{DynamicResource CaptionTextStyle}" />
+                        <TextBlock Text=" · " Style="{DynamicResource CaptionTextStyle}" />
+                        <TextBlock Text="{Binding FileSizeBytes, Converter={StaticResource FileSize}}"
+                                   Style="{DynamicResource CaptionTextStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <DataTemplate.Triggers>
+                <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Card" Property="Effect" Value="{DynamicResource HoverShadowEffect}" />
+                    <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="Scrim" Storyboard.TargetProperty="Opacity"
+                                                 To="1" Duration="0:0:0.15" />
+                                <DoubleAnimation Storyboard.TargetName="RemoveButton" Storyboard.TargetProperty="Opacity"
+                                                 To="1" Duration="0:0:0.15" />
+                                <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleX"
+                                                 To="1.03" Duration="0:0:0.18">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleY"
+                                                 To="1.03" Duration="0:0:0.18">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="Scrim" Storyboard.TargetProperty="Opacity"
+                                                 To="0" Duration="0:0:0.2" />
+                                <DoubleAnimation Storyboard.TargetName="RemoveButton" Storyboard.TargetProperty="Opacity"
+                                                 To="0" Duration="0:0:0.2" />
+                                <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleX"
+                                                 To="1" Duration="0:0:0.2" />
+                                <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleY"
+                                                 To="1" Duration="0:0:0.2" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.ExitActions>
+                </Trigger>
+
+                <DataTrigger Value="True"
+                             Binding="{Binding (behaviors:DragDropReorder.IsDraggedItem), RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                    <Setter TargetName="Root" Property="Opacity" Value="0.35" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <Style x:Key="ActiveDropZoneStyle" TargetType="Border"
+               BasedOn="{StaticResource DropZoneBorderStyle}">
+            <Style.Triggers>
+                <Trigger Property="behaviors:FileDrop.IsDragOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="32,26,32,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="{Binding Title}" Style="{DynamicResource PageTitleTextStyle}" />
+                <TextBlock Text="{Binding Description}" Style="{DynamicResource SubtitleTextStyle}"
+                           TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                <TextBlock Text="{Binding SummaryText}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                <TextBlock HorizontalAlignment="Right" Style="{DynamicResource CaptionTextStyle}"
+                           Text="{Binding TotalSizeBytes, Converter={StaticResource FileSize}, StringFormat={}{0} total}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Command bar -->
+        <Border Grid.Row="1" Style="{DynamicResource CardBorderStyle}" Padding="10,8" Margin="0,20,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <WrapPanel Grid.Column="0" VerticalAlignment="Center">
+                    <Button Style="{DynamicResource AccentButtonStyle}" Margin="0,2,8,2"
+                            Command="{Binding AddFilesCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE710;" FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="15" VerticalAlignment="Center" />
+                            <TextBlock Text="Add PDFs" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE70E;" Margin="0,2,4,2"
+                            ToolTip="Move the selected document earlier" Command="{Binding MoveUpCommand}" />
+
+                    <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE70D;" Margin="0,2,8,2"
+                            ToolTip="Move the selected document later" Command="{Binding MoveDownCommand}" />
+
+                    <Button Style="{DynamicResource SubtleButtonStyle}" Content="Sort by name" Margin="0,2,4,2"
+                            Command="{Binding SortByNameCommand}" />
+
+                    <Button Style="{DynamicResource SubtleButtonStyle}" Content="Clear" Margin="0,2,4,2"
+                            Command="{Binding ClearCommand}" />
+                </WrapPanel>
+
+                <Button Grid.Column="1" Style="{DynamicResource AccentButtonStyle}"
+                        Command="{Binding MergeCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74E;" FontFamily="{DynamicResource IconFontFamily}"
+                                   FontSize="15" VerticalAlignment="Center" />
+                        <TextBlock Text="Merge to PDF…" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Workspace -->
+        <Grid Grid.Row="2" Margin="0,18,0,0">
+            <Border Style="{StaticResource ActiveDropZoneStyle}"
+                    VerticalAlignment="Center" HorizontalAlignment="Center" MinWidth="460"
+                    behaviors:FileDrop.Command="{Binding DropFilesCommand}"
+                    behaviors:FileDrop.Extensions=".pdf"
+                    Visibility="{Binding Files.Count, Converter={StaticResource CountToVisibilityInverted}}">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE8A5;" FontFamily="{DynamicResource IconFontFamily}"
+                               FontSize="44" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                    <TextBlock Text="Drop PDF files here" Style="{DynamicResource SectionHeaderTextStyle}"
+                               HorizontalAlignment="Center" Margin="0,14,0,0" />
+                    <TextBlock Text="They are merged top to bottom, in the order you arrange the cards."
+                               Style="{DynamicResource CaptionTextStyle}"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap" MaxWidth="360" Margin="0,4,0,0" />
+                    <Button Style="{DynamicResource AccentButtonStyle}" Content="Browse…"
+                            HorizontalAlignment="Center" Margin="0,18,0,0"
+                            Command="{Binding AddFilesCommand}" />
+                </StackPanel>
+            </Border>
+
+            <ListBox Style="{DynamicResource PageThumbnailListBoxStyle}"
+                     ItemContainerStyle="{DynamicResource PageThumbnailItemStyle}"
+                     ItemTemplate="{StaticResource SourceCardTemplate}"
+                     ItemsSource="{Binding Files}"
+                     SelectedItem="{Binding SelectedFile, Mode=TwoWay}"
+                     SelectionMode="Single"
+                     behaviors:DragDropReorder.IsEnabled="True"
+                     behaviors:FileDrop.Command="{Binding DropFilesCommand}"
+                     behaviors:FileDrop.Extensions=".pdf"
+                     Visibility="{Binding Files.Count, Converter={StaticResource CountToVisibility}}" />
+        </Grid>
+
+        <!-- Status -->
+        <Grid Grid.Row="3" Margin="0,10,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Drag the cards to change the merge order"
+                       Style="{DynamicResource CaptionTextStyle}" VerticalAlignment="Center" />
+
+            <TextBlock Grid.Column="1" Text="{Binding StatusMessage}"
+                       Style="{DynamicResource CaptionTextStyle}"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+        </Grid>
+
+        <!-- Busy overlay -->
+        <Border Grid.Row="0" Grid.RowSpan="4"
+                Background="{DynamicResource BusyOverlayBrush}"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+            <Border Style="{DynamicResource CardBorderStyle}" Padding="24" Width="380"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Text="{Binding BusyMessage}" Style="{DynamicResource SectionHeaderTextStyle}"
+                               TextTrimming="CharacterEllipsis" />
+                    <ProgressBar Style="{DynamicResource AppProgressBarStyle}" Margin="0,16,0,0"
+                                 Minimum="0" Maximum="100"
+                                 Value="{Binding ProgressValue}"
+                                 IsIndeterminate="{Binding IsProgressIndeterminate}" />
+                    <Button Content="Cancel" Style="{DynamicResource StandardButtonStyle}"
+                            HorizontalAlignment="Right" Margin="0,18,0,0"
+                            Command="{Binding CancelCommand}" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

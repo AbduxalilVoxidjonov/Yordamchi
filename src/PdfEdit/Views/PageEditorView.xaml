@@ -1,0 +1,384 @@
+<UserControl x:Class="PdfEdit.Views.PageEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:behaviors="clr-namespace:PdfEdit.Behaviors"
+             xmlns:viewModels="clr-namespace:PdfEdit.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="1080" d:DesignHeight="760"
+             d:DataContext="{d:DesignInstance Type=viewModels:PageEditorViewModel}">
+
+    <UserControl.Resources>
+
+        <!-- ================================================================
+             The page card. Everything the user touches on a page lives here:
+             the thumbnail, the number badge, and the hover-revealed actions.
+             ================================================================ -->
+        <DataTemplate x:Key="PageCardTemplate" DataType="{x:Type viewModels:PageItemViewModel}">
+            <Grid x:Name="Root" ToolTip="{Binding ToolTipText}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border x:Name="Card"
+                        Grid.Row="0"
+                        Width="{Binding DataContext.ThumbnailSize, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        Height="{Binding DataContext.ThumbnailSize, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Multiply}, ConverterParameter=1.32}"
+                        Background="{DynamicResource ThumbnailBackgroundBrush}"
+                        BorderBrush="{DynamicResource CardStrokeBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource CardCornerRadius}"
+                        Effect="{DynamicResource CardShadowEffect}"
+                        RenderTransformOrigin="0.5,0.5"
+                        ClipToBounds="True">
+
+                    <Border.RenderTransform>
+                        <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1" />
+                    </Border.RenderTransform>
+
+                    <Grid>
+                        <!-- The rendered page. LayoutTransform (not RenderTransform) so a 90°
+                             rotation actually re-flows the image inside the card. -->
+                        <Image Source="{Binding Thumbnail}"
+                               Margin="10"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               LayoutTransform="{Binding Rotation, Converter={StaticResource RotationToTransform}}" />
+
+                        <!-- Hover scrim, faded in behind the action buttons -->
+                        <Border x:Name="Scrim"
+                                Background="{DynamicResource ScrimBrush}"
+                                Opacity="0"
+                                IsHitTestVisible="False" />
+
+                        <!-- Source file badge (only when the grid mixes documents) -->
+                        <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
+                                Padding="8,3"
+                                CornerRadius="{DynamicResource PillCornerRadius}"
+                                Background="#B3000000"
+                                MaxWidth="120"
+                                Visibility="{Binding ShowSourceBadge, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{Binding SourceFileName}"
+                                       Foreground="White"
+                                       FontSize="11"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Border>
+
+                        <!-- Page number badge -->
+                        <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8"
+                                Padding="10,3"
+                                CornerRadius="{DynamicResource PillCornerRadius}"
+                                Background="#B3000000">
+                            <TextBlock Text="{Binding PageNumber}"
+                                       Foreground="White"
+                                       FontSize="12"
+                                       FontWeight="SemiBold" />
+                        </Border>
+
+                        <!-- Rotation indicator -->
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
+                                Padding="7,3"
+                                CornerRadius="{DynamicResource PillCornerRadius}"
+                                Background="#B3000000"
+                                Visibility="{Binding IsRotated, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="&#xE7AD;"
+                                       FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="11"
+                                       Foreground="White" />
+                        </Border>
+
+                        <!-- Hover actions -->
+                        <StackPanel x:Name="Actions"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Margin="6"
+                                    Opacity="0">
+                            <Button Style="{DynamicResource ThumbnailActionButtonStyle}"
+                                    Content="&#xE80C;"
+                                    Margin="0,0,4,0"
+                                    ToolTip="Rotate counter-clockwise"
+                                    Command="{Binding RotateCounterClockwiseCommand}" />
+
+                            <Button Style="{DynamicResource ThumbnailActionButtonStyle}"
+                                    Content="&#xE7AD;"
+                                    Margin="0,0,4,0"
+                                    ToolTip="Rotate clockwise"
+                                    Command="{Binding RotateClockwiseCommand}" />
+
+                            <Button Style="{DynamicResource ThumbnailDangerActionButtonStyle}"
+                                    Content="&#xE74D;"
+                                    ToolTip="Delete this page"
+                                    Command="{Binding DeleteCommand}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <TextBlock Grid.Row="1"
+                           Text="{Binding OriginalPageNumber, StringFormat=source page {0}}"
+                           Style="{DynamicResource CaptionTextStyle}"
+                           HorizontalAlignment="Center"
+                           Margin="0,6,0,0" />
+            </Grid>
+
+            <DataTemplate.Triggers>
+                <!-- Lift the card and reveal the actions on hover -->
+                <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Card" Property="Effect" Value="{DynamicResource HoverShadowEffect}" />
+                    <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="Scrim" Storyboard.TargetProperty="Opacity"
+                                                 To="1" Duration="0:0:0.15">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetName="Actions" Storyboard.TargetProperty="Opacity"
+                                                 To="1" Duration="0:0:0.15" />
+                                <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleX"
+                                                 To="1.04" Duration="0:0:0.18">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleY"
+                                                 To="1.04" Duration="0:0:0.18">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="Scrim" Storyboard.TargetProperty="Opacity"
+                                                 To="0" Duration="0:0:0.2" />
+                                <DoubleAnimation Storyboard.TargetName="Actions" Storyboard.TargetProperty="Opacity"
+                                                 To="0" Duration="0:0:0.2" />
+                                <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleX"
+                                                 To="1" Duration="0:0:0.2" />
+                                <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleY"
+                                                 To="1" Duration="0:0:0.2" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.ExitActions>
+                </Trigger>
+
+                <!-- Dim the card that is currently being dragged -->
+                <DataTrigger Value="True"
+                             Binding="{Binding (behaviors:DragDropReorder.IsDraggedItem), RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                    <Setter TargetName="Root" Property="Opacity" Value="0.35" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Container style: adds the selection ring and two-way selection binding -->
+        <Style x:Key="PageCardContainerStyle" TargetType="ListBoxItem"
+               BasedOn="{StaticResource PageThumbnailItemStyle}">
+            <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+        </Style>
+
+        <!-- Drop zone with an accent highlight while a file hovers over it -->
+        <Style x:Key="ActiveDropZoneStyle" TargetType="Border"
+               BasedOn="{StaticResource DropZoneBorderStyle}">
+            <Style.Triggers>
+                <Trigger Property="behaviors:FileDrop.IsDragOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="32,26,32,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ============================ Header ============================ -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="{Binding Title}" Style="{DynamicResource PageTitleTextStyle}" />
+                <TextBlock Text="{Binding Description}" Style="{DynamicResource SubtitleTextStyle}"
+                           TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right"
+                        Visibility="{Binding HasDocument, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{Binding DocumentName}" FontWeight="SemiBold" HorizontalAlignment="Right"
+                           TextTrimming="CharacterEllipsis" MaxWidth="280" />
+                <TextBlock Text="{Binding SummaryText}" Style="{DynamicResource CaptionTextStyle}"
+                           HorizontalAlignment="Right" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ============================ Command bar ============================ -->
+        <Border Grid.Row="1" Style="{DynamicResource CardBorderStyle}" Padding="10,8" Margin="0,20,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{DynamicResource AccentButtonStyle}" Margin="0,2,8,2"
+                            Command="{Binding OpenDocumentCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8E5;" FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="15" VerticalAlignment="Center" />
+                            <TextBlock Text="Open PDF" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{DynamicResource StandardButtonStyle}" Margin="0,2,8,2"
+                            Command="{Binding AppendDocumentCommand}"
+                            ToolTip="Append the pages of another PDF to this grid">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE710;" FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="15" VerticalAlignment="Center" />
+                            <TextBlock Text="Add pages" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Border Style="{DynamicResource SeparatorLineStyle}" Width="1" Height="22"
+                            Margin="6,0,10,0" VerticalAlignment="Center" />
+
+                    <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE80C;" Margin="0,2,4,2"
+                            ToolTip="Rotate selected pages counter-clockwise"
+                            Command="{Binding RotateSelectedCounterClockwiseCommand}" />
+
+                    <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE7AD;" Margin="0,2,4,2"
+                            ToolTip="Rotate selected pages clockwise"
+                            Command="{Binding RotateSelectedClockwiseCommand}" />
+
+                    <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE74D;" Margin="0,2,10,2"
+                            ToolTip="Delete selected pages (Del)"
+                            Command="{Binding DeleteSelectedCommand}" />
+
+                    <Button Style="{DynamicResource SubtleButtonStyle}" Content="Select all" Margin="0,2,4,2"
+                            Command="{Binding SelectAllCommand}" />
+
+                    <Button Style="{DynamicResource SubtleButtonStyle}" Content="Invert" Margin="0,2,4,2"
+                            Command="{Binding InvertSelectionCommand}" />
+
+                    <Button Style="{DynamicResource SubtleButtonStyle}" Content="Clear" Margin="0,2,4,2"
+                            Command="{Binding ClearSelectionCommand}" />
+                </WrapPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE71F;"
+                            ToolTip="Smaller thumbnails" Command="{Binding ZoomOutCommand}" />
+                    <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE8A3;" Margin="2,0,10,0"
+                            ToolTip="Larger thumbnails" Command="{Binding ZoomInCommand}" />
+
+                    <Border Style="{DynamicResource SeparatorLineStyle}" Width="1" Height="22"
+                            Margin="0,0,10,0" VerticalAlignment="Center" />
+
+                    <Button Style="{DynamicResource SubtleButtonStyle}" Content="Close" Margin="0,0,8,0"
+                            Command="{Binding CloseDocumentCommand}" />
+
+                    <Button Style="{DynamicResource AccentButtonStyle}" Command="{Binding SaveAsCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74E;" FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="15" VerticalAlignment="Center" />
+                            <TextBlock Text="Save as…" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================ Workspace ============================ -->
+        <Grid Grid.Row="2" Margin="0,18,0,0">
+
+            <!-- Empty state -->
+            <Border Style="{StaticResource ActiveDropZoneStyle}"
+                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                    MinWidth="460"
+                    behaviors:FileDrop.Command="{Binding DropFilesCommand}"
+                    behaviors:FileDrop.Extensions=".pdf"
+                    Visibility="{Binding Pages.Count, Converter={StaticResource CountToVisibilityInverted}}">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE8A5;" FontFamily="{DynamicResource IconFontFamily}"
+                               FontSize="44" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                    <TextBlock Text="Drop a PDF here" Style="{DynamicResource SectionHeaderTextStyle}"
+                               HorizontalAlignment="Center" Margin="0,14,0,0" />
+                    <TextBlock Text="…or browse for one. Pages appear as thumbnails you can drag into any order."
+                               Style="{DynamicResource CaptionTextStyle}"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap" MaxWidth="360" Margin="0,4,0,0" />
+                    <Button Style="{DynamicResource AccentButtonStyle}" Content="Browse…"
+                            HorizontalAlignment="Center" Margin="0,18,0,0"
+                            Command="{Binding OpenDocumentCommand}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Thumbnail grid -->
+            <ListBox x:Name="PageGrid"
+                     Style="{DynamicResource PageThumbnailListBoxStyle}"
+                     ItemContainerStyle="{StaticResource PageCardContainerStyle}"
+                     ItemTemplate="{StaticResource PageCardTemplate}"
+                     ItemsSource="{Binding Pages}"
+                     SelectionMode="Extended"
+                     behaviors:DragDropReorder.IsEnabled="True"
+                     behaviors:FileDrop.Command="{Binding DropFilesCommand}"
+                     behaviors:FileDrop.Extensions=".pdf"
+                     Visibility="{Binding Pages.Count, Converter={StaticResource CountToVisibility}}">
+                <ListBox.InputBindings>
+                    <KeyBinding Key="Delete" Command="{Binding DeleteSelectedCommand}" />
+                </ListBox.InputBindings>
+            </ListBox>
+        </Grid>
+
+        <!-- ============================ Status bar ============================ -->
+        <Grid Grid.Row="3" Margin="0,10,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="{Binding SummaryText}"
+                       Style="{DynamicResource CaptionTextStyle}" VerticalAlignment="Center" />
+
+            <TextBlock Grid.Column="1" Text="{Binding StatusMessage}"
+                       Style="{DynamicResource CaptionTextStyle}"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+        </Grid>
+
+        <!-- ============================ Busy overlay ============================ -->
+        <Border Grid.Row="0" Grid.RowSpan="4"
+                Background="{DynamicResource BusyOverlayBrush}"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+            <Border Style="{DynamicResource CardBorderStyle}" Padding="24" Width="380"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Text="{Binding BusyMessage}" Style="{DynamicResource SectionHeaderTextStyle}"
+                               TextTrimming="CharacterEllipsis" />
+                    <ProgressBar Style="{DynamicResource AppProgressBarStyle}" Margin="0,16,0,0"
+                                 Minimum="0" Maximum="100"
+                                 Value="{Binding ProgressValue}"
+                                 IsIndeterminate="{Binding IsProgressIndeterminate}" />
+                    <Button Content="Cancel" Style="{DynamicResource StandardButtonStyle}"
+                            HorizontalAlignment="Right" Margin="0,18,0,0"
+                            Command="{Binding CancelCommand}" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

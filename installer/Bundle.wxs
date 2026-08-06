@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    PdfEditSetup.exe — a WiX Burn bootstrapper wrapping PdfEdit.msi.
+
+    The bundle owns the entire user experience: licence page, Options page for the install
+    folder, progress, and a Launch button at the end. The MSI it chains runs silently, so
+    the user sees exactly one installer window rather than two nested wizards.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+
+  <Bundle Name="PdfEdit"
+          Manufacturer="PdfEdit"
+          Version="$(var.ProductVersion)"
+          UpgradeCode="9C4B780A-2F93-4653-8556-2779C830C48B"
+          IconSourceFile="$(var.IconFile)"
+          AboutUrl="https://github.com/AbduxalilVoxidjonov/PdfEditor"
+          Compressed="yes">
+
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+          Theme="rtfLicense"
+          LicenseFile="$(var.LicenseFile)"
+          LogoFile="$(var.LogoFile)"
+          LaunchTarget="[InstallFolder]\PdfEdit.exe"
+          ShowVersion="yes" />
+    </BootstrapperApplication>
+
+    <!--
+        wixstdba's Options page edits this variable; forwarding it to the MSI is what makes
+        the folder the user picks actually take effect.
+    -->
+    <Variable Name="InstallFolder"
+              Type="formatted"
+              Value="[ProgramFiles64Folder]PdfEdit"
+              Persisted="yes" />
+
+    <Chain>
+      <MsiPackage SourceFile="$(var.MsiFile)" Vital="yes" Compressed="yes">
+        <MsiProperty Name="INSTALLFOLDER" Value="[InstallFolder]" />
+      </MsiPackage>
+    </Chain>
+  </Bundle>
+</Wix>
