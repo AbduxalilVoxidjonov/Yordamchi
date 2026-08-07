@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+      TestData papkasidagi fayllar yig'ilmaga joylanadi (embedded resource).
+
+      Bu yerda, .csproj da emas: GitHub dan olingan haqiqiy reliz javobi sinov uchun
+      ma'lumot, loyihaning bog'liqligi emas. Joylangan resurs sifatida u yig'ilma bilan
+      birga yuradi — sinov ishlaydigan papkaga nisbatan yo'l qidirish shart emas va
+      hech qanday sinov tarmoqqa chiqmaydi.
+  -->
+
+  <PropertyGroup>
+    <!-- Yuqori papkalarda Directory.Build.props paydo bo'lsa, u ham qo'llanaversin. -->
+    <ParentBuildProps>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))</ParentBuildProps>
+  </PropertyGroup>
+
+  <Import Project="$(ParentBuildProps)" Condition="'$(ParentBuildProps)' != ''" />
+
+  <ItemGroup>
+    <!-- LogicalName ochiq yozilgan: nom hosil qilish qoidasiga tayanib qolmaslik uchun. -->
+    <EmbeddedResource Include="TestData\github-latest-release.json"
+                      LogicalName="Yordamchi.Tests.TestData.github-latest-release.json" />
+  </ItemGroup>
+
+</Project>

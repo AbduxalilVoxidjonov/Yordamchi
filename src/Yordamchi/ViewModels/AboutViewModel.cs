@@ -55,7 +55,7 @@ public sealed partial class AboutViewModel : ViewModelBase
     public string VersionText => $"Versiya {Version}";
 
     public static string Version =>
-        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.1.0";
+        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.2.0";
 
     public string AuthorName => "Abduxalil Voxidjonov";
 
@@ -150,6 +150,7 @@ public sealed partial class AboutViewModel : ViewModelBase
     {
         try
         {
+            // Keshdan foydalanamiz: qobiq allaqachon so'ragan bo'lsa GitHub qayta bezovta qilinmaydi.
             ApplyUpdate(await _updateService.CheckForUpdateAsync().ConfigureAwait(true));
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -176,7 +177,11 @@ public sealed partial class AboutViewModel : ViewModelBase
             "Yangilanish tekshirilmoqda…",
             async (_, token) =>
             {
-                ApplyUpdate(await _updateService.CheckForUpdateAsync(token).ConfigureAwait(true));
+                // force: dastur ochiq turganda chiqqan yangi relizni ko'rsatishning yagona yo'li.
+                // Keshlangan javob qaytsa, bu tugma foydalanuvchi uchun umuman ishlamas edi.
+                ApplyUpdate(await _updateService
+                    .CheckForUpdateAsync(force: true, token)
+                    .ConfigureAwait(true));
             });
 
         if (!checkedOk)

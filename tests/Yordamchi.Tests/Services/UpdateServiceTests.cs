@@ -1,4 +1,7 @@
+using System.Globalization;
+using Yordamchi.Models;
 using Yordamchi.Services;
+using Yordamchi.Tests.TestSupport;
 
 namespace Yordamchi.Tests.Services;
 
@@ -172,7 +175,7 @@ public sealed class UpdateServiceTests
     }
 
     [Theory]
-    [InlineData("https://github.com/AbduxalilVoxidjonov/PdfEditor/releases/download/v2.2.0/YordamchiSetup-2.2.0.exe")]
+    [InlineData("https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.2.0/YordamchiSetup-2.2.0.exe")]
     [InlineData("https://objects.githubusercontent.com/github-production-release-asset/1/2?token=abc")]
     public void Github_release_hosts_are_trusted(string url) =>
         Assert.True(UpdateService.IsTrustedDownloadUrl(url));
@@ -231,11 +234,26 @@ public sealed class UpdateServiceTests
     {
         var script = UpdateService.BuildRestartScript(4321, @"C:\Updates\YordamchiSetup-2.2.0.exe", @"C:\Program Files\Yordamchi\Yordamchi.exe");
 
-        Assert.Contains("\"PID eq 4321\"", script, StringComparison.Ordinal);
-        Assert.Contains(":wait", script, StringComparison.Ordinal);
-        Assert.Contains("goto wait", script, StringComparison.Ordinal);
+        // Kutish PowerShell ga topshirilgan: `tasklist` chiqishini tahlil qiladigan avvalgi
+        // halqa konsolsiz ishga tushganda jimgina o'tib ketardi va o'rnatgich fayllar band
+        // paytida boshlanardi.
+        Assert.Contains("Wait-Process -Id 4321", script, StringComparison.Ordinal);
+        Assert.Contains("-Timeout", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("tasklist", script, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Bayroqlar tasodifiy tanlanmagan, ikkalasi ham WiX v5 manbasida tekshirilgan:
+    /// <list type="bullet">
+    /// <item><c>/passive</c> — Burn dvigateli o'zi tanaydi
+    /// (<c>src/burn/engine/core.cpp</c>): jarayon ko'rsatkichi ko'rinadi, savol berilmaydi.</item>
+    /// <item><c>/norestart</c> — dvigatel emas, bootstrapper qatlami o'qiydi
+    /// (<c>src/api/burn/balutil/balinfo.cpp</c>) va <c>BAL_INFO_RESTART_NEVER</c> qo'yadi.
+    /// U yozilmasa, <c>/passive</c> rejimida standart qiymat <c>AUTOMATIC</c> bo'ladi — ya'ni
+    /// Visual C++ ish vaqti 3010 qaytarsa (Bundle.wxs da <c>scheduleReboot</c>), kompyuter
+    /// <b>so'ramasdan qayta yuklanardi</b>.</item>
+    /// </list>
+    /// </summary>
     [Fact]
     public void The_restart_script_runs_the_installer_quietly_and_reopens_the_app()
     {
@@ -275,7 +293,10 @@ public sealed class UpdateServiceTests
         var script = UpdateService.BuildRestartScript(10, @"C:\a\Setup.exe", @"C:\b\Yordamchi.exe");
 
         Assert.DoesNotContain("timeout ", script, StringComparison.Ordinal);
-        Assert.Contains("ping -n", script, StringComparison.Ordinal);
+
+        // Matn chiqishini tahlil qilish ham xuddi shu sababdan yaramaydi: konsolsiz quvur
+        // (pipe) bo'sh qaytadi va tekshiruv jimgina "jarayon yo'q" degan xulosaga kelardi.
+        Assert.DoesNotContain("| find", script, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -284,6 +305,217 @@ public sealed class UpdateServiceTests
     public void The_restart_script_refuses_empty_paths(string installerPath, string applicationPath) =>
         Assert.Throws<ArgumentException>(
             () => UpdateService.BuildRestartScript(10, installerPath, applicationPath));
+
+    // =================================================================================
+    //  Haqiqiy GitHub javobi
+    //
+    //  Yuqoridagi sinovlar qo'lda yozilgan JSON ustida ishlaydi — ular naqshimizni o'zimiz
+    //  o'ylab topgan ma'lumotga solishtiradi. Quyidagilar esa serverdan olingan asl javobni
+    //  o'qiydi: maydon nomi yoki aktiv nomi bir harf bilan farq qilsa, yangilanish jimgina
+    //  hech qachon ko'rinmaydi va buni boshqa hech qanday sinov tutmaydi.
+    // =================================================================================
+
+    [Fact]
+    public void The_real_github_response_yields_the_setup_exe()
+    {
+        var update = UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(2, 0, 0));
+
+        Assert.NotNull(update);
+        Assert.Equal(GitHubReleaseSample.TagName, update.TagName);
+        Assert.Equal(new Version(2, 1, 0), update.Version);
+        Assert.Equal("2.1.0", update.VersionText);
+        Assert.Equal(GitHubReleaseSample.SetupAssetName, update.AssetName);
+        Assert.Equal(GitHubReleaseSample.SetupDownloadUrl, update.DownloadUrl);
+        Assert.Equal(GitHubReleaseSample.SetupSizeBytes, update.SizeBytes);
+        Assert.True(UpdateService.IsTrustedDownloadUrl(update.DownloadUrl));
+
+        // Reliz sarlavhasi va izohi kartochkada ko'rsatiladi — javobda ular bor.
+        Assert.NotEmpty(update.DisplayName);
+        Assert.NotEmpty(update.ReleaseNotes);
+        Assert.Equal(2026, update.PublishedAt.Year);
+    }
+
+    [Fact]
+    public void The_real_response_really_contains_a_second_asset_that_must_be_skipped()
+    {
+        // Relizda .msi ham bor. Agar naqsh kengroq bo'lsa, dastur MSI ni yuklab olib,
+        // uni bootstrapper bayroqlari bilan ishga tushirishga urinardi.
+        Assert.Contains(GitHubReleaseSample.MsiAssetName, GitHubReleaseSample.Json, StringComparison.Ordinal);
+
+        var update = UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(2, 0, 0));
+
+        Assert.NotNull(update);
+        Assert.EndsWith(".exe", update.AssetName, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_real_response_is_not_offered_to_a_newer_build()
+    {
+        // Yig'ilma relizdan yangi bo'lsa (masalan ishlab chiquvchi mashinasida) — taklif yo'q.
+        Assert.Null(UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(99, 0, 0)));
+    }
+
+    [Fact]
+    public void The_real_response_is_not_offered_to_the_same_build()
+    {
+        Assert.Null(UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(2, 1, 0)));
+        Assert.Null(UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(2, 1, 0, 0)));
+    }
+
+    [Theory]
+    [InlineData("uz-Latn-UZ", "103,1 MB")]
+    [InlineData("en-US", "103.1 MB")]
+    public void The_real_asset_size_is_shown_in_megabytes(string culture, string expected)
+    {
+        // Hajm tasdiqlash oynasida ko'rsatiladi: 108 142 493 bayt — bu 103,1 MB.
+        // Alohida oqimda bajaramiz, aks holda til sozlamasi parallel sinovlarga ta'sir qilardi.
+        var text = InCulture(culture, () =>
+            UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(2, 0, 0))!.SizeText);
+
+        Assert.Equal(expected, text);
+    }
+
+    // =================================================================================
+    //  Kesh va qo'lda tekshirish
+    // =================================================================================
+
+    [Fact]
+    public async Task A_repeated_check_reuses_the_cached_answer()
+    {
+        // GitHub API so'rovlari soatiga cheklangan — qobiq va "Dastur haqida" sahifasi
+        // birgalikda bitta so'rov yuborishi kerak.
+        var calls = 0;
+        var service = new UpdateService(_ =>
+        {
+            calls++;
+            return Task.FromResult<string?>(Release("v9.9.0", "YordamchiSetup-9.9.0.exe"));
+        });
+
+        var first = await service.CheckForUpdateAsync();
+        var second = await service.CheckForUpdateAsync();
+
+        Assert.Equal(1, calls);
+        Assert.NotNull(first);
+        Assert.Same(first, second);
+    }
+
+    [Fact]
+    public async Task A_forced_check_asks_github_again()
+    {
+        // Dastur ochiq turganda yangi reliz chiqishi mumkin. Kesh chetlab o'tilmasa,
+        // "Tekshirish" tugmasi foydalanuvchi uchun umuman ishlamas edi.
+        var responses = new Queue<string>(
+        [
+            Release("v1.0.0", "YordamchiSetup-1.0.0.exe"),
+            Release("v9.9.0", "YordamchiSetup-9.9.0.exe")
+        ]);
+
+        var service = new UpdateService(_ => Task.FromResult<string?>(responses.Dequeue()));
+
+        Assert.Null(await service.CheckForUpdateAsync());
+
+        var forced = await service.CheckForUpdateAsync(force: true);
+
+        Assert.NotNull(forced);
+        Assert.Equal("9.9.0", forced.VersionText);
+        Assert.Empty(responses);
+    }
+
+    [Fact]
+    public async Task A_forced_check_replaces_the_cached_answer()
+    {
+        // Qo'lda topilgan yangilanish keshga tushishi shart: aks holda yon paneldagi
+        // bildirishnoma keyingi jimgina tekshiruvda yana yo'qolib qolardi.
+        var responses = new Queue<string>(
+        [
+            Release("v1.0.0", "YordamchiSetup-1.0.0.exe"),
+            Release("v9.9.0", "YordamchiSetup-9.9.0.exe")
+        ]);
+
+        var calls = 0;
+        var service = new UpdateService(_ =>
+        {
+            calls++;
+            return Task.FromResult<string?>(responses.Dequeue());
+        });
+
+        await service.CheckForUpdateAsync();
+        var forced = await service.CheckForUpdateAsync(force: true);
+        var afterwards = await service.CheckForUpdateAsync();
+
+        Assert.Equal(2, calls);
+        Assert.Same(forced, afterwards);
+    }
+
+    [Fact]
+    public async Task A_failed_check_is_never_cached()
+    {
+        // Internet tiklangach keyingi urinish ishlashi kerak.
+        var calls = 0;
+        var service = new UpdateService(_ =>
+        {
+            calls++;
+            return calls == 1
+                ? Task.FromException<string?>(
+                    new PdfServiceException(PdfErrorKind.OperationFailed, "Internet yo'q"))
+                : Task.FromResult<string?>(Release("v9.9.0", "YordamchiSetup-9.9.0.exe"));
+        });
+
+        await Assert.ThrowsAsync<PdfServiceException>(() => service.CheckForUpdateAsync());
+
+        var update = await service.CheckForUpdateAsync();
+
+        Assert.Equal(2, calls);
+        Assert.NotNull(update);
+    }
+
+    [Fact]
+    public async Task The_real_response_travels_through_the_service_unchanged()
+    {
+        // Butun zanjir: manba → ParseRelease → UpdateInfo. Tarmoqqa chiqilmaydi.
+        var service = new UpdateService(_ => Task.FromResult<string?>(GitHubReleaseSample.Json));
+
+        var update = await service.CheckForUpdateAsync();
+
+        // Yig'ilma versiyasi relizga teng (2.1.0) bo'lsa taklif chiqmaydi — bu ham to'g'ri natija.
+        if (service.CurrentVersion >= new Version(2, 1, 0))
+        {
+            Assert.Null(update);
+            return;
+        }
+
+        Assert.NotNull(update);
+        Assert.Equal(GitHubReleaseSample.SetupAssetName, update.AssetName);
+    }
+
+    [Fact]
+    public async Task A_repository_without_releases_is_not_an_error()
+    {
+        // GitHub relizi bo'lmagan repozitoriyaga 404 qaytaradi. Bu nosozlik emas —
+        // "yangilanish yo'q" degani, ya'ni foydalanuvchiga qizil xato chiqmasligi kerak.
+        var service = new UpdateService(_ => Task.FromResult<string?>(null));
+
+        var update = await service.CheckForUpdateAsync();
+
+        Assert.Null(update);
+    }
+
+    [Fact]
+    public async Task A_missing_release_answer_is_cached_like_any_other()
+    {
+        // 404 ham to'liq javob: uni har safar qayta so'rash API cheklovini behuda yeydi.
+        var calls = 0;
+        var service = new UpdateService(_ =>
+        {
+            calls++;
+            return Task.FromResult<string?>(null);
+        });
+
+        await service.CheckForUpdateAsync();
+        await service.CheckForUpdateAsync();
+
+        Assert.Equal(1, calls);
+    }
 
     // =================================================================================
     //  Xizmatning oddiy xossalari
@@ -295,12 +527,53 @@ public sealed class UpdateServiceTests
         var service = new UpdateService();
 
         Assert.True(service.CurrentVersion.Major >= 2);
-        Assert.Equal("https://github.com/AbduxalilVoxidjonov/PdfEditor/releases", service.ReleasesPageUrl);
+        Assert.Equal("https://github.com/AbduxalilVoxidjonov/Yordamchi/releases", service.ReleasesPageUrl);
+    }
+
+    [Fact]
+    public void The_renamed_repository_url_is_still_trusted()
+    {
+        // Repozitoriy qayta nomlangandan keyin havolaning yo'l qismi o'zgardi. Xost tekshiruvi
+        // yo'lga emas, faqat xostga qaraydi — shuning uchun yangi manzil ham o'tishi kerak.
+        Assert.True(UpdateService.IsTrustedDownloadUrl(GitHubReleaseSample.SetupDownloadUrl));
+        Assert.Contains("/AbduxalilVoxidjonov/Yordamchi/", GitHubReleaseSample.SetupDownloadUrl, StringComparison.Ordinal);
     }
 
     // =================================================================================
     //  Yordamchilar
     // =================================================================================
+
+    /// <summary>
+    /// Berilgan tilda bajaradi. Alohida oqim kerak: <see cref="CultureInfo.CurrentCulture"/>
+    /// oqimga tegishli, sinovlar esa parallel ishlaydi — uni joyida almashtirish qo'shni
+    /// sinovni tasodifan yiqitardi.
+    /// </summary>
+    private static T InCulture<T>(string culture, Func<T> action)
+    {
+        var result = default(T)!;
+        Exception? failure = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+                result = action();
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+        });
+
+        thread.Start();
+        thread.Join();
+
+        if (failure is not null)
+            throw failure;
+
+        return result;
+    }
 
     private static string Release(
         string tag,
@@ -309,7 +582,7 @@ public sealed class UpdateServiceTests
         bool prerelease = false)
     {
         var assets = $$"""
-        [ { "name": "{{asset}}", "browser_download_url": "https://github.com/AbduxalilVoxidjonov/PdfEditor/releases/download/{{tag}}/{{asset}}", "size": 123456789 } ]
+        [ { "name": "{{asset}}", "browser_download_url": "https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/{{tag}}/{{asset}}", "size": 123456789 } ]
         """;
 
         return ReleaseWithAssets(tag, assets, draft, prerelease);

@@ -1,6 +1,7 @@
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Yordamchi.Models;
+using Yordamchi.Services;
 using Yordamchi.Services.Abstractions;
 using Yordamchi.Tests.TestSupport;
 using Yordamchi.ViewModels;
@@ -26,7 +27,7 @@ public sealed class MainViewModelTests
         "v2.2.0",
         "Yordamchi 2.2.0",
         "Izohlar",
-        "https://github.com/AbduxalilVoxidjonov/PdfEditor/releases/download/v2.2.0/YordamchiSetup-2.2.0.exe",
+        "https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.2.0/YordamchiSetup-2.2.0.exe",
         "YordamchiSetup-2.2.0.exe",
         123456789,
         DateTimeOffset.UnixEpoch);
@@ -49,6 +50,33 @@ public sealed class MainViewModelTests
 
         Assert.True(vm.HasUpdate);
         Assert.Equal("Yangi versiya: 2.2.0", vm.UpdateBannerText);
+    }
+
+    [Fact]
+    public void The_sidebar_announces_the_real_github_release()
+    {
+        // Yon paneldagi matn qo'lda yasalgan namunada emas, serverdan olingan haqiqiy
+        // javobdan chiqqan ma'lumot bilan tekshiriladi.
+        var real = UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(2, 0, 0));
+        Assert.NotNull(real);
+
+        _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(real));
+
+        var vm = CreateViewModel();
+
+        Assert.True(vm.HasUpdate);
+        Assert.Equal("Yangi versiya: 2.1.0", vm.UpdateBannerText);
+    }
+
+    [Fact]
+    public void The_silent_check_is_allowed_to_use_the_cache()
+    {
+        // Ochilishdagi tekshiruv birinchi bo'ladi va uning javobi "Dastur haqida" sahifasiga
+        // ham yetadi — GitHub ikki marta so'ralmasligi kerak.
+        CreateViewModel();
+
+        _updates.Received().CheckForUpdateAsync(false, Arg.Any<CancellationToken>());
+        _updates.DidNotReceive().CheckForUpdateAsync(true, Arg.Any<CancellationToken>());
     }
 
     [Fact]

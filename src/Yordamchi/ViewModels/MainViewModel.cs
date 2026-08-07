@@ -83,7 +83,7 @@ public sealed partial class MainViewModel : ObservableObject
     public string ApplicationSubtitle => "PDF vositalari, arxiv va ekran yozuvi";
 
     public string VersionText =>
-        $"Versiya {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.1.0"}";
+        $"Versiya {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.2.0"}";
 
     public string AuthorText => "Abduxalil Voxidjonov";
 
@@ -110,7 +110,11 @@ public sealed partial class MainViewModel : ObservableObject
     {
         try
         {
-            AvailableUpdate = await _updateService.CheckForUpdateAsync().ConfigureAwait(true);
+            // force: false — bu birinchi tekshiruv, natijasi "Dastur haqida" sahifasiga ham
+            // keshdan yetib boradi va GitHub bir marta so'raladi.
+            AvailableUpdate = await _updateService
+                .CheckForUpdateAsync(force: false)
+                .ConfigureAwait(true);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {

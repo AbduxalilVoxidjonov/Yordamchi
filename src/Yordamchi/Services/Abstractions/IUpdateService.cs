@@ -30,9 +30,19 @@ public interface IUpdateService
     /// keshlanmaydi — internet tiklangach qayta urinib ko'rish ishlaydi.
     /// </para>
     /// </summary>
-    /// <returns>Yangi versiya bo'lsa uning ma'lumoti, aks holda <c>null</c>.</returns>
+    /// <param name="force">
+    /// <c>true</c> bo'lsa kesh chetlab o'tiladi va GitHub qaytadan so'raladi. Bu foydalanuvchi
+    /// "Tekshirish" tugmasini bosgan holat uchun: dastur ochiq turganda yangi reliz chiqsa,
+    /// keshlangan "yangilanish yo'q" javobi tugmani <b>hech qachon ishlamaydigan</b> qilib
+    /// qo'yardi. Jimgina fon tekshiruvi esa <c>false</c> bilan keshdan foydalanaveradi.
+    /// </param>
+    /// <returns>
+    /// Yangi versiya bo'lsa uning ma'lumoti, aks holda <c>null</c>. Repozitoriyada birorta
+    /// reliz bo'lmasa (HTTP 404) ham <c>null</c> qaytadi: bu nosozlik emas, shunchaki
+    /// yangilanish yo'q.
+    /// </returns>
     /// <exception cref="PdfServiceException">Tarmoq yoki server nosozligi.</exception>
-    Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken cancellationToken = default);
+    Task<UpdateInfo?> CheckForUpdateAsync(bool force = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// O'rnatgichni <c>%LOCALAPPDATA%\Yordamchi\Updates</c> papkasiga yuklab oladi.

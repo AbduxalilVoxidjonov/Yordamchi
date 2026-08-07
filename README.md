@@ -1,6 +1,6 @@
 <div align="center">
 
-# Yordamchi 2.1.0
+# Yordamchi 2.2.0
 
 **Windows uchun to'liq funksional PDF vositalari to'plami — 17 ta vosita, arxivlash va ekran yozuvi, bitta dastur.**
 
@@ -13,11 +13,17 @@ WPF (.NET 8) · MVVM · Fluent Design · Light/Dark rejim · to'liq o'zbek tilid
 Yordamchi — kundalik ishda kerak bo'ladigan barcha PDF amallarini bitta oynada jamlagan
 dastur: sahifalarni tartiblash va birlashtirishdan tortib, Word/Excel/PowerPoint ga
 konvertatsiya, OCR va sun'iy intellekt bilan rasm fonini olib tashlashgacha. Bularga
-qo'shimcha — **arxivlash** va **ekranni ovoz bilan videoga yozib olish** modullari.
+qo'shimcha — **arxivlash** va **ekranni ovoz bilan videoga yozib olish** modullari. Yozuv
+davomida boshqaruv ekrandagi kichik **suzuvchi panelga** chiqadi: u monitorda ko'rinadi,
+lekin videoga tushmaydi. Yangi versiya chiqqanida dastur buni o'zi sezadi va **o'zini
+yangilay oladi**.
 
-**Hech qanday internet talab qilinmaydi** (OCR til fayllari va AI modelini birinchi marta
-yuklab olishdan tashqari), fayllaringiz hech qayerga jo'natilmaydi — barcha ish sizning
-kompyuteringizda bajariladi.
+**Fayllaringiz hech qayerga jo'natilmaydi** — hujjat, rasm va videolar ustidagi barcha ish
+sizning kompyuteringizda bajariladi. Dastur internetga faqat uch holatda chiqadi: OCR til
+fayllarini va AI modelini birinchi marta yuklab olishda hamda ochilishda "eng so'nggi
+versiya qaysi" degan bitta so'rovni GitHub ga yuborganda. Bu so'rovda foydalanuvchi
+haqidagi hech qanday ma'lumot yo'q — unda faqat dastur nomi va versiyasi ko'rsatiladi
+(batafsil: [🔄 Yangilanish](#-yangilanish)).
 
 Chap yon paneldagi navigatsiya to'rt bo'limdan iborat:
 
@@ -174,16 +180,90 @@ qurilma"*. Ikkalasi birga yoqilsa ovozlar bitta yo'lakka aralashtiriladi.
 
 ### Boshqarish
 
-1. **"Yozishni boshlash"** — sozlamalar bloklanadi, taymer yurishni boshlaydi.
-2. **"To'xtatib turish" / "Davom ettirish"** — fayl yopilmaydi, to'xtab turgan vaqt
-   taymerga qo'shilmaydi.
-3. **"To'xtatish"** — fayl yakunlanadi (bu bir necha yuz millisekund oladi), so'ng
+1. **"Yozishni boshlash"** — sozlamalar bloklanadi, taymer yurishni boshlaydi va ekranning
+   pastida kichik **suzuvchi boshqaruv paneli** ochiladi.
+2. Panelda: holat nishoni (yozilayotganda qizil, pauzada sariq), o'tgan vaqt,
+   **"Pauza" / "Davom"** va **"To'xtatish"** tugmalari.
+3. **"Pauza"** — fayl yopilmaydi, to'xtab turgan vaqt taymerga qo'shilmaydi.
+4. **"To'xtatish"** — fayl yakunlanadi (bu bir necha yuz millisekund oladi), so'ng
    sahifada **"Oxirgi yozuv"** kartochkasi va **"Papkada ko'rsatish"** tugmasi paydo
    bo'ladi.
 
+> **Panel videoga tushmaydi.** U monitorda ko'rinib turadi, lekin yozuvga ham,
+> skrinshotlarga ham kirmaydi — Windows ning `WDA_EXCLUDEFROMCAPTURE` imkoniyati shuni
+> ta'minlaydi. Shuning uchun yozuv davomida "To'xtatish" tugmasi doim ko'z oldingizda
+> turadi va videoda uning izi qolmaydi.
+
+Panelni bo'sh joyidan ushlab **istalgan joyga surish** mumkin — masalan yozilayotgan
+oynaning ustidan olib qo'yish uchun. Tanlangan joy dastur yopilgunicha esda qoladi:
+keyingi yozuvda panel o'sha yerdan ochiladi. Vazifalar panelida u ko'rinmaydi va boshqa
+oynalarning ustida turadi.
+
 **"Yozish boshlanganda dastur oynasi kichraytirilsin"** belgisi (standart holatda
 yoqilgan) yozuv boshlanishi bilan Yordamchi oynasini kichraytiradi — aks holda videoning
-boshida shu oynaning o'zi ko'rinib qoladi.
+boshida shu oynaning o'zi ko'rinib qoladi. Yozuv tugagach oyna **o'zi qaytariladi**, lekin
+faqat uni dastur kichraytirgan bo'lsa: agar oynani siz qo'lda kichraytirgan bo'lsangiz, u
+o'z holida qoladi.
+
+> **Windows 10 2004 (build 19041) dan eski tizimda.** U yerda oynani yozuvdan yashirib
+> bo'lmaydi, ya'ni panel har kadrda ko'rinib qolardi. Shuning uchun u umuman ochilmaydi va
+> "Pauza" bilan "To'xtatish" odatdagidek **sahifaning o'zida** qoladi — bunday tizimda
+> oynani kichraytirmaslik yoki uni vazifalar panelidan qaytarish kerak bo'ladi.
+
+---
+
+## 🔄 Yangilanish
+
+Dastur o'zining yangi versiyasini o'zi topadi va o'zi o'rnatadi — relizlar sahifasini
+kuzatib yurish shart emas.
+
+### Qanday ishlaydi
+
+1. **Ochilishda jimgina tekshiruv.** Dastur GitHub relizlariga bitta so'rov yuborib, eng
+   so'nggi versiyani so'raydi. Internet yo'q bo'lsa yoki server javob bermasa — hech qanday
+   xato oynasi chiqmaydi, siz buni umuman sezmaysiz.
+2. **Yangi versiya bo'lsa — bildirishnoma.** Chap yon panelning pastida
+   *"Yangi versiya: 2.3.0"* degan kichik tugma paydo bo'ladi. U hech narsani to'sib
+   qo'ymaydi va o'zi hech narsa yuklamaydi; bosilsa **"Dastur haqida"** sahifasi ochiladi.
+3. **"Dastur haqida" da to'liq kartochka.** *"Dastur yangilanishi"* kartochkasi holatni
+   matn bilan aytadi — *"Eng so'nggi versiya o'rnatilgan"* yoki *"Yangi versiya tayyor:
+   2.3.0 (62 MB)"* — va uchta tugma beradi: **"Nima o'zgardi"** (relizlar sahifasini
+   brauzerda ochadi), **"Tekshirish"** (qo'lda qayta tekshirish) va **"Yangilash"**.
+4. **Tasdiqlash.** Tugma bosilganda dastur nima bo'lishini oldindan to'liq aytadi: fayl
+   yuklab olinadi, dastur yopiladi, o'rnatiladi va qaytadan ochiladi. Rozi bo'lmasangiz
+   hech narsa qilinmaydi.
+5. **Yuklash va o'rnatish.** O'rnatgich foizi ko'rinib turgan holda yuklanadi (bekor qilish
+   mumkin), so'ng dastur yopiladi va o'rnatgich ishga tushadi. Windows bir marta
+   **administrator ruxsatini (UAC)** so'raydi. Tugagach yangi versiya o'zi ochiladi.
+
+| Xususiyat | Qiymat |
+|---|---|
+| Nima yuklab olinadi | Faqat rasmiy relizdagi `YordamchiSetup-<versiya>.exe` |
+| Qayerga yuklanadi | `%LOCALAPPDATA%\Yordamchi\Updates` — administrator huquqi kerak emas |
+| Qachon taklif qilinadi | Faqat joriy versiyadan **yangi** reliz uchun; qoralama (draft) va sinov (prerelease) relizlari e'tiborga olinmaydi |
+| Avtomatik o'rnatiladimi | **Yo'q.** Hamma narsa siz tasdiqlaganingizdan keyin boshlanadi |
+
+### Xavfsizlik tekshiruvlari
+
+Yuklab olingan fayl sizning kompyuteringizda administrator huquqi bilan ishga tushadi,
+shuning uchun tekshiruvlar ataylab qattiq — mos kelmagan har qanday narsa shunchaki rad
+etiladi:
+
+| Tekshiruv | Nima talab qilinadi |
+|---|---|
+| Fayl nomi | Aynan `YordamchiSetup-<versiya>.exe` naqshi. `.msi`, `.zip` yoki boshqa nomdagi aktiv olinmaydi |
+| Protokol | Faqat **https** |
+| Manzil | Faqat `github.com` va `objects.githubusercontent.com` (aktivlar shu ikkinchi xostga yo'naltiriladi). Boshqa xost — biz nazorat qilmaydigan server, demak rad etiladi |
+| Yaxlitlik | Yuklab olingan faylning hajmi GitHub aytgan qiymatga **baytma-bayt** teng bo'lishi shart; aks holda fayl o'chiriladi va o'rnatish boshlanmaydi |
+| Chala fayl | Yuklash `.part` nomiga boradi va faqat tekshiruvdan o'tgach asl nomiga o'tadi — yarim yuklangan o'rnatgich hech qachon ishga tushirilmaydi |
+
+> Tekshiruv so'rovida foydalanuvchi haqidagi hech qanday ma'lumot yuborilmaydi: GitHub ga
+> ketadigan yagona narsa — so'rovni kim yuborayotganini bildiradigan dastur nomi va
+> versiyasi (`Yordamchi/2.2.0`). GitHub API `User-Agent` siz so'rovlarni rad etadi.
+
+> Yangilanishni umuman ishlatmaslik ham mumkin: bildirishnomani e'tiborsiz qoldiring va
+> kerak bo'lganda o'rnatgichni [Releases](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/latest)
+> dan qo'lda yuklab oling — natija bir xil.
 
 ---
 
@@ -193,6 +273,7 @@ boshida shu oynaning o'zi ko'rinib qoladi.
 |---|---|
 | Operatsion tizim | **Windows 10 (1809+) yoki Windows 11**, 64-bit (x64) |
 | Ekran yozuvi uchun | **Windows 10 1903 (build 18362)** yoki undan yangisi |
+| Suzuvchi boshqaruv paneli uchun | **Windows 10 2004 (build 19041)** yoki undan yangisi — oynani yozuvdan yashirish shu versiyadan mumkin |
 | .NET | **Talab qilinmaydi** — dastur o'zi-yetarli (self-contained), kerakli hamma narsa ichida |
 | Visual C++ ish vaqti | **Microsoft Visual C++ 2015–2022 (x64)** — o'rnatuvchi yo'q bo'lsa o'zi qo'yadi |
 | Diskda joy | ~170 MB (o'rnatilgandan keyin) |
@@ -212,8 +293,8 @@ boshida shu oynaning o'zi ko'rinib qoladi.
 
 ## O'rnatish
 
-1. [**Releases**](https://github.com/AbduxalilVoxidjonov/PdfEditor/releases/latest) bo'limidan
-   `YordamchiSetup-2.1.0.exe` faylini yuklab oling va ishga tushiring.
+1. [**Releases**](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/latest) bo'limidan
+   `YordamchiSetup-2.2.0.exe` faylini yuklab oling va ishga tushiring.
 2. Litsenziyani qabul qiling, kerak bo'lsa o'rnatish papkasini o'zgartiring.
 3. "O'rnatish" tugmasini bosing — bir marta administrator ruxsati (UAC) so'raladi.
 
@@ -231,16 +312,16 @@ O'rnatuvchi:
 
 ### Korporativ (jimgina) o'rnatish
 
-MSI ham xuddi shu relizda — `Yordamchi-2.1.0-x64.msi`:
+MSI ham xuddi shu relizda — `Yordamchi-2.2.0-x64.msi`:
 
 ```powershell
-msiexec /i Yordamchi-2.1.0-x64.msi /qn INSTALLFOLDER="C:\Apps\Yordamchi"
+msiexec /i Yordamchi-2.2.0-x64.msi /qn INSTALLFOLDER="C:\Apps\Yordamchi"
 ```
 
 O'chirish:
 
 ```powershell
-msiexec /x Yordamchi-2.1.0-x64.msi /qn
+msiexec /x Yordamchi-2.2.0-x64.msi /qn
 ```
 
 ---
@@ -289,7 +370,7 @@ ishlaydi va tugagach o'zidan keyin tozalab ketadi.
 dotnet publish src\Yordamchi\Yordamchi.csproj `
     -c Release -r win-x64 --self-contained true `
     -p:PublishReadyToRun=true `
-    -p:Version=2.1.0 -p:FileVersion=2.1.0.0 -p:AssemblyVersion=2.1.0.0 `
+    -p:Version=2.2.0 -p:FileVersion=2.2.0.0 -p:AssemblyVersion=2.2.0.0 `
     -o publish\win-x64
 ```
 
@@ -310,8 +391,8 @@ wix extension add -g WixToolset.Util.wixext/5.0.2
 So'ng bitta buyruq:
 
 ```powershell
-.\build-installer.ps1                        # standart versiya: 2.1.0.0
-.\build-installer.ps1 -Version 2.2.0.0       # boshqa versiya bilan
+.\build-installer.ps1                        # standart versiya: 2.2.0.0
+.\build-installer.ps1 -Version 2.3.0.0       # boshqa versiya bilan
 .\build-installer.ps1 -SkipPublish           # mavjud publish papkasini qayta ishlatish
 ```
 
@@ -320,9 +401,9 @@ Skript to'rt bosqichni bajaradi va natijani `artifacts\` ga qo'yadi:
 | # | Bosqich | Natija |
 |---|---|---|
 | 1 | `dotnet publish -r win-x64 --self-contained -p:PublishReadyToRun=true` | `publish\win-x64\` (~168 MB) |
-| 2 | `wix build installer\Package.wxs` | `artifacts\Yordamchi-2.1.0-x64.msi` (LZX:high siqish bilan ~60 MB) |
+| 2 | `wix build installer\Package.wxs` | `artifacts\Yordamchi-2.2.0-x64.msi` (LZX:high siqish bilan ~60 MB) |
 | 3 | `vc_redist.x64.exe` ni `https://aka.ms/vs/17/release/vc_redist.x64.exe` dan olish | `artifacts\vc_redist.x64.exe` — **bir martalik**, keyingi yig'ilishlarda qayta ishlatiladi |
-| 4 | `wix build installer\Bundle.wxs` | `artifacts\YordamchiSetup-2.1.0.exe` — MSI va VC++ ish vaqti ichiga joylangan (`Compressed="yes"`) |
+| 4 | `wix build installer\Bundle.wxs` | `artifacts\YordamchiSetup-2.2.0.exe` — MSI va VC++ ish vaqti ichiga joylangan (`Compressed="yes"`) |
 
 > 3-bosqich — yagona joy, u yerda skript internetga chiqadi. Fayl allaqachon
 > `artifacts\vc_redist.x64.exe` da bo'lsa, u yuklab olinmaydi; qo'lda ham qo'yish mumkin.
@@ -445,6 +526,12 @@ To'liq tavsif, papkalar xaritasi, ma'lumot oqimi va yangi vosita qo'shish qo'lla
 - Bir vaqtning o'zida bitta manba (bitta monitor yoki bitta oyna) yoziladi; yozuv
   davomida manbani va sozlamalarni o'zgartirib bo'lmaydi.
 - Oyna yozib olinayotganda uni yopish yoki kichraytirish kadrlar oqimini to'xtatadi.
+- Suzuvchi boshqaruv paneli Windows 10 2004 (build 19041) dan boshlab ishlaydi. Eskiroq
+  tizimda u umuman ochilmaydi (aks holda videoning har bir kadrida ko'rinib qolardi) —
+  "Pauza" va "To'xtatish" sahifaning o'zida qoladi.
+- Yangilanish o'rnatilishida Windows administrator ruxsatini (UAC) so'raydi: dastur
+  `C:\Program Files` ga, ya'ni butun kompyuter uchun o'rnatiladi. Buni aylanib o'tib
+  bo'lmaydi — o'rnatgichni qo'lda ishga tushirganda ham xuddi shu so'raladi.
 
 ---
 

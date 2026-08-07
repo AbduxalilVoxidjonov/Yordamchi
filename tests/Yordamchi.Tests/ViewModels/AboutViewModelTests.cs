@@ -1,6 +1,7 @@
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Yordamchi.Models;
+using Yordamchi.Services;
 using Yordamchi.Services.Abstractions;
 using Yordamchi.Tests.TestSupport;
 using Yordamchi.ViewModels;
@@ -50,7 +51,7 @@ public sealed class AboutViewModelTests : IDisposable
         _updates.ReleasesPageUrl.Returns(ReleasesPage);
     }
 
-    private const string ReleasesPage = "https://github.com/AbduxalilVoxidjonov/PdfEditor/releases";
+    private const string ReleasesPage = "https://github.com/AbduxalilVoxidjonov/Yordamchi/releases";
 
     /// <summary>Sinovlarda ishlatiladigan "yangi versiya bor" javobi.</summary>
     private static UpdateInfo NewRelease() => new(
@@ -58,7 +59,7 @@ public sealed class AboutViewModelTests : IDisposable
         "v2.2.0",
         "Yordamchi 2.2.0",
         "Izohlar",
-        "https://github.com/AbduxalilVoxidjonov/PdfEditor/releases/download/v2.2.0/YordamchiSetup-2.2.0.exe",
+        "https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.2.0/YordamchiSetup-2.2.0.exe",
         "YordamchiSetup-2.2.0.exe",
         123456789,
         DateTimeOffset.UnixEpoch);
@@ -341,6 +342,59 @@ public sealed class AboutViewModelTests : IDisposable
         Assert.True(vm.HasUpdate);
         Assert.Contains("2.2.0", vm.UpdateStatus);
         Assert.False(vm.IsBusy);
+    }
+
+    [Fact]
+    public void The_status_shown_on_open_may_come_from_the_cache()
+    {
+        // Sahifa ochilishi — qobiq allaqachon so'ragan javobga qo'shilish, yangi so'rov emas.
+        CreateViewModel();
+
+        _updates.Received(1).CheckForUpdateAsync(false, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task The_check_button_bypasses_the_cache()
+    {
+        // Dastur ochiq turganda yangi reliz chiqishi mumkin. Kesh chetlab o'tilmasa,
+        // "Tekshirish" tugmasi eski javobni qaytarardi va foydalanuvchi buni sezmasdi.
+        var vm = CreateViewModel();
+
+        await vm.CheckForUpdateCommand.ExecuteAsync(null);
+
+        await _updates.Received(1).CheckForUpdateAsync(true, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_release_that_appears_while_the_app_is_open_is_found_by_the_check_button()
+    {
+        // Ochilishda yangilanish yo'q edi; foydalanuvchi tugmani bosgan paytda paydo bo'ldi.
+        var vm = CreateViewModel();
+        Assert.False(vm.HasUpdate);
+
+        _updates.CheckForUpdateAsync(true, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<UpdateInfo?>(NewRelease()));
+
+        await vm.CheckForUpdateCommand.ExecuteAsync(null);
+
+        Assert.True(vm.HasUpdate);
+        Assert.Contains("2.2.0", vm.UpdateStatus);
+    }
+
+    [Fact]
+    public void The_status_of_a_real_release_names_the_version_and_its_size()
+    {
+        // Haqiqiy GitHub javobidan olingan ma'lumot: 2.1.0, 108 142 493 bayt.
+        var real = UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(2, 0, 0));
+        Assert.NotNull(real);
+
+        _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(real));
+
+        var vm = CreateViewModel();
+
+        // Hajm o'lchov ajratgichi tilga bog'liq (103,1 / 103.1), qolgani esa qat'iy.
+        Assert.StartsWith("Yangi versiya tayyor: 2.1.0 (103", vm.UpdateStatus, StringComparison.Ordinal);
+        Assert.EndsWith(" MB)", vm.UpdateStatus, StringComparison.Ordinal);
     }
 
     [Fact]

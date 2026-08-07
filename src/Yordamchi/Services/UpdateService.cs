@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
@@ -23,12 +24,20 @@ namespace Yordamchi.Services;
 /// </summary>
 public sealed partial class UpdateService : IUpdateService
 {
-    /// <summary>Eng so'nggi reliz uchun GitHub API manzili.</summary>
+    /// <summary>
+    /// Eng so'nggi reliz uchun GitHub API manzili.
+    /// <para>
+    /// Repozitoriy qayta nomlangan va manzil to'g'ridan-to'g'ri yangi nomga qaratilgan.
+    /// GitHub eski manzilni yo'naltiradi, lekin unga tayanmaymiz: yo'naltirish bir kun
+    /// to'xtashi yoki bo'shab qolgan eski nom boshqa birov tomonidan band qilinishi mumkin —
+    /// bunda dastur begona repozitoriyning relizini taklif qilardi.
+    /// </para>
+    /// </summary>
     private const string LatestReleaseApiUrl =
-        "https://api.github.com/repos/AbduxalilVoxidjonov/PdfEditor/releases/latest";
+        "https://api.github.com/repos/AbduxalilVoxidjonov/Yordamchi/releases/latest";
 
     private const string ReleasesPage =
-        "https://github.com/AbduxalilVoxidjonov/PdfEditor/releases";
+        "https://github.com/AbduxalilVoxidjonov/Yordamchi/releases";
 
     /// <summary>O'rnatgich yuklanadigan papka — dastur papkasi emas, chunki u yozish uchun yopiq.</summary>
     private static readonly string UpdatesDirectory = Path.Combine(
@@ -67,12 +76,33 @@ public sealed partial class UpdateService : IUpdateService
     /// <summary>Ikkita sahifa bir vaqtda tekshirsa ham GitHub ga bitta so'rov ketadi.</summary>
     private readonly SemaphoreSlim _checkGate = new(1, 1);
 
+    /// <summary>
+    /// Reliz javobini keltiruvchi manba; odatda GitHub API. <c>null</c> qaytishi — reliz
+    /// umuman yo'q (HTTP 404), ya'ni "yangilanish yo'q", nosozlik emas.
+    /// </summary>
+    private readonly Func<CancellationToken, Task<string?>> _releaseJsonSource;
+
     private UpdateInfo? _cachedUpdate;
     private bool _hasCheckedSuccessfully;
 
     /// <summary>Parametrsiz konstruktor — DI konteyneri shu tarzda yaratadi.</summary>
     public UpdateService()
+        : this(FetchLatestReleaseJsonAsync)
     {
+    }
+
+    /// <summary>
+    /// Reliz javobini boshqa manbadan oladigan konstruktor.
+    /// <para>
+    /// Kesh va <c>force</c> mantig'i aynan shu manba ustida ishlaydi, shuning uchun uni
+    /// almashtira olish sinovlar uchun yagona yo'l: aks holda "kesh ishladimi" degan savolga
+    /// faqat haqiqiy GitHub so'rovi javob berardi, ya'ni sinovlar tarmoqqa bog'lanib qolardi.
+    /// </para>
+    /// </summary>
+    public UpdateService(Func<CancellationToken, Task<string?>> releaseJsonSource)
+    {
+        ArgumentNullException.ThrowIfNull(releaseJsonSource);
+        _releaseJsonSource = releaseJsonSource;
     }
 
     /// <inheritdoc />
@@ -95,9 +125,11 @@ public sealed partial class UpdateService : IUpdateService
     // =====================================================================================
 
     /// <inheritdoc />
-    public async Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+    public async Task<UpdateInfo?> CheckForUpdateAsync(
+        bool force = false,
+        CancellationToken cancellationToken = default)
     {
-        if (_hasCheckedSuccessfully)
+        if (!force && _hasCheckedSuccessfully)
             return _cachedUpdate;
 
         await _checkGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -105,12 +137,17 @@ public sealed partial class UpdateService : IUpdateService
         try
         {
             // Navbatda turganda boshqa chaqiruv allaqachon javob olgan bo'lishi mumkin.
-            if (_hasCheckedSuccessfully)
+            // Qo'lda tekshirishda bu qisqartma ishlamaydi: foydalanuvchi aynan yangi
+            // javobni so'ragan, ya'ni GitHub qayta so'ralishi shart.
+            if (!force && _hasCheckedSuccessfully)
                 return _cachedUpdate;
 
-            var json = await FetchLatestReleaseJsonAsync(cancellationToken).ConfigureAwait(false);
+            var json = await _releaseJsonSource(cancellationToken).ConfigureAwait(false);
 
-            _cachedUpdate = ParseRelease(json, CurrentVersion);
+            // json == null — repozitoriyada reliz yo'q (404). Bu "yangilanish yo'q" degani,
+            // shuning uchun natija ham odatdagidek keshlanadi va foydalanuvchiga qizil
+            // xato ko'rsatilmaydi.
+            _cachedUpdate = json is null ? null : ParseRelease(json, CurrentVersion);
             _hasCheckedSuccessfully = true;
             return _cachedUpdate;
         }
@@ -405,6 +442,9 @@ public sealed partial class UpdateService : IUpdateService
         {
             // UseShellExecute — skript joriy jarayondan ajratilgan holda ishlaydi va biz
             // yopilganimizda u bilan birga o'lmaydi; oyna esa foydalanuvchiga ko'rinmaydi.
+            //
+            // Skriptning o'zi konsolga bog'liq emas (kutish PowerShell da bajariladi),
+            // shuning uchun bu yerdagi tanlov faqat ajratilish va ko'rinmaslik uchun.
             Process.Start(new ProcessStartInfo(scriptPath)
             {
                 UseShellExecute = true,
@@ -446,18 +486,25 @@ public sealed partial class UpdateService : IUpdateService
         builder.AppendLine("setlocal");
         builder.AppendLine();
 
+        // Kutish ATAYLAB PowerShell ga topshirilgan. Avvalgi variant `tasklist` chiqishini
+        // `find` bilan tekshirardi va bu jimgina buzilardi: skript konsolsiz ishga tushsa
+        // quvur (pipe) hech narsa qaytarmay, halqa birinchi qadamdayoq o'tib ketardi — ya'ni
+        // o'rnatgich dastur hali fayllarni ushlab turganda boshlanardi. `Wait-Process` esa
+        // hech qanday matn chiqishiga tayanmaydi.
+        //
+        // -Timeout: dastur qandaydir sababdan yopilmay qolsa, skript abadiy osilib qolmaydi.
+        // Jarayon allaqachon yo'q bo'lsa `Wait-Process` darhol qaytadi (SilentlyContinue).
         builder.AppendLine("rem 1) Dastur to'liq yopilishini kutamiz: band faylni o'rnatgich almashtira olmaydi.");
-        builder.AppendLine(":wait");
-        builder.AppendLine($"tasklist /FI \"PID eq {pid}\" /NH 2>nul | find \"{pid}\" >nul");
-        builder.AppendLine("if not errorlevel 1 (");
-
-        // "timeout" stdin ni talab qiladi va oynasiz ishga tushirilganda xato bilan tugaydi,
-        // shuning uchun kutish ping bilan bajariladi.
-        builder.AppendLine("    ping -n 2 127.0.0.1 >nul");
-        builder.AppendLine("    goto wait");
-        builder.AppendLine(")");
+        builder.AppendLine(
+            "powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            + $"\"Wait-Process -Id {pid} -Timeout 120 -ErrorAction SilentlyContinue\"");
         builder.AppendLine();
 
+        // Ikkala bayroq ham WiX v5 manbasida tekshirilgan. /passive ni Burn dvigatelining o'zi
+        // taniydi (core.cpp) — jarayon ko'rsatkichi ko'rinadi, savol berilmaydi. /norestart ni
+        // esa bootstrapper qatlami o'qiydi (balutil/balinfo.cpp) va uni yozmasak, /passive
+        // rejimida standart qiymat AUTOMATIC bo'ladi: Visual C++ ish vaqti 3010 qaytarganda
+        // (Bundle.wxs da scheduleReboot) kompyuter so'ramasdan qayta yuklanardi.
         builder.AppendLine("rem 2) O'rnatgich foydalanuvchini savolga ko'mmasdan bajariladi va tugashini kutamiz.");
         builder.AppendLine($"start \"\" /wait \"{installerPath}\" /passive /norestart");
         builder.AppendLine();
@@ -475,7 +522,13 @@ public sealed partial class UpdateService : IUpdateService
     //  Yordamchilar
     // =====================================================================================
 
-    private static async Task<string> FetchLatestReleaseJsonAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// GitHub javobini matn sifatida oladi.
+    /// </summary>
+    /// <returns>
+    /// JSON matni; repozitoriyada hali reliz bo'lmasa (HTTP 404) — <c>null</c>.
+    /// </returns>
+    private static async Task<string?> FetchLatestReleaseJsonAsync(CancellationToken cancellationToken)
     {
         // Tekshiruv uchun alohida, qisqa muhlat: yuklab olish muhlati (30 daqiqa) bu yerda
         // dastur ochilishini muzlatib qo'yardi.
@@ -487,6 +540,11 @@ public sealed partial class UpdateService : IUpdateService
             using var response = await SharedHttpClient.Value
                 .GetAsync(LatestReleaseApiUrl, HttpCompletionOption.ResponseContentRead, timeout.Token)
                 .ConfigureAwait(false);
+
+            // 404 — repozitoriyada hali birorta reliz e'lon qilinmagan. Bu nosozlik emas:
+            // foydalanuvchiga qizil xato ko'rsatish o'rniga "yangilanish yo'q" deb qaraymiz.
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
 
             if (!response.IsSuccessStatusCode)
             {
