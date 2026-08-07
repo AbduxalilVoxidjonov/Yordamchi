@@ -34,7 +34,8 @@ yo'nalishi faqat bitta tomonga — ichkariga (abstraksiyalar va modellar tomon) 
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  Views (XAML)                                                            │
 │  MainWindow, DashboardView, ToolWorkspaceView, BackgroundRemoverView,    │
-│  ArchiveView, ScreenRecorderView, RecordingOverlayWindow…                │
+│  ArchiveView, ScreenRecorderView, TransliterationView,                   │
+│  NumberSystemView, RecordingOverlayWindow…                               │
 │  Code-behind faqat InitializeComponent va HWND (Mica, oynani             │
 │  kichraytirish/qaytarish, panelni yozuvdan yashirish) ishlari uchun.     │
 └───────────────────────────────┬──────────────────────────────────────────┘
@@ -43,7 +44,8 @@ yo'nalishi faqat bitta tomonga — ichkariga (abstraksiyalar va modellar tomon) 
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  ViewModels (CommunityToolkit.Mvvm)                                      │
 │  MainViewModel, DashboardViewModel, ToolWorkspaceViewModel,              │
-│  ArchiveViewModel, ScreenRecorderViewModel, …                            │
+│  ArchiveViewModel, ScreenRecorderViewModel, TransliterationViewModel,    │
+│  NumberSystemViewModel, …                                                │
 │  WPF dialoglarini bilmaydi; faqat abstraksiyalarga tayanadi.             │
 └───────────────────────────────┬──────────────────────────────────────────┘
                                 │  interfeyslar
@@ -53,6 +55,7 @@ yo'nalishi faqat bitta tomonga — ichkariga (abstraksiyalar va modellar tomon) 
 │  IPdfEngineService · IPdfService · IPdfManipulatorService ·              │
 │  IDocumentConversionService · IOcrService · IImageBackgroundRemover ·    │
 │  IArchiveService · IScreenRecorderService · IUpdateService ·             │
+│  ITransliterationService · INumberSystemService ·                        │
 │  IDialogService · IThemeService                                          │
 └───────────────────────────────┬──────────────────────────────────────────┘
                                 │  DI (Microsoft.Extensions.DependencyInjection)
@@ -62,8 +65,8 @@ yo'nalishi faqat bitta tomonga — ichkariga (abstraksiyalar va modellar tomon) 
 │  PdfEngineService (fasad) → PdfService, PdfManipulatorService,           │
 │  DocumentConversionService, OcrService, OnnxBackgroundRemover            │
 │  Services\Conversion\… — past darajali yordamchi yozuvchi/o'quvchilar    │
-│  ScreenRecorderService, ArchiveService, UpdateService — fasaddan         │
-│  TASHQARIDA, mustaqil singleton'lar                                      │
+│  ScreenRecorderService, ArchiveService, UpdateService,                   │
+│  TransliterationService, NumberSystemService — fasaddan TASHQARIDA       │
 └───────────────────────────────┬──────────────────────────────────────────┘
                                 │
                                 ▼
@@ -100,7 +103,7 @@ yo'nalishi faqat bitta tomonga — ichkariga (abstraksiyalar va modellar tomon) 
 `ToolRequest` yasaydi va uni `IPdfEngineService.ExecuteAsync` ga beradi. Shu tufayli yangi
 vosita qo'shish UI kodini deyarli o'zgartirmaydi.
 
-### Nega ekran yozuvi, arxiv va yangilanish fasadga kirmaydi
+### Nega ekran yozuvi, arxiv, yangilanish va o'girish fasadga kirmaydi
 
 `IScreenRecorderService` — abstraksiyalar qatoridagi to'liq huquqli shartnoma, lekin u
 **ataylab** `IPdfEngineService` ning sub-servisi qilinmagan. Sabablari:
@@ -126,6 +129,12 @@ services.AddSingleton<IArchiveService, ArchiveService>();
 // Yangilanish tekshiruvi ham PDF quvuriga aloqador emas: uning kirishi — GitHub relizi.
 // Singleton — muvaffaqiyatli tekshiruv natijasi shu nusxada keshlanadi.
 services.AddSingleton<IUpdateService, UpdateService>();
+
+// Kirill ↔ lotin o'girish ham shu qatorda: kirishi — oddiy matn yoki Word hujjati.
+services.AddSingleton<ITransliterationService, TransliterationService>();
+
+// Sanoq sistemalari — sof hisob: na fayl, na PDF.
+services.AddSingleton<INumberSystemService, NumberSystemService>();
 ```
 
 **`IArchiveService` ham xuddi shu sababdan tashqarida.** U PDF ni umuman bilmaydi, boshqa
@@ -135,6 +144,13 @@ noto'g'ri, format tanilmadi, arxiv xavfli yozuv saqlaydi). Uni fasadga qo'shish
 yuborardi. Farqi ekran yozuvidan bittasi bor: arxivlash — <b>bir martalik amal</b>, ya'ni
 ekran yozuvi kabi holatga asoslangan seans emas; shuning uchun u `ViewModelBase.RunAsync`
 ning odatdagi progress/bekor qilish oqimidan foydalanadi.
+
+**`ITransliterationService` ham xuddi shu sababdan tashqarida.** Uning kirishi — foydalanuvchi
+yozgan matn yoki `.docx`/`.txt` fayl, chiqishi ham shunday; PDF ga hech qanday aloqasi yo'q.
+Bitta farqi bor: **matn rejimi umuman asinxron emas.** `ConvertText` — sof, tez va sinxron
+metod, chunki har bosishda natija darhol ko'rinishi kerak; bu yerda `Task` qaytarish faqat
+keraksiz kontekst almashinuvi bo'lardi. Fayllar bilan ishlash esa odatdagidek asinxron va
+`ViewModelBase.RunAsync` ning progress/bekor qilish oqimidan foydalanadi.
 
 **`IUpdateService` — uchinchi shunday shartnoma.** Uning kirishi internetdagi reliz,
 chiqishi esa foydalanuvchiga ko'rsatiladigan xabar: bu yerda na `ToolRequest`,
@@ -150,14 +166,16 @@ Singleton tanlanishining amaliy sababi ham bor: `IScreenRecorderService` —
 esa hali yozilayotgan faylni to'g'ri yakunlaydi, aks holda `.mp4` da `moov` atomi
 yozilmay qoladi va fayl umuman ochilmaydi.
 
-Yon paneldagi to'rtta bo'lim (`MainViewModel.NavigationItems`):
+Yon paneldagi oltita bo'lim (`MainViewModel.NavigationItems`):
 
 | # | Bo'lim | Sahifa (`ViewModelBase.Title`) |
 |---|---|---|
 | 0 | PDF vositalari | `DashboardViewModel` |
 | 1 | Arxiv | `ArchiveViewModel` |
 | 2 | Ekran yozuvi | `ScreenRecorderViewModel` |
-| 3 | Dastur haqida | `AboutViewModel` |
+| 3 | Kirill ↔ Lotin | `TransliterationViewModel` |
+| 4 | Sanoq sistemasi | `NumberSystemViewModel` |
+| 5 | Dastur haqida | `AboutViewModel` |
 
 Yangi versiya topilganda "Dastur haqida" bandi yonida kichik nuqta ko'rinadi
 (`NavigationItemViewModel.HasNotification`). Tekshiruvning o'zi `AboutViewModel` da qoladi,
@@ -196,6 +214,10 @@ Yordamchi.sln
    │  ├─ ScreenRecording.cs       Ekran yozuvi: RecordingSourceKind / RecordingSourceInfo /
    │  │                           AudioDeviceInfo / VideoEncoderKind / RecordingQuality /
    │  │                           RecorderState + ScreenRecordingOptions
+   │  ├─ NumberSystem.cs          Sanoq sistemalari: NumberConversionResult +
+   │  │                           ConversionExplanationSection (qadam-baqadam yechim bo'limi)
+   │  ├─ TransliterationOptions.cs  O'girish: TransliterationDirection / ApostropheStyle
+   │  │                           enum'lari + TransliterationOptions / TransliterationFileResult
    │  ├─ UpdateInfo.cs            Topilgan yangilanish: versiya, teg, reliz nomi, havola, hajm
    │  ├─ PdfProgress.cs           IProgress<T> yuki: Completed / Total / Message
    │  └─ PdfServiceException.cs   PdfErrorKind bilan yagona xato turi
@@ -211,6 +233,8 @@ Yordamchi.sln
    │  │  ├─ IArchiveService.cs          Arxivlarni o'qish/ochish/yaratish (fasadga kirmaydi)
    │  │  ├─ IScreenRecorderService.cs   Ekran yozuvi (fasadga kirmaydi) + hodisa argumentlari
    │  │  ├─ IUpdateService.cs           Yangi versiya bor-yo'qligini tekshirish (fasadga kirmaydi)
+   │  │  ├─ ITransliterationService.cs  Kirill ↔ lotin o'girish (fasadga kirmaydi)
+   │  │  ├─ INumberSystemService.cs     Sanoq sistemalari (fasadga kirmaydi)
    │  │  ├─ IDialogService.cs           Fayl/papka dialoglari, xabar oynalari
    │  │  └─ IThemeService.cs            Light/Dark almashtirish + tizim sozlamasini kuzatish
    │  │
@@ -226,7 +250,11 @@ Yordamchi.sln
    │  │                           UI oqimiga o'tkazadi, sifat → bitrate ni o'zi hisoblaydi
    │  ├─ UpdateService.cs         GitHub relizlari API si; aktiv nomi va xost tekshiruvlari,
    │  │                           natijani jarayon davomida keshlash
-   │  ├─ DialogService.cs         Win32 fayl dialoglari, MessageBox — UI ning yagona kirish nuqtasi
+   │  ├─ NumberSystemService.cs   NumberBaseConverter ustidagi yupqa qobiq (shartnoma uchun)
+   │  ├─ TransliterationService.cs Matn va fayl o'girish orkestratori: nom tanlash, kodlashni
+   │  │                           aniqlash, vaqtinchalik faylga yozib so'ng o'z o'rniga ko'chirish
+   │  ├─ DialogService.cs         Win32 fayl dialoglari, MessageBox, clipboard — UI ning
+   │  │                           yagona kirish nuqtasi
    │  ├─ ThemeService.cs          MergedDictionaries[0] ni almashtirish, DWM sarlavha rangi
    │  │
    │  └─ Conversion/              ── Past darajali o'quvchi/yozuvchilar (bitta format = bitta fayl)
@@ -235,7 +263,11 @@ Yordamchi.sln
    │     ├─ WordToPdfRenderer.cs  Word o'rnatilmagan holat uchun OpenXML → PDF (PDFsharp) renderer
    │     ├─ OfficeWordInterop.cs  Microsoft Word COM (late binding) orqali eng aniq .docx → PDF
    │     ├─ XlsxWriter.cs         OpenXML: jadvallar → .xlsx kitob
-   │     └─ PptxWriter.cs         OpenXML: har bir sahifa matni → .pptx slayd
+   │     ├─ PptxWriter.cs         OpenXML: har bir sahifa matni → .pptx slayd
+   │     ├─ UzbekTransliterator.cs  Kirill ↔ lotin qoidalari (sof mantiq, kutubxonasiz)
+   │     ├─ DocxTransliterator.cs   Mavjud .docx dagi w:t tugunlarini joyida almashtirish
+   │     └─ NumberBaseConverter.cs  Sanoq sistemalari: BigInteger va ratsional arifmetika,
+   │                                qadam-baqadam yechim (sof mantiq, kutubxonasiz)
    │
    ├─ ViewModels/
    │  ├─ ViewModelBase.cs             IsBusy / Progress / Cancel / xatolarni ko'rsatish uchun asos
@@ -249,6 +281,12 @@ Yordamchi.sln
    │  ├─ ArchiveViewModel.cs          Arxiv sahifasi: arxivlash / arxivdan ochish rejimlari
    │  ├─ ArchiveItemViewModels.cs     ArchiveSourceViewModel (manba fayl/papka) +
    │  │                               ArchiveEntryViewModel (arxiv ichidagi yozuv)
+   │  ├─ TransliterationViewModel.cs  Kirill ↔ lotin sahifasi: matn rejimi (jonli o'girish,
+   │  │                               almashtirish, nusxa olish) va fayl rejimi
+   │  ├─ TransliterationFileViewModel.cs  Ro'yxatdagi bitta fayl va uning holati
+   │  ├─ NumberSystemViewModel.cs     Sanoq sistemasi sahifasi: jonli hisob, barcha asoslar
+   │  │                               jadvali, tanlov va qadam-baqadam yechim
+   │  ├─ NumberBaseRowViewModel.cs    Jadvaldagi bitta asos va undagi natija
    │  ├─ ScreenRecorderViewModel.cs   Ekran yozuvi sahifasi: manba/video/ovoz sozlamalari,
    │  │                               boshlash-pauza-to'xtatish, taymer, MinimizeRequested /
    │  │                               RestoreRequested / OverlayVisibilityChanged
@@ -269,6 +307,10 @@ Yordamchi.sln
    │  ├─ BackgroundRemoverView.xaml(.cs)  Oldin/keyin taqqoslash, shaffoflik shaxmat foni
    │  ├─ ArchiveView.xaml(.cs)        Arxiv: rejim kaliti, manbalar/yozuvlar ro'yxati, sozlamalar
    │  ├─ ScreenRecorderView.xaml(.cs) Ekran yozuvi: boshqaruv paneli, manba, video, ovoz, saqlash
+   │  ├─ TransliterationView.xaml(.cs) Kirill ↔ lotin: ikkita matn maydoni yoki fayllar ro'yxati,
+   │  │                               umumiy sozlamalar paneli
+   │  ├─ NumberSystemView.xaml(.cs) Sanoq sistemasi: tepada kiritish, pastda barcha asoslar
+   │  │                               jadvali, o'ngda qadam-baqadam yechim
    │  ├─ RecordingOverlayWindow.xaml(.cs)  Yozuv davomidagi suzuvchi boshqaruv paneli:
    │  │                               taymer, pauza, to'xtatish; yozuvdan yashirilgan alohida oyna
    │  └─ AboutView.xaml(.cs)          Dastur haqida: versiya, muallif, Telegram, yangilanish
@@ -663,12 +705,147 @@ hech qachon "ehtimol to'g'ridir" deb o'tkazilmaydi:
 `ParseRelease` va `IsTrustedDownloadUrl` — `static` va tarmoqqa chiqmaydigan metodlar,
 shuning uchun barcha qabul qilish qoidalari haqiqiy so'rovsiz to'liq sinaladi.
 
+### `ITransliterationService` — kirill ↔ lotin
+
+To'rtinchi shartnoma, `IPdfEngineService` fasadiga **kirmaydi** (sababi 1-bo'limda).
+
+| A'zo | Nima qaytaradi / qiladi |
+|---|---|
+| `IReadOnlyList<string> SupportedExtensions` | `.docx` va `.txt` |
+| `string OpenFilter` | Fayl dialogi uchun tayyor filtr satri |
+| `bool IsSupported(path)` | Kengaytmasiga qarab tez tekshiruv (faylni ochmaydi) |
+| `ConvertText(text, options)` | **Sinxron**: matn har bosishda darhol o'giriladi |
+| `DetectDirection(text)` | Matn qaysi alifboda; harf topilmasa `null` |
+| `SuggestOutputPath(sourcePath, outputFolder, direction)` | `hujjat.docx` → `hujjat-lotin.docx`; nom band bo'lsa raqam qo'shiladi |
+| `ConvertFileAsync(sourcePath, outputFolder, options, progress, ct)` | Faylni o'girib **yangi** faylga yozadi; yakuniy yo'l natijada qaytadi |
+
+#### Nega natija nomini servis tanlaydi
+
+`ConvertFileAsync` ga natija **yo'li** emas, natija **papkasi** beriladi. Sababi avtomatik
+aniqlashda: yo'nalish faqat hujjat ochilib, ichidagi matn sanab chiqilgandan keyin ma'lum
+bo'ladi. Nomni chaqiruvchi oldindan tanlasa, kirillcha deb o'ylangan hujjat lotincha bo'lib
+chiqqanda fayl `-lotin` qo'shimchasi bilan yozilar, ichida esa kirill matn turardi. Shuning
+uchun tartib teskari: avval o'giriladi (vaqtinchalik nomda), so'ng aniqlangan yo'nalishga
+qarab nom beriladi.
+
+#### O'girish qoidalari qayerda
+
+`Services\Conversion\UzbekTransliterator` — **sof mantiq**: hech qanday kutubxonaga,
+faylga yoki UI ga bog'liq emas, shuning uchun to'liq sinovdan o'tkaziladi. Harflarning
+ko'pchiligi atrofidagi harflarga qarab hal qilinadi:
+
+| Qoida | Misol |
+|---|---|
+| `е` so'z boshida, unlidan yoki `ъ`/`ь` dan keyin — `ye` | `ердан` → `yerdan`, `поезд` → `poyezd` |
+| `ц` unlidan keyin — `ts`, aks holda `s` | `революция` → `revolyutsiya`, `лекция` → `leksiya` |
+| `ъ` — tutuq belgisi, lekin `е ё ю я` dan oldin tushadi | `маъно` → `ma'no`, `объект` → `obyekt` |
+| `ь` butunlay tushadi | `фильм` → `film` |
+| `y` + unli birga o'qiladi, lekin `yo'` — `й` + `ў` | `yo'l` → `йўл`, `yog'och` → `ёғоч` |
+| Katta harf yonidagi harfga qarab shaklini saqlaydi | `Шаҳар` → `Shahar`, `ШАҲАР` → `SHAHAR` |
+| Havola va e-pochta manzillari o'girilmaydi | `www.google.com` o'z holida qoladi |
+
+> **Bilib turib qilingan chekinish.** Lotindan kirillga o'girishda `-siya` bilan tugaydigan
+> o'zlashma so'zlarni qoida bilan ajratib bo'lmaydi: `funksiya` → `функция`, lekin
+> `pensiya` → `пенсия` — ikkalasi ham bir xil ko'rinadi va farqni faqat lug'at biladi.
+> Shuning uchun bu yerda faqat `ts` qatnashgan ishonchli holat (`revolyutsiya` →
+> `революция`, so'z boshidagi `tsex` → `цех`) o'giriladi, qolgani `с` bo'lib qolaveradi.
+> Lug'at qo'shish — kelajakdagi ish, lekin u qoidalar bilan emas, ma'lumot fayli bilan
+> hal qilinishi kerak.
+
+#### Word hujjati abzas bo'yicha o'giriladi
+
+`DocxTransliterator` hujjatni qaytadan qurmaydi: nusxasini ochib, faqat `w:t` (va shakllar
+ichidagi `a:t`) tugunlaridagi matnni almashtiradi. Shu tufayli shrift, jadval, rasm,
+ro'yxat, kolontitul va sahifa sozlamalari qanday bo'lsa shundayligicha qoladi.
+
+Lekin tugunlarni **alohida** o'girib bo'lmaydi. Word bitta so'zni bir necha `w:t` ga bo'lib
+tashlashi odatiy hol (imlo tekshiruvi, tahrir izlari), ya'ni `Ўз` + `бекистон` ikkita
+alohida so'zdek ko'rinardi va natijada `O'z` dan keyin `Bekiston` chiqardi. Shuning uchun:
+
+| Qadam | Nima bo'ladi |
+|---|---|
+| 1 | Abzasdagi barcha matn tugunlari yig'ib, bitta satrga ulanadi |
+| 2 | Satr yaxlit o'giriladi; `UzbekTransliterator` har bir bo'lak manbada **qayerdan** boshlanganini ham xabar qiladi |
+| 3 | Har bir bo'lak o'zi boshlangan tugunga qaytariladi — natija uzunligi boshqacha bo'lsa ham |
+
+Uchinchi qadam tufayli ikki tugun chegarasida turgan `ў` yoki `ye` ikkiga bo'linib ketmaydi,
+formatlash esa manbadagidek taqsimlanadi.
+
+> **Maydon kodlariga tegilmaydi.** `w:instrText` — ko'rinadigan matn emas, Word uchun
+> buyruq (`PAGE`, `TOC`, `DATE`). U `Descendants<W.Text>()` ga tushmaydi, ya'ni o'girilmaydi:
+> aks holda avtomatik mundarija va sana maydonlari ishlamay qolardi.
+
+### `INumberSystemService` — sanoq sistemalari
+
+Beshinchi shartnoma, `IPdfEngineService` fasadiga **kirmaydi**: bu yerda na fayl bor, na PDF —
+kirish ham, chiqish ham oddiy satr.
+
+| A'zo | Nima qaytaradi / qiladi |
+|---|---|
+| `MinBase` / `MaxBase` | 2 va 32 |
+| `SupportedBases` / `PopularBases` | Barcha asoslar (2…32) va eng ko'p ishlatiladigan to'rttasi (2, 8, 10, 16) |
+| `DescribeBase(radix)` / `LabelBase(radix)` | "o'n oltilik" / "16-lik — o'n oltilik" |
+| `DigitsOf(radix)` | "0–9 va A–F" — kiritish maydoni ostidagi eslatma uchun |
+| `Validate(text, fromBase)` | Kiritilgan son shu asosga mos keladimi; xato matni yoki `null` |
+| `Convert(text, fromBase, toBase, fractionDigits)` | `NumberConversionResult` — qiymat va u aniqmi |
+| `Explain(text, fromBase, toBase, fractionDigits)` | Qadam-baqadam yechim bo'limlari |
+| `Group(value, radix)` | Uzun natijani o'qishga qulay ajratish (faqat ko'rsatish uchun) |
+
+**Barcha metodlar sinxron** — bu ataylab qilingan qaror. Natija har bosishda yangilanadi;
+`Task` qaytarish bu yerda faqat keraksiz kontekst almashinuvi bo'lardi. 31 ta asos uchun
+o'tkazish mikrosoniyalarda tugaydi, shuning uchun sahifa `ViewModelBase.RunAsync` ni ham,
+"band" qoplamasini ham ishlatmaydi.
+
+#### Nega `double` emas
+
+Bu sinfning butun qiymati aniqlikda, shuning uchun hisob ikki qismga bo'lingan:
+
+| Qism | Qanday saqlanadi | Nega |
+|---|---|---|
+| Butun qism | `BigInteger` | `long` 19 xonadan keyin to'lib ketadi; foydalanuvchi esa 100 xonali son kiritishi mumkin |
+| Kasr qism | `surat / maxraj` (ikkalasi ham `BigInteger`) | `0.1` ni `double` allaqachon taqribiy saqlaydi; uzun kasrda bu xato to'planib, oxirgi raqamlarni buzib yuborardi |
+
+Kasr yangi asosga ratsional arifmetika bilan o'tkaziladi: qiymat asosga ko'paytiriladi,
+chiqqan butun qism navbatdagi raqam bo'ladi, qoldiq esa aniq saqlanadi. Shu tufayli
+`123456.75` ni istalgan juft asosga o'tkazib qaytarganda aynan o'sha son chiqadi.
+
+**Kesish, yaxlitlash emas.** Kasr yangi asosda cheksiz davom etsa, u tanlangan xonada
+shunchaki kesiladi. Bu darslikdagi "ketma-ket ko'paytirish" algoritmi qiladigan ish, ya'ni
+natija qadam-baqadam yechim bilan **bir xil** chiqadi — yaxlitlansa, oxirgi raqam
+tushuntirishdagi raqamdan farq qilib qolardi. Bunday natija `IsExact = false` bilan
+belgilanadi va UI da `≈` ko'rinadi.
+
+> **Aylanma har doim ham asl sonni qaytarmaydi.** `0.75₁₀` uchlik sanoq sistemasida cheksiz
+> kasr; uni 3-likka o'tkazib qaytarsangiz `0.7499…` chiqadi. Bu xato emas — ma'lumot
+> allaqachon kesilgan bo'ladi. Shuning uchun "Almashtirish" tugmasi kesilgan natijani
+> qaytarganda foydalanuvchini ogohlantiradi.
+
+#### Qadam-baqadam yechim
+
+`Explain` uchta bosqichni qaytaradi (keraksizi tushib qoladi):
+
+| Bosqich | Qachon bor | Nima ko'rsatadi |
+|---|---|---|
+| Pozitsion yoyilma | Manba 10-lik emas | `1 × 16¹ = 16`, `A (10) × 16⁰ = 10` … |
+| Ketma-ket bo'lish | Nishon 10-lik emas | `26 ÷ 2 = 13, qoldiq 0` … |
+| Ketma-ket ko'paytirish | Nishon 10-lik emas va kasr bor | `0.5 × 2 = 1 → 1` … |
+
+Manba va nishon bir xil bo'lsa, yagona "o'tkazish kerak emas" bo'limi qaytadi. Juda uzun
+sonda yoyilma umuman ko'rsatilmaydi (20 ta raqamdan oshsa), uzun ro'yxatlar esa boshi va
+oxiri qoldirilib qisqartiriladi — aks holda o'ng panel o'qib bo'lmas holga kelardi.
+
 ### Yordamchi UI servislari
 
 | Interfeys | Vazifasi |
 |---|---|
-| `IDialogService` | Fayl/papka tanlash dialoglari, tasdiq va xato oynalari — `ViewModels` uchun yagona UI eshigi |
+| `IDialogService` | Fayl/papka tanlash dialoglari, tasdiq va xato oynalari, clipboard — `ViewModels` uchun yagona UI eshigi |
 | `IThemeService` | Light/Dark almashtirish, tizim mavzusini kuzatish, sarlavha panelini bo'yash |
+
+> **Clipboard ham shu eshikdan o'tadi.** `System.Windows.Clipboard` — WPF ning bir qismi;
+> uni ViewModel'dan to'g'ridan-to'g'ri chaqirish "ViewModels `MessageBox` ni bilmaydi"
+> qoidasini buzardi va sinovda haqiqiy oyna talab qilardi. Shu sababli
+> `IDialogService.SetClipboardText` qo'shilgan; implementatsiya nosozlikni yutadi — clipboard
+> ni boshqa jarayon band qilib turgani foydalanuvchining ishini to'xtatmasligi kerak.
 
 ---
 
@@ -775,9 +952,9 @@ Manba: `Models\ToolDescriptor.cs` → `ToolCatalog.All`.
 > `ShowsPageThumbnails` (Organize, Rotate, Split, Merge) — ishchi oynada eskizlar to'ri
 > ko'rsatiladi; `WritesToFolder` (Split, PdfToImage) — natija bitta fayl emas, papka.
 
-> **Ekran yozuvi bu jadvalda yo'q.** U `ToolCatalog` ga kirmaydi, `ToolId` qiymati ham
-> yo'q va `PdfEngineService.ExecuteAsync` ga tegmaydi: yon paneldagi alohida bo'lim
-> `ScreenRecorderViewModel` → `IScreenRecorderService` bilan to'g'ridan-to'g'ri ishlaydi
+> **Ekran yozuvi, arxiv, kirill ↔ lotin o'girish va sanoq sistemalari bu jadvalda yo'q.** Ular `ToolCatalog`
+> ga kirmaydi, `ToolId` qiymati ham yo'q va `PdfEngineService.ExecuteAsync` ga tegmaydi:
+> yon paneldagi alohida bo'limlar o'z servislari bilan to'g'ridan-to'g'ri ishlaydi
 > (1- va 4-bo'limlarga qarang).
 
 ---
@@ -1136,6 +1313,19 @@ uchun (4-bo'limga qarang).
 yozuv `Stop()` bilan yakunlanadi. Bu majburiy: yakunlanmagan `.mp4` da `moov` atomi
 yozilmay qoladi va fayl umuman ochilmaydi.
 
+**Jonli o'girish — sinxron, ataylab.** "Kirill ↔ Lotin" bo'limining matn rejimida natija
+har bosishda yangilanadi. `ConvertText` sof va O(n): bir necha yuz ming belgigacha matn
+sezilmasdan o'giriladi, shuning uchun bu yerda `Task`, `RunAsync` yoki "band" qoplamasi yo'q
+— ular faqat kechikish qo'shgan bo'lardi. Chegara baribir bor: `LiveConversionLimit`
+(100 000 belgi) dan katta matnda jonli o'girish o'chadi va tugma bosish talab qilinadi, aks
+holda juda katta hujjatni qo'yganda har bosish sezilib qolardi.
+
+**Jonli hisob — sinxron, ataylab (ikkinchi holat).** "Sanoq sistemasi" sahifasi ham
+`RunAsync` ni ishlatmaydi: 31 ta o'tkazish har bosishda qaytadan bajariladi va bu
+mikrosoniyalarda tugaydi. Jadval qatorlari esa **bir marta** yaratilib, keyin faqat qiymati
+yangilanadi — har bosishda 31 ta yangi obyekt yasash WPF ni ro'yxatni qaytadan qurishga
+majbur qilardi va foydalanuvchining tanlovi ham yo'qolib ketardi.
+
 **Kelajakdagi ajratish.** `Models` + `Services` ni alohida `Yordamchi.Core` kutubxonasiga
 ko'chirish mumkin; to'siqlar — `PageModel.Thumbnail` (`BitmapSource`),
 `IImageBackgroundRemover.RemoveBackgroundAsync` ning `BitmapSource` qaytarishi va
@@ -1151,10 +1341,11 @@ chiqmaydi: ekran yozuvi Windows Media Foundation ga bog'langan.
 ## 11. Testlar
 
 Testlar `tests\Yordamchi.Tests` da yashaydi va **`Yordamchi.sln`** ga qo'shilgan, ya'ni
-`dotnet test Yordamchi.sln -c Release` hammasini ishga tushiradi. Hozirda **541 ta
-sinov** bor: ular orasida yangilanish xizmatining qabul qilish qoidalari va yozuv
-seansining hayot sikli — panel qachon ochiladi/yopiladi, oyna qachon qaytariladi — ham
-bor.
+`dotnet test Yordamchi.sln -c Release` hammasini ishga tushiradi. Hozirda **746 ta
+sinov** bor: ular orasida yangilanish xizmatining qabul qilish qoidalari, yozuv seansining
+hayot sikli — panel qachon ochiladi/yopiladi, oyna qachon qaytariladi — kirill ↔ lotin
+o'girishning har bir qoidasi hamda sanoq sistemalarining 31 × 31 asos juftligi bo'yicha
+aylanmasi ham bor.
 
 | Vosita | Nima uchun |
 |---|---|
@@ -1171,7 +1362,9 @@ Bu yerdagi asosiy qaror — **qayerda haqiqiy fayl ishlatish**:
 
 | Qatlam | Yondashuv | Sabab |
 |---|---|---|
-| `ArchiveService`, `PdfManipulatorService` | **Haqiqiy fayllar** (vaqtinchalik papkada) | Bu sinflarning butun qiymati tashqi kutubxona bilan kelishuvda. Soxta ZIP ustidagi sinov SharpZipLib va SharpCompress orasidagi moslikni umuman tekshirmagan bo'lardi |
+| `ArchiveService`, `PdfManipulatorService`, `TransliterationService` | **Haqiqiy fayllar** (vaqtinchalik papkada) | Bu sinflarning butun qiymati tashqi kutubxona bilan kelishuvda. Soxta ZIP ustidagi sinov SharpZipLib va SharpCompress orasidagi moslikni umuman tekshirmagan bo'lardi; soxta `.docx` esa "matn bir necha `w:t` ga bo'linib ketgan" degan eng muhim holatni |
+| `UzbekTransliterator`, `NumberBaseConverter` | **Hech narsa soxtalashtirilmaydi** | Sof mantiq: kirish — satr, chiqish — satr. Har bir qoida aynan misol bilan qulflanadi, chunki qoidalar bir-biriga bog'liq va bittasini o'zgartirish jimgina boshqasini buzishi mumkin |
+| `NumberSystemViewModel` | **Haqiqiy servis** | Servis sof va tez; uni soxtalashtirish aynan tekshirilishi kerak bo'lgan narsani — jadval to'g'ri to'ldiriladimi — yashirib qo'yardi |
 | `PdfEngineService` ning qaror mantiqi | **Substitute** sub-servislar | Bu yerda tekshiriladigan narsa — fayl emas, qoida: qaysi holatda qanday ogohlantirish chiqadi |
 | ViewModel'lar | **Substitute** servis + soxta dialog | UI oynasi ochilmasligi kerak; tekshiriladigani — tugmalar qoidasi va servisga uzatilgan qiymatlar |
 
@@ -1245,6 +1438,24 @@ yiqilmasa, u hech narsani tekshirmayapti.
   hujjat darajasidagi bu tuzilmalar ko'chirilmaydi.
 - **OCR aniqligi manba sifatiga bog'liq.** 300 dpi va undan yuqori skanlar uchun natija
   yaxshi; qiyshiq yoki shovqinli rasmlarda xatolar bo'lishi mumkin.
+- **`ц` harfi qoida bilan tiklanmaydi.** Lotindan kirillga o'girishda `funksiya` →
+  `функция` va `pensiya` → `пенсия` bir xil ko'rinadi; faqat `ts` qatnashgan ishonchli
+  holat o'giriladi (4-bo'limga qarang).
+- **O'girishda `.txt` UTF-8 bo'lishi shart.** .NET Core tarkibida Windows-1251 kodlashi
+  yo'q; uni qo'shish uchun `System.Text.Encoding.CodePages` paketi kerak bo'lardi. Taxmin
+  qilib o'qish o'rniga fayl rad etiladi va aniq xabar beriladi.
+- **Eski `.doc` o'girilmaydi.** OpenXML faqat `.docx` (OPC) bilan ishlaydi; binar `.doc`
+  formati uchun butunlay boshqa o'quvchi kerak bo'lardi.
+- **Sanoq sistemasi asosi 2–32 bilan cheklangan.** 32 ta raqamdan keyin (`0–9`, `A–V`)
+  keyingi belgilar `W`, `X`, `Y`, `Z` — ular lotin alifbosida bor, lekin 36-likdan yuqorisi
+  uchun umumiy kelishilgan belgi yo'q va foydalanuvchi uchun ham ma'nosi qolmaydi.
+- **Kiritilgan son 512 belgidan oshmasligi kerak.** Undan uzun sonda har bosishdagi 31 ta
+  o'tkazish sezilarli vaqt olardi; chegara oshib ketsa aniq xabar beriladi.
+- **Cheksiz kasr kesiladi, yaxlitlanmaydi.** Bu ataylab: yaxlitlangan natija qadam-baqadam
+  yechimdagi raqamlar bilan mos kelmay qolardi. Kesilgan natija `≈` bilan belgilanadi.
+- **Aylanma o'girish har doim ham asl matnni qaytarmaydi.** `объект` → `obyekt` → `обект`:
+  `ъ` ning qayerda turishi lotin yozuvida saqlanmaydi. Lotindan boshlangan aylanma
+  (lotin → kirill → lotin) esa asl matnni qaytaradi va sinovlar aynan shuni tekshiradi.
 - **Ekran yozuvi Windows 10 1903 (build 18362) dan boshlab ishlaydi.** Windows Graphics
   Capture aynan shu versiyada paydo bo'lgan. `IsSupported` shuni tekshiradi; `false`
   bo'lsa sahifa ochiladi, lekin qizil ogohlantirish ko'rsatiladi va `StartCommand`

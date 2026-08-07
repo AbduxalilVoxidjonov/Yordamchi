@@ -1,0 +1,427 @@
+<UserControl x:Class="Yordamchi.Views.NumberSystemView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:Yordamchi.Models"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             xmlns:viewModels="clr-namespace:Yordamchi.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="1100" d:DesignHeight="820"
+             d:DataContext="{d:DesignInstance Type=viewModels:NumberSystemViewModel}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <Style x:Key="NumLabelStyle" TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+
+            <Style x:Key="NumHintStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="Margin" Value="0,4,0,12" />
+            </Style>
+
+            <!-- Raqamlar tekis ustunda tursin: proporsional shriftda 111 va 999 turlicha keng -->
+            <Style x:Key="NumValueStyle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{DynamicResource MonospaceFontFamily}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+
+            <!--
+                Butun qator bosiladigan tugma: qaysi asos uchun qadam-baqadam yechim
+                ko'rsatilishini tanlaydi. Standart tugma stillari bu yerda yaramaydi —
+                qator to'liq kenglikda va chapga tekislangan bo'lishi kerak.
+            -->
+            <Style x:Key="NumRowStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="12,9" />
+                <Setter Property="Margin" Value="0,0,0,2" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                                    Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Root" Property="Background"
+                                            Value="{DynamicResource SubtleFillHoverBrush}" />
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                    <Setter TargetName="Root" Property="Background"
+                                            Value="{DynamicResource AccentSubtleBrush}" />
+                                    <Setter TargetName="Root" Property="BorderBrush"
+                                            Value="{DynamicResource AccentBrush}" />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Asos raqami turadigan kichik nishon -->
+            <Style x:Key="NumBadgeStyle" TargetType="Border">
+                <Setter Property="Width" Value="38" />
+                <Setter Property="Height" Value="26" />
+                <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+                <Setter Property="Background" Value="{DynamicResource LayerFillAltBrush}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsPopular}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="NumBadgeTextStyle" TargetType="TextBlock">
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsPopular}" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- ==================== Bitta sanoq sistemasi qatori ==================== -->
+            <DataTemplate x:Key="NumRowTemplate" DataType="{x:Type viewModels:NumberBaseRowViewModel}">
+                <Button Style="{StaticResource NumRowStyle}"
+                        Command="{Binding SelectCommand}"
+                        ToolTip="Qadam-baqadam yechimni shu sanoq sistemasi uchun ko'rsatish">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="104" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource NumBadgeStyle}">
+                            <TextBlock Text="{Binding BaseText}" Style="{StaticResource NumBadgeTextStyle}" />
+                        </Border>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Name}"
+                                   Style="{DynamicResource CaptionTextStyle}"
+                                   Margin="12,0,12,0"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding DisplayValue}"
+                                   Style="{StaticResource NumValueStyle}" />
+
+                        <TextBlock Grid.Column="3"
+                                   Text="≈"
+                                   FontSize="15"
+                                   Margin="10,0,4,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource WarningBrush}"
+                                   ToolTip="Kasr qismi cheksiz davom etadi — natija belgilangan xonada kesilgan"
+                                   Visibility="{Binding IsApproximate, Converter={StaticResource BoolToVisibility}}" />
+
+                        <Button Grid.Column="4"
+                                Style="{DynamicResource IconButtonStyle}"
+                                Content="&#xE8C8;"
+                                FontFamily="{DynamicResource IconFontFamily}"
+                                VerticalAlignment="Center"
+                                ToolTip="Nusxa olish"
+                                Command="{Binding CopyCommand}" />
+                    </Grid>
+                </Button>
+            </DataTemplate>
+
+            <!-- ==================== Qadam-baqadam yechimning bir bo'limi ==================== -->
+            <DataTemplate x:Key="NumStepTemplate" DataType="{x:Type models:ConversionExplanationSection}">
+                <StackPanel Margin="0,0,0,16">
+                    <TextBlock Text="{Binding Title}"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                    <ItemsControl ItemsSource="{Binding Lines}" Margin="0,6,0,0"
+                                  Visibility="{Binding HasLines, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type sys:String}">
+                                <TextBlock Text="{Binding}"
+                                           FontFamily="{DynamicResource MonospaceFontFamily}"
+                                           FontSize="12.5"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,3"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Background="{DynamicResource AccentSubtleBrush}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="10,7"
+                            Margin="0,8,0,0"
+                            Visibility="{Binding HasSummary, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{Binding Summary}"
+                                   FontFamily="{DynamicResource MonospaceFontFamily}"
+                                   FontSize="12.5"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="32,26,32,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ============================ Sarlavha ============================ -->
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="{Binding Title}" Style="{DynamicResource PageTitleTextStyle}" />
+            <TextBlock Text="{Binding Description}" Style="{DynamicResource SubtitleTextStyle}"
+                       TextWrapping="Wrap" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <!-- ============================ Kiritish ============================ -->
+        <Border Grid.Row="1" Style="{DynamicResource CardBorderStyle}" Padding="20,18" Margin="0,18,0,0">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="Kiritilayotgan son qaysi sanoq sistemasida:"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                    <!-- Tezkor tanlov: 2 · 8 · 10 · 16 -->
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding QuickBases}" Margin="12,0,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{DynamicResource StandardButtonStyle}"
+                                        Content="{Binding}"
+                                        MinWidth="46"
+                                        Margin="0,0,6,0"
+                                        Command="{Binding DataContext.SetSourceBaseCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <ComboBox Grid.Column="2"
+                              Style="{DynamicResource AppComboBoxStyle}"
+                              Width="220"
+                              Margin="10,0,0,0"
+                              VerticalAlignment="Center"
+                              ItemsSource="{Binding BaseChoices}"
+                              DisplayMemberPath="Label"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding SourceBase, Mode=TwoWay}"
+                              ToolTip="2 dan 32 gacha istalgan asos" />
+                </Grid>
+
+                <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                         Margin="0,14,0,0"
+                         Padding="14,12"
+                         FontSize="24"
+                         FontFamily="{DynamicResource MonospaceFontFamily}"
+                         Text="{Binding SourceText, UpdateSourceTrigger=PropertyChanged}"
+                         SpellCheck.IsEnabled="False" />
+
+                <TextBlock Text="{Binding ErrorMessage}"
+                           Style="{StaticResource NumHintStyle}"
+                           Foreground="{DynamicResource WarningBrush}"
+                           Margin="0,8,0,0"
+                           Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
+
+                <TextBlock Text="{Binding AllowedDigits}"
+                           Style="{StaticResource NumHintStyle}"
+                           Margin="0,8,0,0"
+                           Visibility="{Binding HasError, Converter={StaticResource BoolToVisibilityInverted}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- ============================ Natijalar va yechim ============================ -->
+        <Grid Grid.Row="2" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="400" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Barcha sanoq sistemalari -->
+            <Border Grid.Column="0" Style="{DynamicResource CardBorderStyle}" Padding="18">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Barcha sanoq sistemalari"
+                                       Style="{DynamicResource SectionHeaderTextStyle}" />
+                            <TextBlock Text="Qatorni bosing — o'sha sanoq sistemasi uchun yechim o'ngda ochiladi."
+                                       Style="{DynamicResource CaptionTextStyle}"
+                                       Margin="0,2,0,0" />
+                        </StackPanel>
+
+                        <CheckBox Grid.Column="1"
+                                  Style="{DynamicResource AppCheckBoxStyle}"
+                                  Content="Faqat 2 · 8 · 10 · 16"
+                                  VerticalAlignment="Center"
+                                  IsChecked="{Binding OnlyPopularBases}" />
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1"
+                                  Style="{DynamicResource AppScrollViewerStyle}"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Rows}"
+                                      ItemTemplate="{StaticResource NumRowTemplate}" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Yechim va sozlamalar -->
+            <Border Grid.Column="1" Style="{DynamicResource CardBorderStyle}" Padding="20" Margin="16,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Text="Kasr xonalari" Style="{StaticResource NumLabelStyle}" />
+
+                        <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                                  HorizontalAlignment="Left"
+                                  Width="120"
+                                  ItemsSource="{Binding FractionDigitChoices}"
+                                  SelectedItem="{Binding FractionDigits}" />
+
+                        <TextBlock Style="{StaticResource NumHintStyle}"
+                                   Text="Cheksiz kasr shu xonada kesiladi — bunday natija yonida ≈ belgisi turadi." />
+
+                        <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                                  Content="Raqamlarni guruhlab ko'rsatish"
+                                  IsChecked="{Binding GroupDigits}" />
+
+                        <TextBlock Style="{StaticResource NumHintStyle}"
+                                   Text="Ikkilik va o'n oltilikda 4 talab, sakkizlik va o'nlikda 3 talab ajratiladi. Nusxa olishda bo'shliqlar tushib qoladi." />
+
+                        <Border Style="{DynamicResource SeparatorLineStyle}" Margin="0,4,0,16" />
+
+                        <TextBlock Style="{StaticResource NumLabelStyle}">
+                            <Run Text="Qadam-baqadam:" />
+                            <Run Text="{Binding SourceBaseName, Mode=OneWay}" FontWeight="Normal" />
+                            <Run Text="→" FontWeight="Normal" />
+                            <Run Text="{Binding SelectedBaseName, Mode=OneWay}" FontWeight="Normal" />
+                        </TextBlock>
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1"
+                                  Style="{DynamicResource AppScrollViewerStyle}"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Margin="0,8,0,0">
+                        <Grid>
+                            <ItemsControl ItemsSource="{Binding Explanation}"
+                                          ItemTemplate="{StaticResource NumStepTemplate}" />
+
+                            <!-- Bo'sh holat -->
+                            <TextBlock Text="Yuqoriga son kiriting — yechim shu yerda bosqichma-bosqich ko'rsatiladi."
+                                       Style="{DynamicResource CaptionTextStyle}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Top"
+                                       Visibility="{Binding HasExplanation, Converter={StaticResource BoolToVisibilityInverted}}" />
+                        </Grid>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ============================ Pastki panel ============================ -->
+        <Border Grid.Row="3"
+                Style="{DynamicResource CardBorderStyle}"
+                Padding="16,12"
+                Margin="0,14,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusMessage}"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,16,0" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Style="{DynamicResource SubtleButtonStyle}"
+                            Content="Tozalash"
+                            Margin="0,0,10,0"
+                            Command="{Binding ClearCommand}" />
+
+                    <Button Style="{DynamicResource StandardButtonStyle}"
+                            Margin="0,0,10,0"
+                            Command="{Binding SwapCommand}"
+                            ToolTip="Tanlangan natijani kiritish maydoniga qo'yib, asoslarni almashtirish">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8AB;" FontFamily="{DynamicResource IconFontFamily}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="Almashtirish" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{DynamicResource AccentButtonStyle}"
+                            MinWidth="180"
+                            Command="{Binding CopySelectedCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="Natijadan nusxa olish" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

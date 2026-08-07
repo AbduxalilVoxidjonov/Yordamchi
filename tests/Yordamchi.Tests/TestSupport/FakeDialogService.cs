@@ -29,6 +29,9 @@ public sealed class FakeDialogService : IDialogService
 
     public List<string> RevealedPaths { get; } = [];
 
+    /// <summary>Clipboard'ga ko'chirilgan matnlar (oxirgisi — eng so'nggi nusxa).</summary>
+    public List<string?> ClipboardTexts { get; } = [];
+
     public string[]? OpenFiles(string title, string filter, bool multiSelect = true) =>
         OpenFilesResults.Count > 0 ? OpenFilesResults.Dequeue() : null;
 
@@ -52,4 +55,6 @@ public sealed class FakeDialogService : IDialogService
     public void ShowInformation(string title, string message) => ShownInformation.Add($"{title}: {message}");
 
     public void RevealInExplorer(string path) => RevealedPaths.Add(path);
+
+    public void SetClipboardText(string? text) => ClipboardTexts.Add(text);
 }

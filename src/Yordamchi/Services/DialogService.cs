@@ -81,6 +81,22 @@ public sealed class DialogService : IDialogService
         }
     }
 
+    public void SetClipboardText(string? text)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(text))
+                Clipboard.Clear();
+            else
+                Clipboard.SetText(text);
+        }
+        catch (Exception)
+        {
+            // Clipboard'ni boshqa jarayon band qilib turgan bo'lishi mumkin (Windows uni
+            // navbat bilan beradi). Nusxa olish — qulaylik, uning xatosi dasturni yiqitmasin.
+        }
+    }
+
     /// <summary>Faol oyna — ko'p monitorli tizimda muloqot oynasi to'g'ri egaga bog'lanishi uchun.</summary>
     private static Window? Owner =>
         Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)

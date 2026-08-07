@@ -25,6 +25,8 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly BackgroundRemoverViewModel _backgroundRemover;
     private readonly ArchiveViewModel _archive;
     private readonly ScreenRecorderViewModel _screenRecorder;
+    private readonly TransliterationViewModel _transliteration;
+    private readonly NumberSystemViewModel _numberSystem;
     private readonly AboutViewModel _about;
 
     public MainViewModel(
@@ -33,6 +35,8 @@ public sealed partial class MainViewModel : ObservableObject
         BackgroundRemoverViewModel backgroundRemover,
         ArchiveViewModel archive,
         ScreenRecorderViewModel screenRecorder,
+        TransliterationViewModel transliteration,
+        NumberSystemViewModel numberSystem,
         AboutViewModel about,
         IThemeService themeService)
     {
@@ -41,6 +45,8 @@ public sealed partial class MainViewModel : ObservableObject
         _backgroundRemover = backgroundRemover;
         _archive = archive;
         _screenRecorder = screenRecorder;
+        _transliteration = transliteration;
+        _numberSystem = numberSystem;
         _about = about;
         _themeService = themeService;
 
@@ -50,14 +56,16 @@ public sealed partial class MainViewModel : ObservableObject
         _workspace.BackRequested += (_, _) => GoHome();
         _backgroundRemover.BackRequested += (_, _) => GoHome();
 
-        // Arxiv va ekran yozuvi PDF vositasi emas — ular bosh sahifadagi kartochkalar
-        // orasida emas, yon panelda alohida bo'lim sifatida turadi.
+        // Arxiv, ekran yozuvi, o'girish va sanoq sistemalari PDF vositasi emas — ular bosh
+        // sahifadagi kartochkalar orasida emas, yon panelda alohida bo'lim sifatida turadi.
         NavigationItems =
         [
-            new NavigationItemViewModel("\uE80F", dashboard),      // PDF vositalari
-            new NavigationItemViewModel("\uF12B", archive),        // Arxiv
-            new NavigationItemViewModel("\uE714", screenRecorder), // Ekran yozuvi
-            new NavigationItemViewModel("\uE946", about)           // Dastur haqida
+            new NavigationItemViewModel("\uE80F", dashboard),       // PDF vositalari
+            new NavigationItemViewModel("\uF12B", archive),         // Arxiv
+            new NavigationItemViewModel("\uE714", screenRecorder),  // Ekran yozuvi
+            new NavigationItemViewModel("\uF2B7", transliteration), // Kirill ↔ Lotin
+            new NavigationItemViewModel("\uE8EF", numberSystem),    // Sanoq sistemasi
+            new NavigationItemViewModel("\uE946", about)            // Dastur haqida
         ];
 
         SelectedNavigationItem = NavigationItems[0];
@@ -80,7 +88,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string ApplicationTitle => "Yordamchi";
 
-    public string ApplicationSubtitle => "PDF vositalari, arxiv va ekran yozuvi";
+    public string ApplicationSubtitle => "PDF, arxiv, ekran yozuvi va boshqa vositalar";
 
     public string VersionText =>
         $"Versiya {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.3.0"}";

@@ -57,6 +57,13 @@ public partial class App : Application
         services.AddSingleton<IScreenRecorderService, ScreenRecorderService>();
         services.AddSingleton<IArchiveService, ArchiveService>();
 
+        // Kirill ↔ lotin o'girish ham shu qatorda: uning kirishi oddiy matn yoki Word hujjati,
+        // ya'ni PDF quvuriga umuman aloqasi yo'q.
+        services.AddSingleton<ITransliterationService, TransliterationService>();
+
+        // Sanoq sistemalari — sof hisob: na fayl, na PDF. U ham fasadga qo'shilmaydi.
+        services.AddSingleton<INumberSystemService, NumberSystemService>();
+
         // Yangilanish ham PDF quvuriga aloqador emas: u dasturning o'zini almashtiradi.
         // Singleton — muvaffaqiyatli tekshiruv natijasi shu nusxada keshlanadi.
         services.AddSingleton<IUpdateService, UpdateService>();
@@ -72,6 +79,8 @@ public partial class App : Application
         services.AddSingleton<BackgroundRemoverViewModel>();
         services.AddSingleton<ArchiveViewModel>();
         services.AddSingleton<ScreenRecorderViewModel>();
+        services.AddSingleton<TransliterationViewModel>();
+        services.AddSingleton<NumberSystemViewModel>();
         services.AddSingleton<AboutViewModel>();
         services.AddSingleton<MainViewModel>();
 

@@ -61,4 +61,15 @@ public interface IDialogService
 
     /// <summary>Opens a file or folder with the shell's default handler; failures are swallowed.</summary>
     void RevealInExplorer(string path);
+
+    /// <summary>
+    /// Matnni vaqtinchalik xotiraga (clipboard) ko'chiradi.
+    /// <para>
+    /// Clipboard ham WPF ning bir qismi, shuning uchun u ham shu eshikdan o'tadi: aks holda
+    /// <c>ViewModels</c> qatlami <c>System.Windows.Clipboard</c> ga bog'lanib qolardi va
+    /// sinovda oyna ochilishini talab qilardi. Nosozliklar yutiladi — boshqa dastur clipboard'ni
+    /// band qilib turgani foydalanuvchining ishini to'xtatmasligi kerak.
+    /// </para>
+    /// </summary>
+    void SetClipboardText(string? text);
 }

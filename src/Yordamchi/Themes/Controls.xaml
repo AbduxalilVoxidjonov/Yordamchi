@@ -19,6 +19,10 @@
     <FontFamily x:Key="DisplayFontFamily">Segoe UI Variable Display, Segoe UI</FontFamily>
     <FontFamily x:Key="IconFontFamily">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
+    <!-- Raqamlar ustunma-ustun tursin: sanoq sistemalari jadvalida proporsional shriftda
+         111 va 999 turlicha keng chiqadi va ro'yxat qiyshayib ketadi. -->
+    <FontFamily x:Key="MonospaceFontFamily">Cascadia Mono, Consolas, Courier New</FontFamily>
+
     <!-- Duration is a WPF (System.Windows) type: no extra xmlns needed. -->
     <Duration x:Key="FastDuration">0:0:0.12</Duration>
     <Duration x:Key="NormalDuration">0:0:0.2</Duration>

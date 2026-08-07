@@ -62,6 +62,41 @@ public sealed partial class AboutViewModel : ViewModelBase
 
     public string Tagline => "Windows uchun to'liq funksional PDF vositalari to'plami — internetsiz ishlaydi.";
 
+    // -----------------------------------------------------------------
+    //  Loyihani qo'llab-quvvatlash
+    // -----------------------------------------------------------------
+
+    /// <summary>Ixtiyoriy xayriya uchun karta raqami (Uzcard).</summary>
+    public const string SupportCard = "9860 3501 4679 1495";
+
+    public string SupportCardNumber => SupportCard;
+
+    public string SupportCardKind => "Uzcard";
+
+    public string SupportCardHolder => AuthorName;
+
+    public string SupportTitle => "Bir piyola qahva ☕";
+
+    public string SupportNote =>
+        "Yordamchi bepul va hech qanday reklama ko'rsatmaydi. Agar u ishingizni yengillashtirgan "
+        + "bo'lsa, loyihani rivojlantirishga ixtiyoriy hissa qo'shishingiz mumkin — bu majburiy emas "
+        + "va dasturning biror imkoniyatini ochmaydi.";
+
+    /// <summary>Nusxa olingandan keyin kartochka ostida chiqadigan qisqa tasdiq.</summary>
+    [ObservableProperty]
+    private string _supportCopyStatus = string.Empty;
+
+    /// <summary>
+    /// Karta raqamini vaqtinchalik xotiraga ko'chiradi. Bo'shliqlarsiz — bank ilovalarining
+    /// ko'pchiligi qo'yilgan matnni o'zi tozalamaydi va "9860 3501…" ko'rinishini rad etadi.
+    /// </summary>
+    [RelayCommand]
+    private void CopySupportCard()
+    {
+        DialogService.SetClipboardText(SupportCard.Replace(" ", string.Empty));
+        SupportCopyStatus = "Karta raqami nusxa olindi.";
+    }
+
     /// <summary>Dastur foydalanadigan ochiq kutubxonalar.</summary>
     public IReadOnlyList<ComponentInfo> Libraries { get; } =
     [

@@ -130,6 +130,8 @@ public sealed class MainViewModelTests
             new BackgroundRemoverViewModel(Substitute.For<IImageBackgroundRemover>(), pdfService, _dialogs),
             new ArchiveViewModel(Substitute.For<IArchiveService>(), _dialogs),
             new ScreenRecorderViewModel(Substitute.For<IScreenRecorderService>(), _dialogs),
+            new TransliterationViewModel(Substitute.For<ITransliterationService>(), _dialogs),
+            new NumberSystemViewModel(new NumberSystemService(), _dialogs),
             about ?? CreateAbout(),
             Substitute.For<IThemeService>());
     }

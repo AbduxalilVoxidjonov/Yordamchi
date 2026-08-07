@@ -2,7 +2,7 @@
 
 # Yordamchi 2.3.0
 
-**Windows uchun to'liq funksional PDF vositalari to'plami — 17 ta vosita, arxivlash va ekran yozuvi, bitta dastur.**
+**Windows uchun to'liq funksional ish vositalari to'plami — 17 ta PDF vositasi, arxivlash, ekran yozuvi, kirill ↔ lotin o'girish va sanoq sistemalari kalkulyatori, bitta dastur.**
 
 WPF (.NET 8) · MVVM · Fluent Design · Light/Dark rejim · to'liq o'zbek tilida
 
@@ -13,7 +13,8 @@ WPF (.NET 8) · MVVM · Fluent Design · Light/Dark rejim · to'liq o'zbek tilid
 Yordamchi — kundalik ishda kerak bo'ladigan barcha PDF amallarini bitta oynada jamlagan
 dastur: sahifalarni tartiblash va birlashtirishdan tortib, Word/Excel/PowerPoint ga
 konvertatsiya, OCR va sun'iy intellekt bilan rasm fonini olib tashlashgacha. Bularga
-qo'shimcha — **arxivlash** va **ekranni ovoz bilan videoga yozib olish** modullari. Yozuv
+qo'shimcha — **arxivlash**, **ekranni ovoz bilan videoga yozib olish**, **kirill ↔ lotin
+o'girish** va **sanoq sistemalari kalkulyatori** modullari. Yozuv
 davomida boshqaruv ekrandagi kichik **suzuvchi panelga** chiqadi: u monitorda ko'rinadi,
 lekin videoga tushmaydi. Yangi versiya chiqqanini dastur o'zi sezadi va **"Dastur haqida"**
 sahifasida xabar beradi — o'rnatgichni esa siz o'zingiz yuklab olasiz.
@@ -25,14 +26,16 @@ versiya qaysi" degan bitta so'rovni GitHub ga yuborganda. Bu so'rovda foydalanuv
 haqidagi hech qanday ma'lumot yo'q — unda faqat dastur nomi va versiyasi ko'rsatiladi
 (batafsil: [🔄 Yangilanish](#-yangilanish)).
 
-Chap yon paneldagi navigatsiya to'rt bo'limdan iborat:
+Chap yon paneldagi navigatsiya olti bo'limdan iborat:
 
 | Bo'lim | Nima ochiladi |
 |---|---|
 | **PDF vositalari** | Bosh sahifa: 17 ta vositaning kartochkalari, kategoriyalar va qidiruv |
 | **Arxiv** | Fayllarni ZIP ga jamlash va arxivlarni ochish (parolli arxivlar ham) |
 | **Ekran yozuvi** | Ekranni videoga yozib olish sahifasi |
-| **Dastur haqida** | Versiya, muallif va qo'shimcha komponentlar holati |
+| **Kirill ↔ Lotin** | Matn yoki Word hujjatini bir alifbodan ikkinchisiga o'girish |
+| **Sanoq sistemasi** | Sonni 2 dan 32 gacha bo'lgan asoslarga o'tkazish, qadam-baqadam yechim bilan |
+| **Dastur haqida** | Versiya, muallif, qo'shimcha komponentlar holati va loyihani qo'llab-quvvatlash |
 
 <!-- screenshot -->
 <!--
@@ -41,6 +44,8 @@ Chap yon paneldagi navigatsiya to'rt bo'limdan iborat:
     ![Ishchi oyna](docs/images/workspace.png)
     ![Arxiv](docs/images/archive.png)
     ![Ekran yozuvi](docs/images/screen-recorder.png)
+    ![Kirill ↔ Lotin](docs/images/transliteration.png)
+    ![Sanoq sistemasi](docs/images/number-system.png)
 -->
 
 ---
@@ -212,6 +217,171 @@ o'z holida qoladi.
 
 ---
 
+## 🔤 Kirill ↔ Lotin
+
+O'zbek matnini kirilldan lotinga va aksincha o'giradigan bo'lim. Ikkita rejimi bor:
+matnni to'g'ridan-to'g'ri yozib (yoki qo'yib) o'girish va tayyor **Word hujjatlarini**
+o'girish.
+
+### Matn rejimi
+
+Chapdagi maydonga matn yoziladi yoki qo'yiladi — natija o'ng maydonda **darhol**, tugma
+bosmasdan paydo bo'ladi. Ikki maydon orasidagi tugma natijani manba o'rniga qo'yib,
+yo'nalishni teskarisiga buradi: o'girilgan matnni bir bosishda qaytarib tekshirish
+mumkin. **"Nusxa olish"** natijani vaqtinchalik xotiraga ko'chiradi.
+
+### Word va matn fayllari rejimi
+
+Fayllarni oynaga tashlang yoki **"Fayl qo'shish"** orqali tanlang.
+
+| Xususiyat | Qiymat |
+|---|---|
+| Qabul qilinadigan formatlar | `.docx` (Word 2007 va undan yangi) · `.txt` |
+| Manba fayl | **Umuman o'zgartirilmaydi** — natija doim yangi faylga yoziladi |
+| Natija nomi | `hujjat.docx` → `hujjat-lotin.docx` (yoki `-kirill`). Bunday nom band bo'lsa raqam qo'shiladi, ya'ni oldingi natija o'chib ketmaydi |
+| Natija papkasi | Standart holatda manba fayl yonida; o'ng paneldan boshqa papka tanlash mumkin |
+| Bir vaqtda | Istalgancha fayl — biri xato bersa qolganlari to'xtamaydi, sabab o'sha qatorda ko'rinadi |
+
+> **Formatlash saqlanadi.** Hujjat qaytadan yig'ilmaydi: uning nusxasi ochilib, faqat
+> matn tugunlari almashtiriladi. Shrift, rang, jadval, rasm, ro'yxat, kolontitul va
+> sahifa sozlamalari qanday bo'lsa shundayligicha qoladi. Avtomatik mundarija va sana
+> kabi **maydon kodlariga tegilmaydi** — ular o'girilsa ishlamay qolardi.
+
+### Sozlamalar
+
+| Sozlama | Tanlovlar | Standart |
+|---|---|---|
+| Yo'nalish | **Avtomatik** · Kirill → Lotin · Lotin → Kirill | Avtomatik |
+| Apostrof belgisi | **Oddiy** (`o'`, `g'`) · **Rasmiy** (`oʻ`, `gʻ`, `ʼ`) | Oddiy |
+
+Avtomatik rejimda matndagi harflar sanab chiqiladi va teskari yo'nalish tanlanadi —
+fayl rejimida bu **har bir hujjat uchun alohida** hal qilinadi, ya'ni bitta ro'yxatda
+kirill va lotin hujjatlari aralash bo'lishi mumkin.
+
+### Qoidalar haqida
+
+O'girish harflarni ko'r-ko'rona almashtirmaydi — ko'p harf atrofidagi harflarga qarab
+hal qilinadi:
+
+| Holat | Misol |
+|---|---|
+| `е` so'z boshida va unlidan keyin | `ердан` → `yerdan`, `поезд` → `poyezd` |
+| `е` undoshdan keyin | `мен келдим` → `men keldim` |
+| `ц` unlidan keyin — `ts`, aks holda `s` | `революция` → `revolyutsiya`, `лекция` → `leksiya` |
+| `ъ` — tutuq belgisi, lekin `е ё ю я` dan oldin tushadi | `маъно` → `ma'no`, `объект` → `obyekt` |
+| `ь` butunlay tushadi | `фильм` → `film` |
+| `yo'` — bu `ё` emas, `й` + `ў` | `yo'l` → `йўл`, lekin `yog'och` → `ёғоч` |
+| Katta harf so'z shaklini saqlaydi | `Шаҳар` → `Shahar`, `ШАҲАР` → `SHAHAR` |
+| Havola va e-pochta manzillari o'girilmaydi | `www.google.com` o'z holida qoladi |
+
+Lotinda yozilgan `o'` va `g'` uchun klaviaturadan kiritiladigan **barcha** apostrof
+ko'rinishlari (`'`, `‘`, `’`, `ʻ`, `` ` ``) tushuniladi.
+
+> **Bir joyda qoida yetarli emas.** `ц` harfi o'zlashma so'zlarda faqat lug'at bilan
+> aniqlanadi: `funksiya` → `функция`, lekin `pensiya` → `пенсия` — ikkalasi ham bir xil
+> ko'rinadi. Shuning uchun lotindan kirillga o'girishda faqat **ishonchli** holat
+> (`revolyutsiya` → `революция`, so'z boshidagi `tsex` → `цех`) o'giriladi, qolgani `с`
+> bo'lib qolaveradi. Noto'g'ri taxmin qilgandan ko'ra tegmagan ma'qul, lekin natijani
+> ko'zdan kechirish foydali.
+
+> **`.txt` fayllar UTF-8 bo'lishi kerak.** Eski Windows-1251 kodlashidagi fayl o'qilmaydi
+> va bu haqda aniq xabar beriladi — bunday faylni Bloknotda ochib "UTF-8" ko'rinishida
+> saqlang yoki matnni to'g'ridan-to'g'ri "Matn" rejimiga qo'ying.
+
+---
+
+## 🔢 Sanoq sistemasi
+
+Sonni **2 dan 32 gacha** bo'lgan istalgan sanoq sistemasiga o'tkazadigan kalkulyator.
+Ishlash tartibi sodda: tepaga son kiritiladi va uning asosi tanlanadi — pastda natija
+**barcha sanoq sistemalarida bir vaqtning o'zida** paydo bo'ladi. Tugma bosish shart emas,
+har bir belgidan keyin jadval o'zi yangilanadi.
+
+### Kiritish
+
+| Xususiyat | Qiymat |
+|---|---|
+| Asoslar | **2–32**; tepada 2 · 8 · 10 · 16 uchun tezkor tugmalar, qolgani ro'yxatdan |
+| Butun son | Uzunligi cheklanmagan — 100 xonali son ham aniq o'tkaziladi |
+| Kasr son | Nuqta ham, vergul ham qabul qilinadi: `25.5` va `25,5` bir xil |
+| Manfiy son | `-` bilan boshlanadi |
+| Katta-kichik harf | Farqi yo'q: `ff` ham, `FF` ham — 255 |
+| Bo'shliqlar | E'tiborsiz qoldiriladi, ya'ni jadvaldan nusxa olingan `1111 1111` ni qaytarib qo'yish ishlaydi |
+
+Kiritilgan belgi tanlangan asosga mos kelmasa, maydonning ostida aniq xabar chiqadi —
+masalan ikkilik sistemada `2` yozilsa: *«2» — 2-lik sanoq sistemasining raqami emas.
+Ruxsat etilgan belgilar: 0 va 1.*
+
+### Natijalar jadvali
+
+Har bir qatorda asos raqami, uning nomi va natija turadi. 2 · 8 · 10 · 16 — eng ko'p
+ishlatiladigan asoslar — rangli nishon bilan ajratilgan; **"Faqat 2 · 8 · 10 · 16"**
+belgisi ro'yxatni faqat shu to'rttasiga qisqartiradi.
+
+| Tugma | Nima qiladi |
+|---|---|
+| Qatorning o'zi | O'ng paneldagi qadam-baqadam yechimni shu sanoq sistemasi uchun ochadi |
+| Qator oxiridagi nishon | O'sha qiymatni vaqtinchalik xotiraga ko'chiradi |
+| **Almashtirish** | Tanlangan natijani kiritish maydoniga qo'yib, asoslarni o'rin almashtiradi |
+| **Natijadan nusxa olish** | Tanlangan sanoq sistemasidagi natijani ko'chiradi |
+
+### Qadam-baqadam yechim
+
+O'ng panelda o'tkazish bosqichma-bosqich yoziladi — aynan darslikdagi kabi:
+
+```
+1-qadam — 10-lik sanoq sistemasiga o'tkazish
+    1 × 16¹ = 16
+    A (10) × 16⁰ = 10
+    8 × 16⁻¹ = 0.5
+  = 1A.8₁₆ = 26.5₁₀
+
+2-qadam — butun qismni 2 ga ketma-ket bo'lish
+    26 ÷ 2 = 13, qoldiq 0
+    13 ÷ 2 = 6, qoldiq 1
+    6 ÷ 2 = 3, qoldiq 0
+    3 ÷ 2 = 1, qoldiq 1
+    1 ÷ 2 = 0, qoldiq 1
+  = Qoldiqlarni oxiridan boshiga qarab o'qiymiz: 11010
+
+3-qadam — kasr qismini 2 ga ketma-ket ko'paytirish
+    0.5 × 2 = 1 → 1
+  = Butun qismlarni tartib bilan yozamiz: 0.1
+
+Natija: 1A.8₁₆ = 11010.1₂
+```
+
+Manba yoki natija allaqachon 10-lik bo'lsa, tegishli bosqich tushib qoladi.
+
+### Sozlamalar
+
+| Sozlama | Tanlovlar | Standart |
+|---|---|---|
+| Kasr xonalari | 8 · 12 · 16 · 24 · 32 | 16 |
+| Raqamlarni guruhlash | Yoqilgan / o'chirilgan | Yoqilgan |
+
+Guruhlash **faqat ko'rinishga** ta'sir qiladi: ikkilik va o'n oltilikda 4 talab, sakkizlik
+va o'nlikda 3 talab ajratiladi (`11111111` → `1111 1111`), nusxa olishda esa bo'shliqsiz
+qiymat ketadi.
+
+### Aniqlik haqida
+
+Hisob `double` ustida emas, **butun sonlar va oddiy kasrlar** ustida olib boriladi:
+
+- **Butun qism doim aniq** — uzunligidan qat'i nazar. 40 xonali sonni 16-likka o'tkazib,
+  qaytarib olsangiz aynan o'sha son chiqadi; `double` bunday sonni allaqachon buzib qo'yardi.
+- **Kasr qism** `surat/maxraj` ko'rinishida saqlanadi (`0.1₁₀` = `1/10`), shuning uchun
+  yaxlitlash xatosi to'planmaydi.
+- Kasr yangi asosda cheksiz davom etsa, u tanlangan xonada **kesiladi** (yaxlitlanmaydi —
+  ketma-ket ko'paytirish algoritmi aynan shunday ishlaydi) va bunday natija yonida **≈**
+  belgisi turadi. Masalan `0.1₁₀` ikkilikda `0.0001100110011001…` — hech qachon tugamaydi.
+
+> **Kesilgan natijani orqaga o'tkazish.** `≈` bilan belgilangan qiymatni "Almashtirish"
+> orqali qaytarsangiz, asl sondan bir oz farq qilishi mumkin — ma'lumot allaqachon
+> kesilgan bo'ladi. Dastur bu haqda pastki panelda ogohlantiradi.
+
+---
+
 ## 🔄 Yangilanish
 
 Dastur yangi versiya chiqqanini o'zi sezadi va sizga aytadi. **Yuklab olish va o'rnatishni
@@ -342,6 +512,9 @@ ishlaydi va tugagach o'zidan keyin tozalab ketadi.
 | Nima sinaladi | Qanday |
 |---|---|
 | `ArchiveService` | Haqiqiy fayllar bilan: yaratish → o'qish → chiqarish aylanmasi, parol, Zip Slip |
+| `UzbekTransliterator` | Har bir o'girish qoidasi alohida misol bilan; lotin → kirill → lotin aylanmasi |
+| `NumberBaseConverter` | Butun va kasr sonlar, 31 × 31 asos juftligi bo'yicha aylanma, qadam-baqadam yechim |
+| `TransliterationService` | Sinov ichida yasalgan haqiqiy `.docx` ustida: bo'lingan run'lar, jadval, kolontitul, maydon kodi |
 | `PdfManipulatorService` | Test ichida PDFsharp bilan yaratilgan haqiqiy PDF lar ustida |
 | `IPdfEngineService` qarorlari | Sub-servislar o'rniga substitute; `Validate` / `CheckPrerequisites` mantiqi |
 | ViewModel qoidalari | Tugma qachon faol, servisga nima uzatiladi, xatodan keyin sahifa holati |
@@ -466,7 +639,9 @@ mavjud bo'lsa, o'shani ishlatadi.
 Dastur **Clean Architecture + MVVM** ustiga qurilgan; barcha PDF modullari bitta fasad —
 `IPdfEngineService` orqali birlashtirilgan. Ekran yozuvi PDF quvuriga aloqador emas,
 shuning uchun u fasadga qo'shilmagan: `IScreenRecorderService` alohida shartnoma bo'lib,
-o'z sahifasi bilan to'g'ridan-to'g'ri ishlaydi.
+o'z sahifasi bilan to'g'ridan-to'g'ri ishlaydi. Arxivlash (`IArchiveService`), yangilanish
+(`IUpdateService`), kirill ↔ lotin o'girish (`ITransliterationService`) va sanoq
+sistemalari (`INumberSystemService`) ham xuddi shu sababdan fasaddan tashqarida.
 
 ```
 Views → ViewModels → Services.Abstractions → Services → tashqi kutubxonalar
@@ -507,6 +682,16 @@ To'liq tavsif, papkalar xaritasi, ma'lumot oqimi va yangi vosita qo'shish qo'lla
 - `.tar.gz` va `.tar.bz2` ikki qavatli arxivlar bitta qadamda ochilmaydi: ro'yxatda ichki
   `.tar` fayli ko'rinadi, uni chiqarib, so'ng yana ochish kerak.
 - OCR aniqligi skanning sifatiga bog'liq; 300 dpi va undan yuqori tavsiya etiladi.
+- Kirill ↔ lotin o'girishda `ц` harfi o'zlashma so'zlarda qoida bilan aniqlanmaydi
+  (`funksiya` → `функция`, lekin `pensiya` → `пенсия`) — faqat `ts` qatnashgan ishonchli
+  holat o'giriladi, natijani ko'zdan kechirish kerak.
+- O'girish uchun `.txt` fayllar UTF-8 kodlashida bo'lishi shart; Windows-1251 dagi eski
+  fayllar o'qilmaydi (bu haqda aniq xabar beriladi).
+- O'girishda `.doc` (eski Word) qo'llab-quvvatlanmaydi — hujjatni avval `.docx` ga saqlash kerak.
+- Sanoq sistemalari kalkulyatorida asos **2 dan 32 gacha**; kiritilgan son 512 belgidan
+  oshmasligi kerak.
+- Cheksiz kasr tanlangan xonada kesiladi (yaxlitlanmaydi) — bunday natija `≈` bilan
+  belgilanadi va uni orqaga o'tkazganda kichik farq bo'lishi mumkin.
 - Ekran yozuvi Windows 10 1903 (build 18362) va undan yangi tizimlarni talab qiladi;
   eskirog'ida sahifa ochiladi, lekin "Yozishni boshlash" tugmasi ishlamaydi.
 - Ekran yozuvi Windows Media Foundation ga tayanadi. Windows ning **N/KN** nashrlarida u
@@ -534,3 +719,15 @@ Uchinchi tomon komponentlarining litsenziyalari ham `LICENSE` faylida keltirilga
 Telegram: [@abduxalilvoxidjonov](https://t.me/abduxalilvoxidjonov)
 
 © 2026 Abduxalil Voxidjonov
+
+---
+
+## ☕ Loyihani qo'llab-quvvatlash
+
+Yordamchi bepul va hech qanday reklama ko'rsatmaydi. Agar u ishingizni yengillashtirgan
+bo'lsa, loyihani rivojlantirishga ixtiyoriy hissa qo'shishingiz mumkin:
+
+**9860 3501 4679 1495** — Uzcard · Abduxalil Voxidjonov
+
+Bu majburiy emas va dasturning biror imkoniyatini ochmaydi. Karta raqami dastur ichida ham
+turibdi: **"Dastur haqida"** bo'limida, bir bosishda nusxa olish tugmasi bilan.

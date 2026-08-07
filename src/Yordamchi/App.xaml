@@ -56,6 +56,14 @@
                 <views:ScreenRecorderView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type viewModels:TransliterationViewModel}">
+                <views:TransliterationView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type viewModels:NumberSystemViewModel}">
+                <views:NumberSystemView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type viewModels:AboutViewModel}">
                 <views:AboutView />
             </DataTemplate>

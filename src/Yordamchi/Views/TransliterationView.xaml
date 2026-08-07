@@ -1,0 +1,474 @@
+<UserControl x:Class="Yordamchi.Views.TransliterationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:behaviors="clr-namespace:Yordamchi.Behaviors"
+             xmlns:converters="clr-namespace:Yordamchi.Converters"
+             xmlns:viewModels="clr-namespace:Yordamchi.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="1100" d:DesignHeight="820"
+             d:DataContext="{d:DesignInstance Type=viewModels:TransliterationViewModel}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <converters:EnumEqualsConverter x:Key="TrEnumEquals" />
+
+            <Style x:Key="TrLabelStyle" TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+
+            <Style x:Key="TrHintStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="Margin" Value="0,4,0,12" />
+            </Style>
+
+            <!-- Katta matn maydoni: o'girish oynasining asosiy ish yuzasi -->
+            <Style x:Key="TrEditorStyle" TargetType="TextBox" BasedOn="{StaticResource AppTextBoxStyle}">
+                <Setter Property="AcceptsReturn" Value="True" />
+                <Setter Property="AcceptsTab" Value="True" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="VerticalContentAlignment" Value="Top" />
+                <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+                <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+                <Setter Property="MinHeight" Value="180" />
+                <Setter Property="Padding" Value="12,10" />
+                <Setter Property="FontSize" Value="15" />
+            </Style>
+
+            <Style x:Key="TrDropZoneStyle" TargetType="Border"
+                   BasedOn="{StaticResource DropZoneBorderStyle}">
+                <Style.Triggers>
+                    <Trigger Property="behaviors:FileDrop.IsDragOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- ==================== O'giriladigan fayl qatori ==================== -->
+            <DataTemplate x:Key="TrFileRowTemplate" DataType="{x:Type viewModels:TransliterationFileViewModel}">
+                <Border Background="Transparent" Padding="12,9" Margin="0,0,0,4"
+                        CornerRadius="{DynamicResource ControlCornerRadius}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Glyph}"
+                                   FontFamily="{DynamicResource IconFontFamily}"
+                                   FontSize="18"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AccentBrush}" />
+
+                        <StackPanel Grid.Column="1" Margin="12,0,10,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+
+                            <TextBlock Text="{Binding StatusText}"
+                                       Style="{DynamicResource CaptionTextStyle}"
+                                       TextTrimming="CharacterEllipsis"
+                                       Margin="0,2,0,0"
+                                       Visibility="{Binding StatusText, Converter={StaticResource NullToVisibility}}" />
+                        </StackPanel>
+
+                        <!-- Holat: tayyor yoki xato -->
+                        <TextBlock Grid.Column="2"
+                                   Text="&#xE73E;"
+                                   FontFamily="{DynamicResource IconFontFamily}"
+                                   FontSize="14"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"
+                                   ToolTip="O'girildi"
+                                   Foreground="{DynamicResource SuccessBrush}"
+                                   Visibility="{Binding IsDone, Converter={StaticResource BoolToVisibility}}" />
+
+                        <TextBlock Grid.Column="2"
+                                   Text="&#xE783;"
+                                   FontFamily="{DynamicResource IconFontFamily}"
+                                   FontSize="14"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"
+                                   ToolTip="{Binding StatusText}"
+                                   Foreground="{DynamicResource WarningBrush}"
+                                   Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
+
+                        <Button Grid.Column="3"
+                                Style="{DynamicResource IconButtonStyle}"
+                                Content="&#xE711;"
+                                FontFamily="{DynamicResource IconFontFamily}"
+                                ToolTip="Ro'yxatdan olib tashlash"
+                                VerticalAlignment="Center"
+                                Command="{Binding RemoveCommand}" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="32,26,32,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ============================ Sarlavha va rejim ============================ -->
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="{Binding Title}" Style="{DynamicResource PageTitleTextStyle}" />
+            <TextBlock Text="{Binding Description}" Style="{DynamicResource SubtitleTextStyle}" Margin="0,4,0,0" />
+
+            <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+                <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="TransliterationMode"
+                             Content="Matn"
+                             Command="{Binding ShowTextCommand}"
+                             IsChecked="{Binding Mode, Converter={StaticResource TrEnumEquals}, ConverterParameter=Text}" />
+
+                <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="TransliterationMode"
+                             Content="Word va matn fayllari"
+                             Margin="26,0,0,0"
+                             Command="{Binding ShowFilesCommand}"
+                             IsChecked="{Binding Mode, Converter={StaticResource TrEnumEquals}, ConverterParameter=Files}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ============================ Ishchi hudud ============================ -->
+        <Grid Grid.Row="1" Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="352" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ==================== 1-rejim: matn ==================== -->
+            <Grid Grid.Column="0"
+                  Visibility="{Binding IsTextMode, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Manba -->
+                <Border Grid.Column="0" Style="{DynamicResource CardBorderStyle}" Padding="18">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="Manba matn"
+                                       Style="{DynamicResource SectionHeaderTextStyle}"
+                                       VerticalAlignment="Center" />
+
+                            <Button Grid.Column="1"
+                                    Style="{DynamicResource SubtleButtonStyle}"
+                                    Content="Tozalash"
+                                    Command="{Binding ClearTextCommand}" />
+                        </Grid>
+
+                        <TextBox Grid.Row="1"
+                                 Style="{StaticResource TrEditorStyle}"
+                                 Text="{Binding SourceText, UpdateSourceTrigger=PropertyChanged}"
+                                 SpellCheck.IsEnabled="False" />
+
+                        <TextBlock Grid.Row="2"
+                                   Text="{Binding SourceSummary}"
+                                   Style="{DynamicResource CaptionTextStyle}"
+                                   Margin="0,10,0,0" />
+                    </Grid>
+                </Border>
+
+                <!-- Almashtirish -->
+                <Button Grid.Column="1"
+                        Style="{DynamicResource IconButtonStyle}"
+                        Content="&#xE8AB;"
+                        FontFamily="{DynamicResource IconFontFamily}"
+                        FontSize="18"
+                        Width="40" Height="40"
+                        Margin="10,0,10,0"
+                        VerticalAlignment="Center"
+                        ToolTip="Natijani manba o'rniga qo'yish va yo'nalishni almashtirish"
+                        Command="{Binding SwapCommand}" />
+
+                <!-- Natija -->
+                <Border Grid.Column="2" Style="{DynamicResource CardBorderStyle}" Padding="18">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="Natija"
+                                       Style="{DynamicResource SectionHeaderTextStyle}"
+                                       VerticalAlignment="Center" />
+
+                            <Button Grid.Column="1"
+                                    Style="{DynamicResource StandardButtonStyle}"
+                                    Command="{Binding CopyResultCommand}"
+                                    ToolTip="Natijani vaqtinchalik xotiraga ko'chirish">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}"
+                                               FontSize="14" VerticalAlignment="Center" />
+                                    <TextBlock Text="Nusxa olish" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <TextBox Grid.Row="1"
+                                 Style="{StaticResource TrEditorStyle}"
+                                 Text="{Binding ResultText, Mode=OneWay}"
+                                 IsReadOnly="True"
+                                 SpellCheck.IsEnabled="False" />
+
+                        <TextBlock Grid.Row="2"
+                                   Text="Natijani tahrirlash uchun avval nusxa oling — bu maydon faqat ko'rsatish uchun."
+                                   Style="{DynamicResource CaptionTextStyle}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,10,0,0" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ==================== 2-rejim: fayllar ==================== -->
+            <Border Grid.Column="0"
+                    Style="{DynamicResource CardBorderStyle}" Padding="18"
+                    Visibility="{Binding IsFilesMode, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="O'giriladigan hujjatlar"
+                                   Style="{DynamicResource SectionHeaderTextStyle}"
+                                   VerticalAlignment="Center" />
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Style="{DynamicResource StandardButtonStyle}" Content="Fayl qo'shish"
+                                    Command="{Binding AddFilesCommand}" />
+                            <Button Style="{DynamicResource SubtleButtonStyle}" Content="Tozalash"
+                                    Margin="8,0,0,0"
+                                    Command="{Binding ClearFilesCommand}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Bo'sh holat: katta tashlash hududi -->
+                    <Border Grid.Row="1"
+                            Style="{StaticResource TrDropZoneStyle}"
+                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                            MinWidth="440"
+                            behaviors:FileDrop.Command="{Binding DropFilesCommand}"
+                            Visibility="{Binding HasFiles, Converter={StaticResource BoolToVisibilityInverted}}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="&#xE8A5;"
+                                       FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="44" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextTertiaryBrush}" />
+                            <TextBlock Text="Word hujjatlarini shu yerga tashlang"
+                                       Style="{DynamicResource SectionHeaderTextStyle}"
+                                       HorizontalAlignment="Center" Margin="0,12,0,0" />
+                            <TextBlock Text="Hujjat qaytadan yig'ilmaydi — shrift, jadval, rasm va sahifa sozlamalari joyida qoladi, faqat matn o'giriladi. .docx va .txt fayllari qabul qilinadi."
+                                       Style="{DynamicResource CaptionTextStyle}"
+                                       TextWrapping="Wrap" TextAlignment="Center"
+                                       MaxWidth="400" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="1"
+                                  Style="{DynamicResource AppScrollViewerStyle}"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Visibility="{Binding HasFiles, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl ItemsSource="{Binding Files}"
+                                      ItemTemplate="{StaticResource TrFileRowTemplate}"
+                                      behaviors:FileDrop.Command="{Binding DropFilesCommand}" />
+                    </ScrollViewer>
+
+                    <TextBlock Grid.Row="2"
+                               Text="{Binding FilesSummary}"
+                               Style="{DynamicResource CaptionTextStyle}"
+                               Margin="0,12,0,0" />
+                </Grid>
+            </Border>
+
+            <!-- ==================== Sozlamalar (ikkala rejimga umumiy) ==================== -->
+            <Border Grid.Column="1" Style="{DynamicResource CardBorderStyle}" Padding="20" Margin="16,0,0,0">
+                <ScrollViewer Style="{DynamicResource AppScrollViewerStyle}"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <TextBlock Text="Yo'nalish" Style="{StaticResource TrLabelStyle}" />
+
+                        <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                                  Content="Avtomatik aniqlansin"
+                                  IsChecked="{Binding AutoDetectDirection}" />
+                        <TextBlock Text="Matn qaysi alifboda yozilgani sanab chiqiladi va teskari yo'nalish tanlanadi."
+                                   Style="{StaticResource TrHintStyle}" />
+
+                        <StackPanel IsEnabled="{Binding AutoDetectDirection, Converter={StaticResource InverseBool}}">
+                            <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="TrDirection"
+                                         Content="Kirill → Lotin"
+                                         IsChecked="{Binding Direction, Converter={StaticResource TrEnumEquals}, ConverterParameter=CyrillicToLatin}" />
+
+                            <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="TrDirection"
+                                         Content="Lotin → Kirill"
+                                         Margin="0,6,0,0"
+                                         IsChecked="{Binding Direction, Converter={StaticResource TrEnumEquals}, ConverterParameter=LatinToCyrillic}" />
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding DirectionHint}"
+                                   Style="{StaticResource TrHintStyle}"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   Margin="0,10,0,12" />
+
+                        <Border Style="{DynamicResource SeparatorLineStyle}" Margin="0,0,0,16" />
+
+                        <TextBlock Text="Apostrof belgisi" Style="{StaticResource TrLabelStyle}" />
+
+                        <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="TrApostrophe"
+                                     Content="Oddiy: o' va g'"
+                                     IsChecked="{Binding Apostrophe, Converter={StaticResource TrEnumEquals}, ConverterParameter=Ascii}" />
+
+                        <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="TrApostrophe"
+                                     Content="Rasmiy: o&#x2BB; va g&#x2BB;"
+                                     Margin="0,6,0,0"
+                                     IsChecked="{Binding Apostrophe, Converter={StaticResource TrEnumEquals}, ConverterParameter=Typographic}" />
+
+                        <TextBlock Text="Rasmiy belgi nashrga tayyor matn uchun to'g'ri, lekin ba'zi eski dasturlar uni ko'rsata olmaydi. Lotindan kirillga o'girishda ikkala ko'rinish ham bir xil tushuniladi."
+                                   Style="{StaticResource TrHintStyle}" />
+
+                        <!-- Faqat fayl rejimida kerak -->
+                        <StackPanel Visibility="{Binding IsFilesMode, Converter={StaticResource BoolToVisibility}}">
+                            <Border Style="{DynamicResource SeparatorLineStyle}" Margin="0,6,0,16" />
+
+                            <TextBlock Text="Natija papkasi" Style="{StaticResource TrLabelStyle}" />
+
+                            <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                                     Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
+                                     TextWrapping="Wrap" />
+
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button Style="{DynamicResource StandardButtonStyle}"
+                                        Content="Papkani tanlash…"
+                                        Command="{Binding PickOutputFolderCommand}" />
+
+                                <Button Style="{DynamicResource SubtleButtonStyle}"
+                                        Content="Fayl yonida"
+                                        Margin="8,0,0,0"
+                                        ToolTip="Har bir natija manba fayl turgan papkaga yoziladi"
+                                        Command="{Binding UseSourceFolderCommand}" />
+                            </StackPanel>
+
+                            <TextBlock Text="Manba fayllarga tegilmaydi: natija yangi nom bilan yoziladi — hujjat.docx → hujjat-lotin.docx."
+                                       Style="{StaticResource TrHintStyle}"
+                                       Margin="0,10,0,0" />
+                        </StackPanel>
+
+                        <Border Style="{DynamicResource SeparatorLineStyle}" Margin="0,6,0,16" />
+
+                        <TextBlock Text="Nimaga e'tibor berish kerak"
+                                   Style="{StaticResource TrLabelStyle}" />
+
+                        <TextBlock Style="{StaticResource TrHintStyle}"
+                                   Text="Ц harfi o'zlashma so'zlarda qoida bilan aniqlanmaydi: funksiya va pensiya bir xil ko'rinadi. Shuning uchun lotindan kirillga o'girishda faqat ts qatnashgan so'zlar (revolyutsiya → революция) o'giriladi. Natijani ko'zdan kechiring." />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- ============================ Pastki panel ============================ -->
+        <Border Grid.Row="2"
+                Style="{DynamicResource CardBorderStyle}"
+                Padding="16,12"
+                Margin="0,14,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusMessage}"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,16,0" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Style="{DynamicResource StandardButtonStyle}"
+                            Content="Papkada ko'rsatish"
+                            Margin="0,0,10,0"
+                            Command="{Binding RevealResultCommand}"
+                            Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Button Style="{DynamicResource AccentButtonStyle}"
+                            MinWidth="170"
+                            Command="{Binding ConvertTextCommand}"
+                            Visibility="{Binding IsTextMode, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xF2B7;" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center" />
+                            <TextBlock Text="O'girish" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{DynamicResource AccentButtonStyle}"
+                            MinWidth="170"
+                            Command="{Binding ConvertFilesCommand}"
+                            Visibility="{Binding IsFilesMode, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xF2B7;" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center" />
+                            <TextBlock Text="Fayllarni o'girish" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================ Band holati (overlay) ============================ -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="{DynamicResource BusyOverlayBrush}"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+            <Border Style="{DynamicResource CardBorderStyle}" Padding="24" Width="420"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Text="{Binding BusyMessage}" Style="{DynamicResource SectionHeaderTextStyle}"
+                               TextTrimming="CharacterEllipsis" />
+                    <ProgressBar Style="{DynamicResource AppProgressBarStyle}" Margin="0,16,0,0"
+                                 Minimum="0" Maximum="100"
+                                 Value="{Binding ProgressValue}"
+                                 IsIndeterminate="{Binding IsProgressIndeterminate}" />
+                    <Button Content="Bekor qilish" Style="{DynamicResource StandardButtonStyle}"
+                            HorizontalAlignment="Right" Margin="0,18,0,0"
+                            Command="{Binding CancelCommand}" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

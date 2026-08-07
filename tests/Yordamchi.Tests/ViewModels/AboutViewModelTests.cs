@@ -421,6 +421,49 @@ public sealed class AboutViewModelTests : IDisposable
     }
 
     // =================================================================================
+    //  Loyihani qo'llab-quvvatlash
+    // =================================================================================
+
+    [Fact]
+    public void The_support_card_number_is_copied_without_its_spaces()
+    {
+        // Ekranda raqam "9860 3501 …" ko'rinishida o'qiladi, lekin bank ilovalarining
+        // ko'pchiligi qo'yilgan matnni o'zi tozalamaydi va bo'shliqli raqamni rad etadi.
+        var vm = CreateViewModel();
+
+        vm.CopySupportCardCommand.Execute(null);
+
+        var copied = Assert.Single(_dialogs.ClipboardTexts);
+
+        Assert.NotNull(copied);
+        Assert.DoesNotContain(' ', copied);
+        Assert.Equal(AboutViewModel.SupportCard.Replace(" ", string.Empty), copied);
+        Assert.Equal(16, copied.Length);
+    }
+
+    [Fact]
+    public void Nothing_is_said_about_the_card_until_it_is_copied()
+    {
+        var vm = CreateViewModel();
+
+        Assert.Empty(vm.SupportCopyStatus);
+
+        vm.CopySupportCardCommand.Execute(null);
+
+        Assert.NotEmpty(vm.SupportCopyStatus);
+    }
+
+    [Fact]
+    public void The_support_card_is_shown_in_readable_groups()
+    {
+        var vm = CreateViewModel();
+
+        Assert.Equal("9860 3501 4679 1495", vm.SupportCardNumber);
+        Assert.Equal("Uzcard", vm.SupportCardKind);
+        Assert.Equal(vm.AuthorName, vm.SupportCardHolder);
+    }
+
+    // =================================================================================
     //  Yordamchilar
     // =================================================================================
 
