@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Yordamchi.Helpers;
 using Yordamchi.Models;
 using Yordamchi.Services.Abstractions;
 
@@ -20,7 +21,7 @@ namespace Yordamchi.ViewModels;
 /// qo'shimcha marshalling yo'q.
 /// </para>
 /// </summary>
-public sealed partial class ScreenRecorderViewModel : ViewModelBase
+public sealed partial class ScreenRecorderViewModel : ViewModelBase, IDisposable
 {
     private readonly IScreenRecorderService _recorder;
 
@@ -28,6 +29,9 @@ public sealed partial class ScreenRecorderViewModel : ViewModelBase
     private DateTimeOffset _startedAt;
     private TimeSpan _pausedTotal;
     private DateTimeOffset? _pausedAt;
+
+    /// <summary>Oynani aynan biz kichraytirganmizmi — faqat shunda uni qaytaramiz.</summary>
+    private bool _minimizedForRecording;
 
     public ScreenRecorderViewModel(IScreenRecorderService recorder, IDialogService dialogService)
         : base(dialogService)
@@ -50,6 +54,44 @@ public sealed partial class ScreenRecorderViewModel : ViewModelBase
 
     /// <summary>Yozib olish boshlanganda asosiy oynani kichraytirish so'rovi.</summary>
     public event EventHandler? MinimizeRequested;
+
+    /// <summary>
+    /// Yozuv tugagach oynani qaytarish so'rovi — faqat uni biz kichraytirgan bo'lsak.
+    /// Foydalanuvchi natijani ("Oxirgi yozuv" kartochkasini) topish uchun vazifalar
+    /// panelini qidirib o'tirmasligi kerak.
+    /// </summary>
+    public event EventHandler? RestoreRequested;
+
+    /// <summary>Suzuvchi boshqaruv paneli ochilsin (<c>true</c>) yoki yopilsin (<c>false</c>).</summary>
+    public event EventHandler<bool>? OverlayVisibilityChanged;
+
+    /// <summary>
+    /// Yozuv davomida boshqaruv alohida suzuvchi panelga chiqariladimi.
+    /// <para>
+    /// Panelning butun ma'nosi — u ekranda ko'rinib, videoga tushmasligida. Buni
+    /// <c>WDA_EXCLUDEFROMCAPTURE</c> ta'minlaydi va u Windows 10 2004 dan mavjud. Eskiroq
+    /// tizimda panel har kadrda ko'rinib qolardi, shuning uchun u ochilmaydi va tugmalar
+    /// sahifaning o'zida qoladi (<see cref="ShowsInlineControls"/>).
+    /// </para>
+    /// <para>
+    /// Standart qiymat tizimdan olinadi, lekin xossa <c>init</c> qilib qo'yilgan: aks holda
+    /// sinov natijasi u ishlayotgan Windows versiyasiga bog'lanib qolardi va ikkala tarmoqni
+    /// (panelli va panelsiz) bir vaqtda tekshirib bo'lmasdi.
+    /// </para>
+    /// </summary>
+    public bool UsesFloatingControls { get; init; } = CaptureExclusion.IsSupported;
+
+    /// <summary>Sahifadagi "Pauza" va "To'xtatish" tugmalari — faqat suzuvchi panel yo'q bo'lganda.</summary>
+    public bool ShowsInlineControls => !UsesFloatingControls;
+
+    /// <summary>Sahifadagi to'xtatish tugmalari aynan hozir ko'rinishi kerakmi.</summary>
+    public bool ShowsInlineStopControls => ShowsInlineControls && !IsIdleState;
+
+    /// <summary>
+    /// Yozuv ketayotgani va boshqaruv suzuvchi panelda ekani haqidagi eslatma. Oyna
+    /// kichraytirilmagan holatda foydalanuvchi tugmalarni sahifada qidirmasligi uchun.
+    /// </summary>
+    public bool ShowsOverlayHint => UsesFloatingControls && !IsIdleState;
 
     // ------------------------------------------------------------------ Manba
 
@@ -128,6 +170,7 @@ public sealed partial class ScreenRecorderViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRecording), nameof(IsPaused), nameof(IsIdleState), nameof(StateText))]
+    [NotifyPropertyChangedFor(nameof(ShowsInlineStopControls), nameof(ShowsOverlayHint))]
     [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(TogglePauseCommand), nameof(RefreshSourcesCommand))]
     private RecorderState _state = RecorderState.Idle;
 
@@ -171,8 +214,16 @@ public sealed partial class ScreenRecorderViewModel : ViewModelBase
             Elapsed = TimeSpan.Zero;
             StartTimer();
 
+            // Panel oynadan OLDIN ochiladi: kichraytirish animatsiyasi tugagunicha ekranda
+            // boshqaruvsiz bo'shliq qolmasligi kerak.
+            if (UsesFloatingControls)
+                OverlayVisibilityChanged?.Invoke(this, true);
+
             if (MinimizeWhileRecording)
+            {
+                _minimizedForRecording = true;
                 MinimizeRequested?.Invoke(this, EventArgs.Empty);
+            }
         }
         catch (PdfServiceException ex)
         {
@@ -276,20 +327,37 @@ public sealed partial class ScreenRecorderViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// O'tgan vaqtni sekundiga bir marta yangilaydi. <see cref="PeriodicTimer"/> tanlangan,
-    /// chunki u UI kutubxonalariga bog'lanmaydi; <c>ConfigureAwait(true)</c> tufayli
-    /// davomi baribir UI oqimida bajariladi.
+    /// O'tgan vaqtni sekundiga bir marta yangilaydi.
+    /// <para>
+    /// <c>ConfigureAwait(<b>false</b>)</c> ataylab: sikl hech qanday sinxronizatsiya
+    /// kontekstini ushlab qolmaydi. Ushlab qolgan taqdirda u kontekst tugatilgandan keyin
+    /// ham unga ish yuborishda davom etardi — bu holat sinov muhitida jarayonni butunlay
+    /// qulatgan (davomni yetkazish `try` blokidan tashqarida bo'lgani uchun uni ushlab ham
+    /// bo'lmaydi).
+    /// </para>
+    /// <para>
+    /// UI uchun bu xavfsiz: WPF oddiy (kolleksiya bo'lmagan) xossaning
+    /// <c>PropertyChanged</c> xabarini fon oqimidan kelganda o'zi dispetcherga o'tkazadi.
+    /// </para>
     /// </summary>
-    private async void StartTimer()
+    private void StartTimer()
     {
         StopTimer();
         _timerCancellation = new CancellationTokenSource();
-        var token = _timerCancellation.Token;
 
+        // `async void` ATAYLAB ishlatilmaydi. U sinxronizatsiya kontekstida "tugallanmagan
+        // amal" sifatida ro'yxatga olinadi va kontekst uni kutishga majbur bo'ladi — cheksiz
+        // sikl uchun bu kontekstning umuman yakunlanmasligini anglatadi. `async Task` da
+        // bunday ro'yxatga olish yo'q.
+        _ = RunTimerAsync(_timerCancellation.Token);
+    }
+
+    private async Task RunTimerAsync(CancellationToken token)
+    {
         try
         {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-            while (await timer.WaitForNextTickAsync(token).ConfigureAwait(true))
+            while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
             {
                 if (IsPaused)
                     continue;
@@ -298,20 +366,61 @@ public sealed partial class ScreenRecorderViewModel : ViewModelBase
                 OnPropertyChanged(nameof(ElapsedText));
             }
         }
-        catch (OperationCanceledException)
+        catch (Exception)
         {
-            // To'xtatildi — kutilgan holat.
+            // Bu metod `async void`: bu yerdan chiqib ketgan har qanday istisno butun dasturni
+            // yiqitadi. Taymer esa faqat ekrandagi soatni yuritadi — yozuvning o'ziga
+            // aloqasi yo'q, shuning uchun uning nosozligi hech qachon dastur qulashiga
+            // sabab bo'lmasligi kerak. Odatdagi holat — bekor qilish (to'xtatildi).
         }
     }
 
+    /// <summary>
+    /// Taymerni to'xtatadi. Maydon tashlashdan OLDIN bo'shatiladi: aks holda ayni damda
+    /// ishlayotgan sikl allaqachon tashlangan manbaga murojaat qilib qolishi mumkin.
+    /// </summary>
     private void StopTimer()
     {
-        _timerCancellation?.Cancel();
-        _timerCancellation?.Dispose();
+        var cancellation = _timerCancellation;
         _timerCancellation = null;
+
+        if (cancellation is null)
+            return;
+
+        try
+        {
+            cancellation.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Allaqachon tashlangan — qiladigan ish yo'q.
+        }
+
+        cancellation.Dispose();
     }
 
-    private void OnStateChanged(object? sender, RecorderStateChangedEventArgs e) => State = e.State;
+    private void OnStateChanged(object? sender, RecorderStateChangedEventArgs e)
+    {
+        State = e.State;
+
+        // Idle — seansning yagona tugash nuqtasi: servis uni ham muvaffaqiyatli yakunda,
+        // ham xatoda, ham umuman boshlanmaganda o'rnatadi. Shuning uchun tozalash shu yerda.
+        if (State is not RecorderState.Idle)
+            return;
+
+        // Taymer odatda RecordingCompleted/Failed da to'xtaydi, lekin seans ular kelmasdan
+        // ham tugashi mumkin (masalan yozuv umuman boshlanmagan) — shunda u abadiy tikillab
+        // qolardi.
+        StopTimer();
+
+        OverlayVisibilityChanged?.Invoke(this, false);
+
+        if (!_minimizedForRecording)
+            return;
+
+        _minimizedForRecording = false;
+        RestoreRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     private void OnRecordingCompleted(object? sender, ScreenRecordingCompletedEventArgs e)
     {
@@ -342,6 +451,23 @@ public sealed partial class ScreenRecorderViewModel : ViewModelBase
     partial void OnLastRecordingPathChanged(string? value) => OnPropertyChanged(nameof(HasLastRecording));
 
     partial void OnElapsedChanged(TimeSpan value) => OnPropertyChanged(nameof(ElapsedText));
+
+    /// <summary>
+    /// Taymerni to'xtatadi va servis hodisalaridan uziladi.
+    /// <para>
+    /// Sahifa dastur bilan birga yashaydi, shuning uchun bu odatda faqat yopilishda ishlaydi.
+    /// Lekin ishlab turgan <see cref="PeriodicTimer"/> — egasi tashlab yuborilgandan keyin ham
+    /// tikillashda davom etadigan resurs, va uni to'xtatadigan joy bo'lishi kerak.
+    /// </para>
+    /// </summary>
+    public void Dispose()
+    {
+        StopTimer();
+
+        _recorder.StateChanged -= OnStateChanged;
+        _recorder.RecordingCompleted -= OnRecordingCompleted;
+        _recorder.RecordingFailed -= OnRecordingFailed;
+    }
 
     /// <summary>Standart joy: "Videolar\Yordamchi". Yo'q bo'lsa yaratiladi.</summary>
     private static string DefaultOutputFolder()

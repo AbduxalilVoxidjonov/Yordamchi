@@ -57,6 +57,10 @@ public partial class App : Application
         services.AddSingleton<IScreenRecorderService, ScreenRecorderService>();
         services.AddSingleton<IArchiveService, ArchiveService>();
 
+        // Yangilanish ham PDF quvuriga aloqador emas: u dasturning o'zini almashtiradi.
+        // Singleton — muvaffaqiyatli tekshiruv natijasi shu nusxada keshlanadi.
+        services.AddSingleton<IUpdateService, UpdateService>();
+
         // ---------- Qobiq xizmatlari ----------
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IThemeService, ThemeService>();

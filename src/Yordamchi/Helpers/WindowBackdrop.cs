@@ -15,10 +15,12 @@ namespace Yordamchi.Helpers;
 public static class WindowBackdrop
 {
     private const int DwmwaUseImmersiveDarkMode = 20;   // Windows 10 20H1+
+    private const int DwmwaWindowCornerPreference = 33; // Windows 11 21H2+
     private const int DwmwaSystemBackdropType = 38;     // Windows 11 22H2+
     private const int DwmwaMicaEffect = 1029;           // Windows 11 21H2 (undocumented)
 
     private const int BackdropMica = 2;
+    private const int CornerPreferenceRound = 2;
 
     private const int Win11Build = 22000;
     private const int Win11_22H2Build = 22621;
@@ -71,6 +73,30 @@ public static class WindowBackdrop
         catch (Exception)
         {
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Ramkasiz oynaning burchaklarini yumaloqlashtiradi (Windows 11).
+    /// <para>
+    /// <c>WindowStyle="None"</c> bilan WPF ning o'zi to'g'ri burchakli to'rtburchak chizadi.
+    /// Suzuvchi boshqaruv paneli uchun bu qo'pol ko'rinadi, DWM esa buni tizim darajasida —
+    /// soya va antialiasing bilan birga — hal qiladi. Windows 10 da hech narsa o'zgarmaydi.
+    /// </para>
+    /// </summary>
+    public static void TryRoundCorners(Window window)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        try
+        {
+            var handle = new WindowInteropHelper(window).Handle;
+            if (handle != IntPtr.Zero)
+                SetAttribute(handle, DwmwaWindowCornerPreference, CornerPreferenceRound);
+        }
+        catch (Exception)
+        {
+            // Faqat bezak — eski tizimda to'g'ri burchak qolaveradi.
         }
     }
 

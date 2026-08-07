@@ -21,13 +21,26 @@ public sealed partial class AboutViewModel : ViewModelBase
     public const string TelegramUrl = "https://t.me/abduxalilvoxidjonov";
 
     private readonly IPdfEngineService _engine;
+    private readonly IUpdateService _updateService;
 
-    public AboutViewModel(IPdfEngineService engine, IDialogService dialogService)
+    public AboutViewModel(IPdfEngineService engine, IUpdateService updateService, IDialogService dialogService)
         : base(dialogService)
     {
         _engine = engine;
+        _updateService = updateService;
         RefreshComponents();
+
+        // Sahifa ochilishini kutmasdan holatni to'ldiramiz. Natija xizmatda keshlangani uchun
+        // bu odatda tarmoqqa umuman chiqmaydi — qobiq allaqachon so'ragan bo'ladi.
+        _ = LoadUpdateStatusAsync();
     }
+
+    /// <summary>
+    /// Yangilanish o'rnatilishidan oldin dastur yopilishi kerak. ViewModel WPF ni bilmaydi,
+    /// shuning uchun yopishni oyna (<c>MainWindow</c>) shu hodisa orqali bajaradi —
+    /// ekran yozuvidagi <c>MinimizeRequested</c> bilan bir xil naqsh.
+    /// </summary>
+    public event EventHandler? RestartRequested;
 
     public override string Title => "Dastur haqida";
 
@@ -116,6 +129,118 @@ public sealed partial class AboutViewModel : ViewModelBase
     }
 
     // -----------------------------------------------------------------
+    //  Yangilanish
+    // -----------------------------------------------------------------
+
+    /// <summary>Topilgan yangilanish; <c>null</c> — eng so'nggi versiya o'rnatilgan.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUpdate))]
+    [NotifyCanExecuteChangedFor(nameof(DownloadAndInstallCommand))]
+    private UpdateInfo? _availableUpdate;
+
+    [ObservableProperty]
+    private string _updateStatus = "Yangilanish tekshirilmoqda…";
+
+    public bool HasUpdate => AvailableUpdate is not null;
+
+    /// <summary>Relizlar sahifasi — "Nima o'zgardi" tugmasining manzili.</summary>
+    public string ReleasesPageUrl => _updateService.ReleasesPageUrl;
+
+    private async Task LoadUpdateStatusAsync()
+    {
+        try
+        {
+            ApplyUpdate(await _updateService.CheckForUpdateAsync().ConfigureAwait(true));
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // Sahifa ochilishida oyna chiqarmaymiz: yangilanish — ixtiyoriy qulaylik, uni
+            // tekshirib bo'lmagani foydalanuvchining ishiga to'sqinlik qilmasligi kerak.
+            AvailableUpdate = null;
+            UpdateStatus = "Yangilanishni tekshirib bo'lmadi — internetga ulanishni tekshiring.";
+        }
+    }
+
+    private void ApplyUpdate(UpdateInfo? update)
+    {
+        AvailableUpdate = update;
+        UpdateStatus = update is null
+            ? $"Eng so'nggi versiya o'rnatilgan (v{Version})"
+            : $"Yangi versiya tayyor: {update.VersionText} ({update.SizeText})";
+    }
+
+    [RelayCommand(CanExecute = nameof(IsIdle))]
+    private async Task CheckForUpdateAsync()
+    {
+        var checkedOk = await RunAsync(
+            "Yangilanish tekshirilmoqda…",
+            async (_, token) =>
+            {
+                ApplyUpdate(await _updateService.CheckForUpdateAsync(token).ConfigureAwait(true));
+            });
+
+        if (!checkedOk)
+            UpdateStatus = "Yangilanishni tekshirib bo'lmadi — internetga ulanishni tekshiring.";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanDownloadUpdate))]
+    private async Task DownloadAndInstallAsync()
+    {
+        var update = AvailableUpdate;
+        if (update is null)
+            return;
+
+        // Bu amal dasturni yopadi va administrator ruxsatini so'raydi — foydalanuvchi nima
+        // bo'lishini oldindan to'liq bilishi kerak.
+        if (!DialogService.Confirm(
+                "Yangilanishni o'rnatish",
+                $"Yordamchi {update.VersionText} versiyasiga yangilanadi.\n\n"
+                + $"1. O'rnatgich yuklab olinadi ({update.SizeText}).\n"
+                + "2. Dastur yopiladi.\n"
+                + "3. Yangi versiya o'rnatiladi — Windows administrator ruxsatini so'raydi.\n"
+                + "4. Dastur qaytadan ochiladi.\n\n"
+                + "Saqlanmagan ishlaringizni yakunlab oling. Davom etaylikmi?"))
+        {
+            return;
+        }
+
+        string? installerPath = null;
+
+        var downloaded = await RunAsync(
+            "Yangilanish yuklanmoqda…",
+            async (progress, token) =>
+            {
+                installerPath = await _updateService
+                    .DownloadAsync(update, progress, token)
+                    .ConfigureAwait(true);
+            },
+            "Yangilanish yuklandi — dastur yopilmoqda…");
+
+        if (!downloaded || string.IsNullOrEmpty(installerPath))
+            return;
+
+        try
+        {
+            _updateService.LaunchInstaller(installerPath);
+        }
+        catch (PdfServiceException ex)
+        {
+            // O'rnatgich ishga tushmadi — dasturni yopish mutlaqo mumkin emas, aks holda
+            // foydalanuvchi na eski, na yangi versiyada qolardi.
+            StatusMessage = ex.Message;
+            DialogService.ShowError("Yangilashni boshlab bo'lmadi", ex.Message);
+            return;
+        }
+
+        RestartRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void ViewReleaseNotes() => OpenUrl(_updateService.ReleasesPageUrl);
+
+    private bool CanDownloadUpdate => IsIdle && HasUpdate;
+
+    // -----------------------------------------------------------------
     //  Amallar
     // -----------------------------------------------------------------
 
@@ -184,6 +309,8 @@ public sealed partial class AboutViewModel : ViewModelBase
     {
         DownloadOcrLanguagesCommand.NotifyCanExecuteChanged();
         DownloadAiModelCommand.NotifyCanExecuteChanged();
+        CheckForUpdateCommand.NotifyCanExecuteChanged();
+        DownloadAndInstallCommand.NotifyCanExecuteChanged();
     }
 
     private void OpenUrl(string url)

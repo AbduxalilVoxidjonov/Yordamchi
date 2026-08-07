@@ -25,6 +25,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly ArchiveViewModel _archive;
     private readonly ScreenRecorderViewModel _screenRecorder;
     private readonly AboutViewModel _about;
+    private readonly IUpdateService _updateService;
 
     public MainViewModel(
         DashboardViewModel dashboard,
@@ -33,8 +34,10 @@ public sealed partial class MainViewModel : ObservableObject
         ArchiveViewModel archive,
         ScreenRecorderViewModel screenRecorder,
         AboutViewModel about,
-        IThemeService themeService)
+        IThemeService themeService,
+        IUpdateService updateService)
     {
+        _updateService = updateService;
         _dashboard = dashboard;
         _workspace = workspace;
         _backgroundRemover = backgroundRemover;
@@ -60,6 +63,10 @@ public sealed partial class MainViewModel : ObservableObject
         ];
 
         SelectedNavigationItem = NavigationItems[0];
+
+        // Jimgina fon tekshiruvi: natija bo'lsa yon panelda kichik bildirishnoma paydo bo'ladi,
+        // bo'lmasa (yoki internet yo'q bo'lsa) foydalanuvchi buni umuman sezmaydi.
+        _ = CheckForUpdateSilentlyAsync();
     }
 
     public ObservableCollection<NavigationItemViewModel> NavigationItems { get; }
@@ -79,6 +86,37 @@ public sealed partial class MainViewModel : ObservableObject
         $"Versiya {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.1.0"}";
 
     public string AuthorText => "Abduxalil Voxidjonov";
+
+    // -----------------------------------------------------------------
+    //  Yangilanish bildirishnomasi
+    // -----------------------------------------------------------------
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUpdate))]
+    [NotifyPropertyChangedFor(nameof(UpdateBannerText))]
+    private UpdateInfo? _availableUpdate;
+
+    /// <summary>Yon paneldagi bildirishnoma tugmasi shu bo'lgandagina ko'rinadi.</summary>
+    public bool HasUpdate => AvailableUpdate is not null;
+
+    public string UpdateBannerText =>
+        AvailableUpdate is null ? string.Empty : $"Yangi versiya: {AvailableUpdate.VersionText}";
+
+    /// <summary>
+    /// Fon tekshiruvi. Har qanday nosozlik yutiladi: dastur ochilishida yangilanish xatosi
+    /// haqida oyna chiqishi foydalanuvchining ishiga aloqasi yo'q va faqat bezovta qiladi.
+    /// </summary>
+    private async Task CheckForUpdateSilentlyAsync()
+    {
+        try
+        {
+            AvailableUpdate = await _updateService.CheckForUpdateAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            AvailableUpdate = null;
+        }
+    }
 
     /// <summary>Yon paneldagi mavzu kalitiga ikki tomonlama bog'langan.</summary>
     public bool IsDarkMode

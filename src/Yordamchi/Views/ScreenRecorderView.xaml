@@ -114,9 +114,15 @@
                             </StackPanel>
                         </Button>
 
+                        <!--
+                            Yozuv ketayotganda boshqaruv suzuvchi panelga ko'chadi — u ekranda
+                            turadi, lekin videoga tushmaydi. Sahifadagi bu ikki tugma faqat
+                            panelni yozuvdan yashirib bo'lmaydigan eski Windows da ko'rinadi;
+                            aks holda foydalanuvchida yozuvni to'xtatadigan hech narsa qolmasdi.
+                        -->
                         <Button Style="{DynamicResource StandardButtonStyle}"
                                 Command="{Binding TogglePauseCommand}"
-                                Visibility="{Binding IsIdleState, Converter={StaticResource RecBoolVisibleInverted}}"
+                                Visibility="{Binding ShowsInlineStopControls, Converter={StaticResource RecBoolVisible}}"
                                 MinWidth="132"
                                 Margin="0,0,10,0">
                             <StackPanel Orientation="Horizontal">
@@ -149,13 +155,30 @@
 
                         <Button Style="{DynamicResource DangerButtonStyle}"
                                 Command="{Binding StopCommand}"
-                                Visibility="{Binding IsIdleState, Converter={StaticResource RecBoolVisibleInverted}}"
+                                Visibility="{Binding ShowsInlineStopControls, Converter={StaticResource RecBoolVisible}}"
                                 MinWidth="120">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE71A;" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center" />
                                 <TextBlock Text="To'xtatish" Margin="10,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
+
+                        <!-- Boshqaruv suzuvchi panelda ekanini aytadigan eslatma -->
+                        <Border Background="{DynamicResource LayerFillAltBrush}"
+                                CornerRadius="{DynamicResource PillCornerRadius}"
+                                Padding="14,8"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding ShowsOverlayHint, Converter={StaticResource RecBoolVisible}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE7C4;"
+                                           FontFamily="{DynamicResource IconFontFamily}"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="Boshqaruv ekrandagi suzuvchi panelda"
+                                           Margin="10,0,0,0"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Grid>
             </Border>

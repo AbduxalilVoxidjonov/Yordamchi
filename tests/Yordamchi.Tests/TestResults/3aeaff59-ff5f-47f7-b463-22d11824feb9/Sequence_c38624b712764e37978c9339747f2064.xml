@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<TestSequence>
+  <Test Name="Yordamchi.Tests.ViewModels.ScreenRecorderViewModelTests.The_page_hides_its_stop_buttons_and_points_at_the_panel_instead" DisplayName="Yordamchi.Tests.ViewModels.ScreenRecorderViewModelTests.The_page_hides_its_stop_buttons_and_points_at_the_panel_instead" Source="E:\tizim\pdfedit\tests\Yordamchi.Tests\bin\Release\net8.0-windows\Yordamchi.Tests.dll" Completed="True" />
+  <Test Name="Yordamchi.Tests.ViewModels.ScreenRecorderViewModelTests.The_panel_closes_when_the_recording_ends" DisplayName="Yordamchi.Tests.ViewModels.ScreenRecorderViewModelTests.The_panel_closes_when_the_recording_ends" Source="E:\tizim\pdfedit\tests\Yordamchi.Tests\bin\Release\net8.0-windows\Yordamchi.Tests.dll" Completed="True" />
+  <Test Name="Yordamchi.Tests.ViewModels.ScreenRecorderViewModelTests.The_window_is_restored_only_once_per_session" DisplayName="Yordamchi.Tests.ViewModels.ScreenRecorderViewModelTests.The_window_is_restored_only_once_per_session" Source="E:\tizim\pdfedit\tests\Yordamchi.Tests\bin\Release\net8.0-windows\Yordamchi.Tests.dll" Completed="True" />
+  <Test Name="Yordamchi.Tests.ViewModels.ScreenRecorderViewModelTests.The_panel_stays_open_while_the_recording_is_paused" DisplayName="Yordamchi.Tests.ViewModels.ScreenRecorderViewModelTests.The_panel_stays_open_while_the_recording_is_paused" Source="E:\tizim\pdfedit\tests\Yordamchi.Tests\bin\Release\net8.0-windows\Yordamchi.Tests.dll" Completed="False" />
+</TestSequence>

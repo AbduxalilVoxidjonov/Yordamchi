@@ -93,8 +93,35 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <!-- Quyi qism: mavzu kaliti, versiya va muallif -->
+                <!-- Quyi qism: yangilanish bildirishnomasi, mavzu kaliti, versiya va muallif -->
                 <StackPanel Grid.Row="2" Margin="24,8,24,22">
+                    <!-- Yangilanish topilganda ko'rinadi; bosilganda "Dastur haqida" ochiladi.
+                         Bu oyna emas — foydalanuvchi tayyor bo'lganda o'zi bosadi. -->
+                    <Button Style="{DynamicResource SubtleButtonStyle}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Height="Auto"
+                            Margin="-12,0,0,10"
+                            Padding="12,9"
+                            Command="{Binding ShowAboutCommand}"
+                            ToolTip="Yangi versiyani yuklab olish va o'rnatish"
+                            Visibility="{Binding HasUpdate, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE896;"
+                                       FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="15"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center" />
+
+                            <TextBlock Text="{Binding UpdateBannerText}"
+                                       Margin="10,0,0,0"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Button>
+
                     <Border Style="{DynamicResource SeparatorLineStyle}" Margin="0,0,0,16" />
 
                     <Grid>

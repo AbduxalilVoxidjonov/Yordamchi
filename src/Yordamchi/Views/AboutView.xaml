@@ -237,6 +237,49 @@
                     </Grid>
                 </Border>
 
+                <!-- Dastur yangilanishi -->
+                <Border Style="{DynamicResource CardBorderStyle}" Padding="20,16" Margin="0,10,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Ellipse Grid.Column="0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse" BasedOn="{StaticResource StatusDotStyle}">
+                                    <!-- Yangilanish yo'qligi — muammo emas, shuning uchun yashil -->
+                                    <Setter Property="Fill" Value="{DynamicResource SuccessBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasUpdate}" Value="True">
+                                            <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Dastur yangilanishi" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding UpdateStatus}"
+                                       Style="{DynamicResource CaptionTextStyle}"
+                                       TextWrapping="Wrap" Margin="0,3,0,0" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{DynamicResource SubtleButtonStyle}" Content="Nima o'zgardi"
+                                    Command="{Binding ViewReleaseNotesCommand}"
+                                    ToolTip="{Binding ReleasesPageUrl}"
+                                    Margin="0,0,8,0" />
+                            <Button Style="{DynamicResource SubtleButtonStyle}" Content="Tekshirish"
+                                    Command="{Binding CheckForUpdateCommand}" Margin="0,0,8,0" />
+                            <Button Style="{DynamicResource AccentButtonStyle}" Content="Yangilash"
+                                    Command="{Binding DownloadAndInstallCommand}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
                 <!-- Microsoft Word -->
                 <Border Style="{DynamicResource CardBorderStyle}" Padding="20,16" Margin="0,10,0,0">
                     <Grid>

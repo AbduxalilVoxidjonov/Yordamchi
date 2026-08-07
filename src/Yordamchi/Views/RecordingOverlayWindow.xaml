@@ -1,0 +1,172 @@
+<Window x:Class="Yordamchi.Views.RecordingOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:Yordamchi.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=viewModels:ScreenRecorderViewModel}"
+        Title="Yozuv boshqaruvi"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        ShowInTaskbar="False"
+        Topmost="True"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FontSize="14"
+        Background="#1C1C1E">
+
+    <!--
+        Ranglar bu yerda ataylab qat'iy (mavzuga bog'lanmagan): panel dasturning ustida emas,
+        foydalanuvchining ish stoli ustida turadi. Yorug' mavzudagi och panel oq fonli hujjat
+        ustida deyarli ko'rinmay qolardi, qorong'i esa har qanday fonda o'qiladi.
+
+        Oyna AllowsTransparency SIZ quriladi: qatlamli (layered) oynada
+        SetWindowDisplayAffinity ishonchsiz, panelning yozuvdan yashirilishi esa uning butun
+        mavjudlik sababi. Burchaklar DWM orqali yumaloqlanadi (Windows 11).
+    -->
+
+    <Window.Resources>
+        <Style x:Key="OverlayButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Background" Value="#2C2C2E" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Surface"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#3A3A3C" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#48484A" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="OverlayDangerButtonStyle" TargetType="Button" BasedOn="{StaticResource OverlayButtonStyle}">
+            <Setter Property="Background" Value="#E5484D" />
+            <Setter Property="Padding" Value="16,7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Surface"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#F0575C" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#C93B40" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Padding="16,10" MouseLeftButtonDown="OnDragArea">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+            <!-- Holat nishoni: yozilayotganda qizil, pauzada sariq -->
+            <Ellipse Width="12" Height="12" VerticalAlignment="Center">
+                <Ellipse.Style>
+                    <Style TargetType="Ellipse">
+                        <Setter Property="Fill" Value="#E5484D" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                <Setter Property="Fill" Value="#F5A524" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Ellipse.Style>
+            </Ellipse>
+
+            <!-- Taymer teng kenglikdagi raqamlar bilan: sekund o'zgarganda panel sakramaydi -->
+            <TextBlock Text="{Binding ElapsedText}"
+                       FontFamily="Consolas, Cascadia Mono, Segoe UI"
+                       FontSize="20"
+                       Foreground="#FFFFFF"
+                       VerticalAlignment="Center"
+                       Margin="12,0,0,0" />
+
+            <Border Width="1" Height="24" Background="#3A3A3C" Margin="16,0" />
+
+            <!-- To'xtatib turish / davom ettirish -->
+            <Button Style="{StaticResource OverlayButtonStyle}"
+                    Command="{Binding TogglePauseCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="&#xE769;" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                        <Setter Property="Text" Value="&#xE768;" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Margin="9,0,0,0" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="Pauza" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                        <Setter Property="Text" Value="Davom" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Button>
+
+            <!-- To'xtatish -->
+            <Button Style="{StaticResource OverlayDangerButtonStyle}"
+                    Command="{Binding StopCommand}"
+                    Margin="10,0,0,0"
+                    ToolTip="Yozuvni yakunlash va faylni saqlash">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE71A;" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center" />
+                    <TextBlock Text="To'xtatish" Margin="9,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+
+            <!-- Sudrash uchun tutqich: panelni istalgan joyga surish mumkin -->
+            <TextBlock Text="&#xE700;"
+                       FontFamily="{DynamicResource IconFontFamily}"
+                       FontSize="15"
+                       Foreground="#8E8E93"
+                       VerticalAlignment="Center"
+                       Margin="16,0,0,0"
+                       ToolTip="Panelni surish uchun ushlab torting" />
+        </StackPanel>
+    </Border>
+</Window>

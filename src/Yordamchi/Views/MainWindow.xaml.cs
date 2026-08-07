@@ -13,29 +13,93 @@ namespace Yordamchi.Views;
 public partial class MainWindow : Window
 {
     private readonly IThemeService _themeService;
+    private readonly ScreenRecorderViewModel _screenRecorder;
+
+    private RecordingOverlayWindow? _overlay;
     private bool _usesMicaBackdrop;
 
-    public MainWindow(MainViewModel viewModel, IThemeService themeService, ScreenRecorderViewModel screenRecorder)
+    public MainWindow(
+        MainViewModel viewModel,
+        IThemeService themeService,
+        ScreenRecorderViewModel screenRecorder,
+        AboutViewModel about)
     {
         _themeService = themeService;
+        _screenRecorder = screenRecorder;
 
         InitializeComponent();
         DataContext = viewModel;
 
         _themeService.ThemeChanged += OnThemeChanged;
 
-        // Oynani kichraytirish — Window ustidagi amal, ViewModel'da mumkin emas.
+        // Oyna holati va suzuvchi panel — Window ustidagi amallar, ViewModel'da mumkin emas.
         // Ekran yozuvi boshlanganda dasturning o'zi videoga tushib qolmasligi uchun kerak.
         screenRecorder.MinimizeRequested += OnMinimizeRequested;
+        screenRecorder.RestoreRequested += OnRestoreRequested;
+        screenRecorder.OverlayVisibilityChanged += OnOverlayVisibilityChanged;
+
+        // Yangilanish o'rnatilishidan oldin dastur yopilishi kerak — o'rnatgich Program Files
+        // dagi fayllarni almashtiradi. Yopish ham Window darajasidagi amal.
+        about.RestartRequested += OnRestartRequested;
 
         Closed += (_, _) =>
         {
             _themeService.ThemeChanged -= OnThemeChanged;
             screenRecorder.MinimizeRequested -= OnMinimizeRequested;
+            screenRecorder.RestoreRequested -= OnRestoreRequested;
+            screenRecorder.OverlayVisibilityChanged -= OnOverlayVisibilityChanged;
+            about.RestartRequested -= OnRestartRequested;
+
+            CloseOverlay();
         };
     }
 
     private void OnMinimizeRequested(object? sender, EventArgs e) => WindowState = WindowState.Minimized;
+
+    private void OnRestartRequested(object? sender, EventArgs e) => Application.Current?.Shutdown();
+
+    private void OnRestoreRequested(object? sender, EventArgs e)
+    {
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    /// <summary>
+    /// Yozuv davomidagi suzuvchi boshqaruv panelini ochadi va yopadi.
+    /// <para>
+    /// Panel har safar qaytadan yaratiladi: u <c>SourceInitialized</c> da o'zini yozuvdan
+    /// yashiradi, ya'ni "yopish" o'rniga shunchaki berkitib qo'yish shu himoyani keyingi
+    /// seansda qayta qo'llash imkonini qoldirmasdi.
+    /// </para>
+    /// </summary>
+    private void OnOverlayVisibilityChanged(object? sender, bool visible)
+    {
+        if (!visible)
+        {
+            CloseOverlay();
+            return;
+        }
+
+        CloseOverlay();
+
+        _overlay = new RecordingOverlayWindow
+        {
+            // Egasi ko'rsatilmaydi: asosiy oyna kichraytirilganda panel ham u bilan birga
+            // yashirinib qolardi.
+            DataContext = _screenRecorder
+        };
+
+        _overlay.Show();
+    }
+
+    private void CloseOverlay()
+    {
+        if (_overlay is null)
+            return;
+
+        _overlay.Close();
+        _overlay = null;
+    }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
