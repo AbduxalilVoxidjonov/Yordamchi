@@ -1,11 +1,12 @@
 namespace Yordamchi.Models;
 
 /// <summary>
-/// Relizdan olingan, o'rnatishga tayyor yangilanish haqidagi ma'lumot.
+/// Relizdan olingan, foydalanuvchiga e'lon qilinadigan yangilanish haqidagi ma'lumot.
 /// <para>
 /// Bu tur faqat <b>joriy versiyadan yangi</b> va <b>tekshiruvdan o'tgan</b> reliz uchun
 /// yaratiladi: nomi kutilgan naqshga mos aktiv va ishonchli xostdagi https havola.
 /// Shu sababli UI qatlami hech qanday qo'shimcha tekshiruvsiz uni ko'rsatishi mumkin.
+/// Dastur o'zi hech narsa yuklab olmaydi — o'rnatgichni foydalanuvchi brauzerda oladi.
 /// </para>
 /// </summary>
 /// <param name="Version">Teg (tag) dan olingan versiya, masalan <c>2.2.0</c>.</param>
@@ -14,7 +15,7 @@ namespace Yordamchi.Models;
 /// <param name="ReleaseNotes">Reliz izohi (markdown matni); bo'sh bo'lishi mumkin.</param>
 /// <param name="DownloadUrl">O'rnatgichning to'g'ridan-to'g'ri yuklab olish havolasi.</param>
 /// <param name="AssetName">Aktiv fayl nomi, masalan <c>YordamchiSetup-2.2.0.exe</c>.</param>
-/// <param name="SizeBytes">API aytgan hajm — yuklab olingandan keyin shu bilan solishtiriladi.</param>
+/// <param name="SizeBytes">API aytgan hajm — foydalanuvchi nima yuklashini oldindan biladi.</param>
 /// <param name="PublishedAt">Reliz e'lon qilingan vaqt.</param>
 public sealed record UpdateInfo(
     Version Version,
@@ -33,7 +34,7 @@ public sealed record UpdateInfo(
     public string DisplayName =>
         string.IsNullOrWhiteSpace(ReleaseName) ? TagName : ReleaseName;
 
-    /// <summary>Tasdiqlash oynasida ko'rsatiladigan hajm (Explorer bilan bir xil o'lchov — MiB).</summary>
+    /// <summary>Kartochkada ko'rsatiladigan hajm (Explorer bilan bir xil o'lchov — MiB).</summary>
     public string SizeText => SizeBytes <= 0
         ? "hajmi noma'lum"
         : $"{SizeBytes / (1024d * 1024d):0.#} MB";

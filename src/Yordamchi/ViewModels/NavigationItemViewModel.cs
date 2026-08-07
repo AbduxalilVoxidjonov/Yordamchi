@@ -24,5 +24,13 @@ public sealed partial class NavigationItemViewModel : ObservableObject
     [ObservableProperty]
     private bool _isSelected;
 
+    /// <summary>
+    /// Bo'lim yonidagi kichik nuqta: e'tibor talab qiladigan holat bor (masalan yangi versiya
+    /// chiqqan). Ataylab shovqinsiz — bannerdan farqli o'laroq u foydalanuvchining ishini
+    /// to'xtatmaydi, lekin "Dastur haqida" ga kirmasdan ham sezilib turadi.
+    /// </summary>
+    [ObservableProperty]
+    private bool _hasNotification;
+
     public override string ToString() => Title;
 }

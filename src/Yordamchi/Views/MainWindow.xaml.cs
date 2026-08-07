@@ -21,8 +21,7 @@ public partial class MainWindow : Window
     public MainWindow(
         MainViewModel viewModel,
         IThemeService themeService,
-        ScreenRecorderViewModel screenRecorder,
-        AboutViewModel about)
+        ScreenRecorderViewModel screenRecorder)
     {
         _themeService = themeService;
         _screenRecorder = screenRecorder;
@@ -38,25 +37,18 @@ public partial class MainWindow : Window
         screenRecorder.RestoreRequested += OnRestoreRequested;
         screenRecorder.OverlayVisibilityChanged += OnOverlayVisibilityChanged;
 
-        // Yangilanish o'rnatilishidan oldin dastur yopilishi kerak — o'rnatgich Program Files
-        // dagi fayllarni almashtiradi. Yopish ham Window darajasidagi amal.
-        about.RestartRequested += OnRestartRequested;
-
         Closed += (_, _) =>
         {
             _themeService.ThemeChanged -= OnThemeChanged;
             screenRecorder.MinimizeRequested -= OnMinimizeRequested;
             screenRecorder.RestoreRequested -= OnRestoreRequested;
             screenRecorder.OverlayVisibilityChanged -= OnOverlayVisibilityChanged;
-            about.RestartRequested -= OnRestartRequested;
 
             CloseOverlay();
         };
     }
 
     private void OnMinimizeRequested(object? sender, EventArgs e) => WindowState = WindowState.Minimized;
-
-    private void OnRestartRequested(object? sender, EventArgs e) => Application.Current?.Shutdown();
 
     private void OnRestoreRequested(object? sender, EventArgs e)
     {

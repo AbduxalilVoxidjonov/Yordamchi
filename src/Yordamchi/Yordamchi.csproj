@@ -20,9 +20,9 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
 
     <!-- Fayl xossalari oynasida, o'rnatgichda va "Dasturlar va komponentlar"da ko'rinadi. -->
-    <Version>2.2.0</Version>
-    <AssemblyVersion>2.2.0.0</AssemblyVersion>
-    <FileVersion>2.2.0.0</FileVersion>
+    <Version>2.3.0</Version>
+    <AssemblyVersion>2.3.0.0</AssemblyVersion>
+    <FileVersion>2.3.0.0</FileVersion>
     <Product>Yordamchi</Product>
     <Company>Abduxalil Voxidjonov</Company>
     <Authors>Abduxalil Voxidjonov</Authors>

@@ -1,6 +1,6 @@
 <div align="center">
 
-# Yordamchi 2.2.0
+# Yordamchi 2.3.0
 
 **Windows uchun to'liq funksional PDF vositalari to'plami — 17 ta vosita, arxivlash va ekran yozuvi, bitta dastur.**
 
@@ -15,8 +15,8 @@ dastur: sahifalarni tartiblash va birlashtirishdan tortib, Word/Excel/PowerPoint
 konvertatsiya, OCR va sun'iy intellekt bilan rasm fonini olib tashlashgacha. Bularga
 qo'shimcha — **arxivlash** va **ekranni ovoz bilan videoga yozib olish** modullari. Yozuv
 davomida boshqaruv ekrandagi kichik **suzuvchi panelga** chiqadi: u monitorda ko'rinadi,
-lekin videoga tushmaydi. Yangi versiya chiqqanida dastur buni o'zi sezadi va **o'zini
-yangilay oladi**.
+lekin videoga tushmaydi. Yangi versiya chiqqanini dastur o'zi sezadi va **"Dastur haqida"**
+sahifasida xabar beradi — o'rnatgichni esa siz o'zingiz yuklab olasiz.
 
 **Fayllaringiz hech qayerga jo'natilmaydi** — hujjat, rasm va videolar ustidagi barcha ish
 sizning kompyuteringizda bajariladi. Dastur internetga faqat uch holatda chiqadi: OCR til
@@ -214,56 +214,39 @@ o'z holida qoladi.
 
 ## 🔄 Yangilanish
 
-Dastur o'zining yangi versiyasini o'zi topadi va o'zi o'rnatadi — relizlar sahifasini
-kuzatib yurish shart emas.
+Dastur yangi versiya chiqqanini o'zi sezadi va sizga aytadi. **Yuklab olish va o'rnatishni
+esa siz bajarasiz** — dastur hech qanday fayl yuklab olmaydi va hech nimani ishga
+tushirmaydi.
 
 ### Qanday ishlaydi
 
 1. **Ochilishda jimgina tekshiruv.** Dastur GitHub relizlariga bitta so'rov yuborib, eng
    so'nggi versiyani so'raydi. Internet yo'q bo'lsa yoki server javob bermasa — hech qanday
    xato oynasi chiqmaydi, siz buni umuman sezmaysiz.
-2. **Yangi versiya bo'lsa — bildirishnoma.** Chap yon panelning pastida
-   *"Yangi versiya: 2.3.0"* degan kichik tugma paydo bo'ladi. U hech narsani to'sib
-   qo'ymaydi va o'zi hech narsa yuklamaydi; bosilsa **"Dastur haqida"** sahifasi ochiladi.
-3. **"Dastur haqida" da to'liq kartochka.** *"Dastur yangilanishi"* kartochkasi holatni
-   matn bilan aytadi — *"Eng so'nggi versiya o'rnatilgan"* yoki *"Yangi versiya tayyor:
-   2.3.0 (62 MB)"* — va uchta tugma beradi: **"Nima o'zgardi"** (relizlar sahifasini
-   brauzerda ochadi), **"Tekshirish"** (qo'lda qayta tekshirish) va **"Yangilash"**.
-4. **Tasdiqlash.** Tugma bosilganda dastur nima bo'lishini oldindan to'liq aytadi: fayl
-   yuklab olinadi, dastur yopiladi, o'rnatiladi va qaytadan ochiladi. Rozi bo'lmasangiz
-   hech narsa qilinmaydi.
-5. **Yuklash va o'rnatish.** O'rnatgich foizi ko'rinib turgan holda yuklanadi (bekor qilish
-   mumkin), so'ng dastur yopiladi va o'rnatgich ishga tushadi. Windows bir marta
-   **administrator ruxsatini (UAC)** so'raydi. Tugagach yangi versiya o'zi ochiladi.
+2. **Yon panelda kichik nuqta.** Yangi versiya bo'lsa chap yon paneldagi
+   **"Dastur haqida"** bandi yonida kichik nuqta paydo bo'ladi. U hech narsani to'sib
+   qo'ymaydi va hech narsa yuklamaydi — shunchaki sahifaga ishora qiladi.
+3. **Batafsili "Dastur haqida" sahifasida.** *"Dastur yangilanishi"* kartochkasi holatni
+   matn bilan aytadi — *"Eng so'nggi versiya o'rnatilgan"* yoki *"Yangi versiya mavjud:
+   2.3.0 (103 MB)"*.
+4. **Ikkita tugma.** **"Tekshirish"** — qo'lda qayta tekshirish; **"Relizlar sahifasi"** —
+   GitHub dagi relizni brauzerda ochadi, u yerda o'zgarishlar ro'yxati va o'rnatgich fayli
+   turadi.
+5. **O'rnatish — odatdagidek.** Yuklab olingan `YordamchiSetup-<versiya>.exe` ni ishga
+   tushirasiz; u eski versiyani o'rniga yangilaydi, avval o'chirish shart emas.
+
+> **Nega dastur o'zi yuklab olib o'rnatmaydi.** Bu ataylab qilingan qaror. O'zini o'zi
+> yangilaydigan dastur internetdan olingan faylni administrator huquqi bilan ishga
+> tushiradi; o'rnatgich esa kod bilan imzolanmagan, ya'ni faylning haqiqiyligini
+> ishonchli tasdiqlab bo'lmaydi. Shuning uchun oxirgi qadam — nimani yuklab olish va
+> nimani ishga tushirish — foydalanuvchining o'zida qoldirilgan.
 
 | Xususiyat | Qiymat |
 |---|---|
-| Nima yuklab olinadi | Faqat rasmiy relizdagi `YordamchiSetup-<versiya>.exe` |
-| Qayerga yuklanadi | `%LOCALAPPDATA%\Yordamchi\Updates` — administrator huquqi kerak emas |
-| Qachon taklif qilinadi | Faqat joriy versiyadan **yangi** reliz uchun; qoralama (draft) va sinov (prerelease) relizlari e'tiborga olinmaydi |
-| Avtomatik o'rnatiladimi | **Yo'q.** Hamma narsa siz tasdiqlaganingizdan keyin boshlanadi |
-
-### Xavfsizlik tekshiruvlari
-
-Yuklab olingan fayl sizning kompyuteringizda administrator huquqi bilan ishga tushadi,
-shuning uchun tekshiruvlar ataylab qattiq — mos kelmagan har qanday narsa shunchaki rad
-etiladi:
-
-| Tekshiruv | Nima talab qilinadi |
-|---|---|
-| Fayl nomi | Aynan `YordamchiSetup-<versiya>.exe` naqshi. `.msi`, `.zip` yoki boshqa nomdagi aktiv olinmaydi |
-| Protokol | Faqat **https** |
-| Manzil | Faqat `github.com` va `objects.githubusercontent.com` (aktivlar shu ikkinchi xostga yo'naltiriladi). Boshqa xost — biz nazorat qilmaydigan server, demak rad etiladi |
-| Yaxlitlik | Yuklab olingan faylning hajmi GitHub aytgan qiymatga **baytma-bayt** teng bo'lishi shart; aks holda fayl o'chiriladi va o'rnatish boshlanmaydi |
-| Chala fayl | Yuklash `.part` nomiga boradi va faqat tekshiruvdan o'tgach asl nomiga o'tadi — yarim yuklangan o'rnatgich hech qachon ishga tushirilmaydi |
-
-> Tekshiruv so'rovida foydalanuvchi haqidagi hech qanday ma'lumot yuborilmaydi: GitHub ga
-> ketadigan yagona narsa — so'rovni kim yuborayotganini bildiradigan dastur nomi va
-> versiyasi (`Yordamchi/2.2.0`). GitHub API `User-Agent` siz so'rovlarni rad etadi.
-
-> Yangilanishni umuman ishlatmaslik ham mumkin: bildirishnomani e'tiborsiz qoldiring va
-> kerak bo'lganda o'rnatgichni [Releases](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/latest)
-> dan qo'lda yuklab oling — natija bir xil.
+| Nima yuboriladi | GitHub relizlar API siga bitta `GET` so'rovi; foydalanuvchi haqidagi ma'lumot yo'q, faqat dastur nomi va versiyasi (`Yordamchi/2.3.0`) — GitHub API `User-Agent` siz so'rovlarni rad etadi |
+| Qachon xabar beriladi | Faqat joriy versiyadan **yangi** reliz uchun; qoralama (draft) va sinov (prerelease) relizlari e'tiborga olinmaydi |
+| Dastur nima yuklab oladi | **Hech nima.** Havola brauzerda ochiladi, qolgani sizning qo'lingizda |
+| Tekshiruvni o'tkazib yuborish | Internet yo'q bo'lsa dastur baribir normal ishlaydi — tekshiruv jimgina o'tkazib yuboriladi |
 
 ---
 
@@ -294,7 +277,7 @@ etiladi:
 ## O'rnatish
 
 1. [**Releases**](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/latest) bo'limidan
-   `YordamchiSetup-2.2.0.exe` faylini yuklab oling va ishga tushiring.
+   `YordamchiSetup-2.3.0.exe` faylini yuklab oling va ishga tushiring.
 2. Litsenziyani qabul qiling, kerak bo'lsa o'rnatish papkasini o'zgartiring.
 3. "O'rnatish" tugmasini bosing — bir marta administrator ruxsati (UAC) so'raladi.
 
@@ -310,18 +293,23 @@ O'rnatuvchi:
   ya'ni allaqachon bor bo'lsa bosqich o'tkazib yuboriladi. Ish vaqti dastur o'chirilganda
   olib tashlanmaydi — u boshqa dasturlarga ham kerak.
 
+> **Keyingi versiyalar ham xuddi shunday o'rnatiladi.** Dastur o'zini o'zi yangilamaydi:
+> u faqat yangi versiya chiqqanini "Dastur haqida" sahifasida aytadi, o'rnatgichni esa siz
+> [Releases](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/latest) dan yuklab
+> olib ishga tushirasiz (batafsil: [🔄 Yangilanish](#-yangilanish)).
+
 ### Korporativ (jimgina) o'rnatish
 
-MSI ham xuddi shu relizda — `Yordamchi-2.2.0-x64.msi`:
+MSI ham xuddi shu relizda — `Yordamchi-2.3.0-x64.msi`:
 
 ```powershell
-msiexec /i Yordamchi-2.2.0-x64.msi /qn INSTALLFOLDER="C:\Apps\Yordamchi"
+msiexec /i Yordamchi-2.3.0-x64.msi /qn INSTALLFOLDER="C:\Apps\Yordamchi"
 ```
 
 O'chirish:
 
 ```powershell
-msiexec /x Yordamchi-2.2.0-x64.msi /qn
+msiexec /x Yordamchi-2.3.0-x64.msi /qn
 ```
 
 ---
@@ -370,7 +358,7 @@ ishlaydi va tugagach o'zidan keyin tozalab ketadi.
 dotnet publish src\Yordamchi\Yordamchi.csproj `
     -c Release -r win-x64 --self-contained true `
     -p:PublishReadyToRun=true `
-    -p:Version=2.2.0 -p:FileVersion=2.2.0.0 -p:AssemblyVersion=2.2.0.0 `
+    -p:Version=2.3.0 -p:FileVersion=2.3.0.0 -p:AssemblyVersion=2.3.0.0 `
     -o publish\win-x64
 ```
 
@@ -391,8 +379,8 @@ wix extension add -g WixToolset.Util.wixext/5.0.2
 So'ng bitta buyruq:
 
 ```powershell
-.\build-installer.ps1                        # standart versiya: 2.2.0.0
-.\build-installer.ps1 -Version 2.3.0.0       # boshqa versiya bilan
+.\build-installer.ps1                        # standart versiya: 2.3.0.0
+.\build-installer.ps1 -Version 2.4.0.0       # boshqa versiya bilan
 .\build-installer.ps1 -SkipPublish           # mavjud publish papkasini qayta ishlatish
 ```
 
@@ -401,9 +389,9 @@ Skript to'rt bosqichni bajaradi va natijani `artifacts\` ga qo'yadi:
 | # | Bosqich | Natija |
 |---|---|---|
 | 1 | `dotnet publish -r win-x64 --self-contained -p:PublishReadyToRun=true` | `publish\win-x64\` (~168 MB) |
-| 2 | `wix build installer\Package.wxs` | `artifacts\Yordamchi-2.2.0-x64.msi` (LZX:high siqish bilan ~60 MB) |
+| 2 | `wix build installer\Package.wxs` | `artifacts\Yordamchi-2.3.0-x64.msi` (LZX:high siqish bilan ~60 MB) |
 | 3 | `vc_redist.x64.exe` ni `https://aka.ms/vs/17/release/vc_redist.x64.exe` dan olish | `artifacts\vc_redist.x64.exe` — **bir martalik**, keyingi yig'ilishlarda qayta ishlatiladi |
-| 4 | `wix build installer\Bundle.wxs` | `artifacts\YordamchiSetup-2.2.0.exe` — MSI va VC++ ish vaqti ichiga joylangan (`Compressed="yes"`) |
+| 4 | `wix build installer\Bundle.wxs` | `artifacts\YordamchiSetup-2.3.0.exe` — MSI va VC++ ish vaqti ichiga joylangan (`Compressed="yes"`) |
 
 > 3-bosqich — yagona joy, u yerda skript internetga chiqadi. Fayl allaqachon
 > `artifacts\vc_redist.x64.exe` da bo'lsa, u yuklab olinmaydi; qo'lda ham qo'yish mumkin.
@@ -529,9 +517,6 @@ To'liq tavsif, papkalar xaritasi, ma'lumot oqimi va yangi vosita qo'shish qo'lla
 - Suzuvchi boshqaruv paneli Windows 10 2004 (build 19041) dan boshlab ishlaydi. Eskiroq
   tizimda u umuman ochilmaydi (aks holda videoning har bir kadrida ko'rinib qolardi) —
   "Pauza" va "To'xtatish" sahifaning o'zida qoladi.
-- Yangilanish o'rnatilishida Windows administrator ruxsatini (UAC) so'raydi: dastur
-  `C:\Program Files` ga, ya'ni butun kompyuter uchun o'rnatiladi. Buni aylanib o'tib
-  bo'lmaydi — o'rnatgichni qo'lda ishga tushirganda ham xuddi shu so'raladi.
 
 ---
 

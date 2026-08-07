@@ -11,7 +11,7 @@
     Muallif: Abduxalil Voxidjonov — https://t.me/abduxalilvoxidjonov
 
 .PARAMETER Version
-    MSI va bundle ichiga yoziladigan to'rt qismli mahsulot versiyasi. Standart qiymat 2.2.0.0.
+    MSI va bundle ichiga yoziladigan to'rt qismli mahsulot versiyasi. Standart qiymat 2.3.0.0.
 
 .PARAMETER SkipPublish
     Mavjud publish\win-x64 papkasini qayta qurmasdan ishlatadi.
@@ -25,7 +25,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = '2.2.0.0',
+    [string]$Version = '2.3.0.0',
     [switch]$SkipPublish
 )
 

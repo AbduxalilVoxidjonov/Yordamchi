@@ -9,12 +9,13 @@ using Yordamchi.ViewModels;
 namespace Yordamchi.Tests.ViewModels;
 
 /// <summary>
-/// Qobiqning yangilanish bildirishnomasi. Tekshiruv dastur ochilishida <b>jimgina</b> ketadi:
-/// natija bo'lsa yon panelda kichik tugma paydo bo'ladi, xato bo'lsa foydalanuvchi buni
-/// umuman sezmasligi kerak.
+/// Qobiqning yon panelidagi yangilanish nishoni. Qobiq hech narsani <b>o'zi tekshirmaydi</b> —
+/// tekshiruv "Dastur haqida" sahifasida bo'ladi, bu yerda esa faqat natija ko'zgu qilinadi:
+/// yangi versiya topilsa bo'lim yonida kichik nuqta paydo bo'ladi.
 /// <para>
-/// Substitute'lar tayyor (allaqachon yakunlangan) <c>Task</c> qaytargani uchun konstruktordagi
-/// fon tekshiruvi shu yerdayoq oxirigacha bajariladi — sinovda kutish shart emas.
+/// Substitute'lar tayyor (allaqachon yakunlangan) <c>Task</c> qaytargani uchun
+/// <see cref="AboutViewModel"/> konstruktoridagi tekshiruv shu yerdayoq oxirigacha bajariladi —
+/// sinovda kutish shart emas.
 /// </para>
 /// </summary>
 public sealed class MainViewModelTests
@@ -33,30 +34,34 @@ public sealed class MainViewModelTests
         DateTimeOffset.UnixEpoch);
 
     [Fact]
-    public void Without_an_update_the_sidebar_shows_no_notification()
+    public void Without_an_update_no_navigation_item_is_marked()
     {
         var vm = CreateViewModel();
 
-        Assert.False(vm.HasUpdate);
-        Assert.Equal(string.Empty, vm.UpdateBannerText);
+        Assert.All(vm.NavigationItems, item => Assert.False(item.HasNotification));
     }
 
     [Fact]
-    public void An_available_update_is_announced_in_the_sidebar()
+    public void An_available_update_marks_the_about_item()
     {
         _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(NewRelease()));
 
         var vm = CreateViewModel();
 
-        Assert.True(vm.HasUpdate);
-        Assert.Equal("Yangi versiya: 2.2.0", vm.UpdateBannerText);
+        var about = vm.NavigationItems.Single(item => item.Title == "Dastur haqida");
+        Assert.True(about.HasNotification);
+
+        // Nishon faqat o'sha bo'limda: qolganlariga tegmaydi.
+        Assert.All(
+            vm.NavigationItems.Where(item => item != about),
+            item => Assert.False(item.HasNotification));
     }
 
     [Fact]
-    public void The_sidebar_announces_the_real_github_release()
+    public void The_mark_appears_from_the_real_github_release()
     {
-        // Yon paneldagi matn qo'lda yasalgan namunada emas, serverdan olingan haqiqiy
-        // javobdan chiqqan ma'lumot bilan tekshiriladi.
+        // Nishon qo'lda yasalgan namunada emas, serverdan olingan haqiqiy javobdan chiqqan
+        // ma'lumot bilan tekshiriladi.
         var real = UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(2, 0, 0));
         Assert.NotNull(real);
 
@@ -64,49 +69,57 @@ public sealed class MainViewModelTests
 
         var vm = CreateViewModel();
 
-        Assert.True(vm.HasUpdate);
-        Assert.Equal("Yangi versiya: 2.1.0", vm.UpdateBannerText);
+        Assert.True(vm.NavigationItems.Single(item => item.Title == "Dastur haqida").HasNotification);
     }
 
     [Fact]
-    public void The_silent_check_is_allowed_to_use_the_cache()
+    public void A_failed_check_is_swallowed_and_marks_nothing()
     {
-        // Ochilishdagi tekshiruv birinchi bo'ladi va uning javobi "Dastur haqida" sahifasiga
-        // ham yetadi — GitHub ikki marta so'ralmasligi kerak.
-        CreateViewModel();
-
-        _updates.Received().CheckForUpdateAsync(false, Arg.Any<CancellationToken>());
-        _updates.DidNotReceive().CheckForUpdateAsync(true, Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public void A_failed_check_is_swallowed_and_shows_nothing()
-    {
-        // Internet yo'qligi dastur ochilishida oyna chiqarmasligi kerak.
+        // Internet yo'qligi dastur ochilishida oyna chiqarmasligi va nishon qo'ymasligi kerak.
         _updates.CheckForUpdateAsync()
             .ThrowsForAnyArgs(new PdfServiceException(PdfErrorKind.OperationFailed, "Internet yo'q"));
 
         var vm = CreateViewModel();
 
-        Assert.False(vm.HasUpdate);
+        Assert.All(vm.NavigationItems, item => Assert.False(item.HasNotification));
         Assert.Empty(_dialogs.ShownErrors);
         Assert.Empty(_dialogs.ShownInformation);
     }
 
     [Fact]
+    public async Task A_release_found_by_the_check_button_lights_the_mark_up()
+    {
+        // Ochilishda yangilanish yo'q edi; foydalanuvchi "Tekshirish" ni bosgan paytda paydo
+        // bo'ldi — qobiq buni hodisa orqali bilishi kerak, boshlang'ich qiymatdan emas.
+        var about = CreateAbout();
+        var vm = CreateViewModel(about);
+        var item = vm.NavigationItems.Single(navigationItem => navigationItem.Title == "Dastur haqida");
+
+        Assert.False(item.HasNotification);
+
+        _updates.CheckForUpdateAsync(true, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<UpdateInfo?>(NewRelease()));
+
+        await about.CheckForUpdateCommand.ExecuteAsync(null);
+
+        Assert.True(item.HasNotification);
+    }
+
+    [Fact]
     public void The_notification_leads_to_the_about_page()
     {
-        // Yon paneldagi tugma mavjud ShowAboutCommand ni chaqiradi — yangilanish kartochkasi
-        // aynan o'sha sahifada turadi.
-        _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(NewRelease()));
-
+        // Nishon bosiladigan tugma emas — yon paneldagi bo'limning o'zi "Dastur haqida" ni
+        // ochadi, yangilanish kartochkasi esa aynan o'sha sahifada turadi.
         var vm = CreateViewModel();
         vm.ShowAboutCommand.Execute(null);
 
         Assert.Equal("Dastur haqida", vm.SelectedNavigationItem?.Title);
     }
 
-    private MainViewModel CreateViewModel()
+    private AboutViewModel CreateAbout() =>
+        new(Substitute.For<IPdfEngineService>(), _updates, _dialogs);
+
+    private MainViewModel CreateViewModel(AboutViewModel? about = null)
     {
         var engine = Substitute.For<IPdfEngineService>();
         var pdfService = Substitute.For<IPdfService>();
@@ -117,8 +130,7 @@ public sealed class MainViewModelTests
             new BackgroundRemoverViewModel(Substitute.For<IImageBackgroundRemover>(), pdfService, _dialogs),
             new ArchiveViewModel(Substitute.For<IArchiveService>(), _dialogs),
             new ScreenRecorderViewModel(Substitute.For<IScreenRecorderService>(), _dialogs),
-            new AboutViewModel(engine, _updates, _dialogs),
-            Substitute.For<IThemeService>(),
-            _updates);
+            about ?? CreateAbout(),
+            Substitute.For<IThemeService>());
     }
 }

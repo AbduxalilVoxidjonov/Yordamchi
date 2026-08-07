@@ -301,7 +301,6 @@ public sealed class AboutViewModelTests : IDisposable
 
         Assert.False(vm.HasUpdate);
         Assert.Contains("Eng so'nggi versiya", vm.UpdateStatus);
-        Assert.False(vm.DownloadAndInstallCommand.CanExecute(null));
     }
 
     [Fact]
@@ -313,7 +312,6 @@ public sealed class AboutViewModelTests : IDisposable
 
         Assert.True(vm.HasUpdate);
         Assert.Contains("2.2.0", vm.UpdateStatus);
-        Assert.True(vm.DownloadAndInstallCommand.CanExecute(null));
     }
 
     [Fact]
@@ -413,124 +411,10 @@ public sealed class AboutViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task Cancelling_the_confirmation_downloads_nothing_and_does_not_restart()
-    {
-        _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(NewRelease()));
-        _dialogs.ConfirmResult = false;
-
-        var vm = CreateViewModel();
-        var restarted = false;
-        vm.RestartRequested += (_, _) => restarted = true;
-
-        await vm.DownloadAndInstallCommand.ExecuteAsync(null);
-
-        await _updates.DidNotReceiveWithAnyArgs().DownloadAsync(default!, default, default);
-        _updates.DidNotReceiveWithAnyArgs().LaunchInstaller(default!);
-        Assert.False(restarted);
-        Assert.False(vm.IsBusy);
-    }
-
-    [Fact]
-    public async Task The_confirmation_spells_out_that_the_app_will_close_and_ask_for_admin_rights()
-    {
-        _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(NewRelease()));
-        _dialogs.ConfirmResult = false;
-
-        var vm = CreateViewModel();
-
-        await vm.DownloadAndInstallCommand.ExecuteAsync(null);
-
-        Assert.Contains("Yangilanishni o'rnatish", _dialogs.Confirmations);
-    }
-
-    [Fact]
-    public async Task A_successful_update_launches_the_installer_and_asks_for_a_restart()
-    {
-        var release = NewRelease();
-        _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(release));
-        _updates.DownloadAsync(default!, default, default)
-            .ReturnsForAnyArgs(Task.FromResult(@"C:\Updates\YordamchiSetup-2.2.0.exe"));
-
-        var vm = CreateViewModel();
-        var restarts = 0;
-        vm.RestartRequested += (_, _) => restarts++;
-
-        await vm.DownloadAndInstallCommand.ExecuteAsync(null);
-
-        await _updates.Received(1).DownloadAsync(
-            release,
-            Arg.Any<IProgress<PdfProgress>?>(),
-            Arg.Any<CancellationToken>());
-
-        _updates.Received(1).LaunchInstaller(@"C:\Updates\YordamchiSetup-2.2.0.exe");
-        Assert.Equal(1, restarts);
-    }
-
-    [Fact]
-    public async Task A_failed_download_shows_the_error_and_never_restarts()
-    {
-        _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(NewRelease()));
-        _updates.DownloadAsync(default!, default, default)
-            .ThrowsForAnyArgs(new PdfServiceException(PdfErrorKind.CorruptedDocument, "Fayl to'liq emas"));
-
-        var vm = CreateViewModel();
-        var restarted = false;
-        vm.RestartRequested += (_, _) => restarted = true;
-
-        await vm.DownloadAndInstallCommand.ExecuteAsync(null);
-
-        Assert.Single(_dialogs.ShownErrors);
-        Assert.Contains("Fayl to'liq emas", _dialogs.ShownErrors[0]);
-        _updates.DidNotReceiveWithAnyArgs().LaunchInstaller(default!);
-        Assert.False(restarted);
-
-        // Sahifa band holatda qolib ketmasligi kerak — aks holda tugma abadiy o'chib qolardi.
-        Assert.False(vm.IsBusy);
-        Assert.True(vm.DownloadAndInstallCommand.CanExecute(null));
-    }
-
-    [Fact]
-    public async Task A_cancelled_download_never_restarts_the_app()
-    {
-        _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(NewRelease()));
-        _updates.DownloadAsync(default!, default, default)
-            .ThrowsForAnyArgs(new OperationCanceledException());
-
-        var vm = CreateViewModel();
-        var restarted = false;
-        vm.RestartRequested += (_, _) => restarted = true;
-
-        await vm.DownloadAndInstallCommand.ExecuteAsync(null);
-
-        Assert.False(restarted);
-        Assert.Empty(_dialogs.ShownErrors);
-        Assert.False(vm.IsBusy);
-    }
-
-    [Fact]
-    public async Task When_the_installer_cannot_be_started_the_app_stays_open()
-    {
-        // Dastur yopilib, o'rnatish ham boshlanmasa foydalanuvchi hech qanday versiyasiz qolardi.
-        _updates.CheckForUpdateAsync().ReturnsForAnyArgs(Task.FromResult<UpdateInfo?>(NewRelease()));
-        _updates.DownloadAsync(default!, default, default)
-            .ReturnsForAnyArgs(Task.FromResult(@"C:\Updates\YordamchiSetup-2.2.0.exe"));
-        _updates.When(service => service.LaunchInstaller(Arg.Any<string>()))
-            .Throw(new PdfServiceException(PdfErrorKind.OperationFailed, "Skript yozilmadi"));
-
-        var vm = CreateViewModel();
-        var restarted = false;
-        vm.RestartRequested += (_, _) => restarted = true;
-
-        await vm.DownloadAndInstallCommand.ExecuteAsync(null);
-
-        Assert.False(restarted);
-        Assert.Single(_dialogs.ShownErrors);
-        Assert.Contains("Skript yozilmadi", _dialogs.ShownErrors[0]);
-    }
-
-    [Fact]
     public void The_page_exposes_the_releases_page_url()
     {
+        // Dastur o'zi hech narsa yuklab olmaydi — "Yuklab olish sahifasini ochish" tugmasi
+        // foydalanuvchini brauzerdagi relizlar sahifasiga olib boradi.
         var vm = CreateViewModel();
 
         Assert.Equal(ReleasesPage, vm.ReleasesPageUrl);

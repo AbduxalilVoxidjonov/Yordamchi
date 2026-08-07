@@ -267,15 +267,15 @@
                                        TextWrapping="Wrap" Margin="0,3,0,0" />
                         </StackPanel>
 
+                        <!-- Dastur o'zi hech narsa yuklab olmaydi va o'rnatmaydi: ikkala tugma ham
+                             faqat tekshiradi yoki brauzerda relizlar sahifasini ochadi. -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Style="{DynamicResource SubtleButtonStyle}" Content="Nima o'zgardi"
-                                    Command="{Binding ViewReleaseNotesCommand}"
-                                    ToolTip="{Binding ReleasesPageUrl}"
-                                    Margin="0,0,8,0" />
                             <Button Style="{DynamicResource SubtleButtonStyle}" Content="Tekshirish"
                                     Command="{Binding CheckForUpdateCommand}" Margin="0,0,8,0" />
-                            <Button Style="{DynamicResource AccentButtonStyle}" Content="Yangilash"
-                                    Command="{Binding DownloadAndInstallCommand}" />
+                            <Button Style="{DynamicResource AccentButtonStyle}"
+                                    Content="Yuklab olish sahifasini ochish"
+                                    Command="{Binding ViewReleaseNotesCommand}"
+                                    ToolTip="{Binding ReleasesPageUrl}" />
                         </StackPanel>
                     </Grid>
                 </Border>

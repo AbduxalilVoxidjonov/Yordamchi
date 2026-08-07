@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -25,7 +26,6 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly ArchiveViewModel _archive;
     private readonly ScreenRecorderViewModel _screenRecorder;
     private readonly AboutViewModel _about;
-    private readonly IUpdateService _updateService;
 
     public MainViewModel(
         DashboardViewModel dashboard,
@@ -34,10 +34,8 @@ public sealed partial class MainViewModel : ObservableObject
         ArchiveViewModel archive,
         ScreenRecorderViewModel screenRecorder,
         AboutViewModel about,
-        IThemeService themeService,
-        IUpdateService updateService)
+        IThemeService themeService)
     {
-        _updateService = updateService;
         _dashboard = dashboard;
         _workspace = workspace;
         _backgroundRemover = backgroundRemover;
@@ -64,9 +62,11 @@ public sealed partial class MainViewModel : ObservableObject
 
         SelectedNavigationItem = NavigationItems[0];
 
-        // Jimgina fon tekshiruvi: natija bo'lsa yon panelda kichik bildirishnoma paydo bo'ladi,
-        // bo'lmasa (yoki internet yo'q bo'lsa) foydalanuvchi buni umuman sezmaydi.
-        _ = CheckForUpdateSilentlyAsync();
+        // Yangilanishni qobiq emas, "Dastur haqida" sahifasi tekshiradi — bu yerda faqat
+        // natijani ko'zgu qilamiz. Hodisaga tayanish shart: tekshiruv tarmoq orqali ketadi
+        // va konstruktordan ancha keyin tugashi mumkin.
+        _about.PropertyChanged += OnAboutPropertyChanged;
+        RefreshAboutNotification();
     }
 
     public ObservableCollection<NavigationItemViewModel> NavigationItems { get; }
@@ -83,43 +83,31 @@ public sealed partial class MainViewModel : ObservableObject
     public string ApplicationSubtitle => "PDF vositalari, arxiv va ekran yozuvi";
 
     public string VersionText =>
-        $"Versiya {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.2.0"}";
+        $"Versiya {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.3.0"}";
 
     public string AuthorText => "Abduxalil Voxidjonov";
 
     // -----------------------------------------------------------------
-    //  Yangilanish bildirishnomasi
+    //  Yangilanish nishoni
     // -----------------------------------------------------------------
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasUpdate))]
-    [NotifyPropertyChangedFor(nameof(UpdateBannerText))]
-    private UpdateInfo? _availableUpdate;
-
-    /// <summary>Yon paneldagi bildirishnoma tugmasi shu bo'lgandagina ko'rinadi.</summary>
-    public bool HasUpdate => AvailableUpdate is not null;
-
-    public string UpdateBannerText =>
-        AvailableUpdate is null ? string.Empty : $"Yangi versiya: {AvailableUpdate.VersionText}";
+    private void OnAboutPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Bo'sh nom — "hamma xossa o'zgardi" degan kelishuv, shuning uchun uni ham qabul qilamiz.
+        if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName == nameof(AboutViewModel.HasUpdate))
+            RefreshAboutNotification();
+    }
 
     /// <summary>
-    /// Fon tekshiruvi. Har qanday nosozlik yutiladi: dastur ochilishida yangilanish xatosi
-    /// haqida oyna chiqishi foydalanuvchining ishiga aloqasi yo'q va faqat bezovta qiladi.
+    /// "Dastur haqida" bandi yonidagi kichik nuqtani yoqadi yoki o'chiradi. Band indeks bo'yicha
+    /// emas, mazmuni bo'yicha topiladi — yon panelga yangi bo'lim qo'shilsa ham to'g'ri qoladi.
     /// </summary>
-    private async Task CheckForUpdateSilentlyAsync()
+    private void RefreshAboutNotification()
     {
-        try
-        {
-            // force: false — bu birinchi tekshiruv, natijasi "Dastur haqida" sahifasiga ham
-            // keshdan yetib boradi va GitHub bir marta so'raladi.
-            AvailableUpdate = await _updateService
-                .CheckForUpdateAsync(force: false)
-                .ConfigureAwait(true);
-        }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
-        {
-            AvailableUpdate = null;
-        }
+        var item = NavigationItems.FirstOrDefault(navigationItem => navigationItem.Content == _about);
+
+        if (item is not null)
+            item.HasNotification = _about.HasUpdate;
     }
 
     /// <summary>Yon paneldagi mavzu kalitiga ikki tomonlama bog'langan.</summary>

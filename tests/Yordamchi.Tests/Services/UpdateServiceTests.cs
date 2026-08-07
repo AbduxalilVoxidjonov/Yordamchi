@@ -8,13 +8,13 @@ using Yordamchi.Tests.TestSupport;
 namespace Yordamchi.Tests.Services;
 
 /// <summary>
-/// <see cref="UpdateService"/> ning tarmoqsiz qismlari: GitHub javobini o'qish va qayta ishga
-/// tushirish skriptini qurish.
+/// <see cref="UpdateService"/> ning tarmoqsiz qismlari: GitHub javobini o'qish, havolani
+/// tekshirish va so'rovlar cheklovini tanish.
 /// <para>
-/// Bu ikki metod ataylab statik va holatsiz qilingan, chunki aynan ular xavfsizlik chegarasida
-/// turadi: yuklab olinadigan fayl keyinchalik <b>administrator huquqi bilan</b> ishga tushadi.
-/// Shuning uchun bu yerda "yaxshi holat" emas, asosan <b>rad etilishi shart</b> bo'lgan holatlar
-/// sinaladi. Hech bir sinov internetga chiqmaydi.
+/// Bu metodlar ataylab statik va holatsiz qilingan. Dastur endi hech narsa yuklab olmaydi,
+/// lekin qabul qilish qoidalari baribir qattiq: noto'g'ri aktiv yoki begona xostdagi havola
+/// foydalanuvchiga ko'rsatilmasligi kerak. Shuning uchun bu yerda "yaxshi holat" emas, asosan
+/// <b>rad etilishi shart</b> bo'lgan holatlar sinaladi. Hech bir sinov internetga chiqmaydi.
 /// </para>
 /// </summary>
 public sealed class UpdateServiceTests
@@ -145,8 +145,7 @@ public sealed class UpdateServiceTests
     [Fact]
     public void An_asset_without_a_size_is_rejected()
     {
-        // Hajmsiz aktivni yuklab olgandan keyin solishtirishga narsa qolmaydi,
-        // ya'ni yaxlitlik tekshiruvi butunlay yo'qoladi.
+        // Hajmsiz aktiv — javob to'liq emas: kartochkada ko'rsatishga hajm qolmaydi.
         const string assets = """
         [ { "name": "YordamchiSetup-2.2.0.exe", "browser_download_url": "https://github.com/a/b/YordamchiSetup-2.2.0.exe", "size": 0 } ]
         """;
@@ -228,80 +227,6 @@ public sealed class UpdateServiceTests
     }
 
     // =================================================================================
-    //  Qayta ishga tushirish skripti
-    // =================================================================================
-
-    [Fact]
-    public void The_restart_script_waits_for_the_given_process()
-    {
-        var script = UpdateService.BuildRestartScript(4321, @"C:\Updates\YordamchiSetup-2.2.0.exe", @"C:\Program Files\Yordamchi\Yordamchi.exe");
-
-        // Kutish PowerShell ga topshirilgan: `tasklist` chiqishini tahlil qiladigan avvalgi
-        // halqa konsolsiz ishga tushganda jimgina o'tib ketardi va o'rnatgich fayllar band
-        // paytida boshlanardi.
-        Assert.Contains("Wait-Process -Id 4321", script, StringComparison.Ordinal);
-        Assert.Contains("-Timeout", script, StringComparison.Ordinal);
-        Assert.DoesNotContain("tasklist", script, StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// Bayroqlar tasodifiy tanlanmagan, ikkalasi ham WiX v5 manbasida tekshirilgan:
-    /// <list type="bullet">
-    /// <item><c>/passive</c> — Burn dvigateli o'zi tanaydi
-    /// (<c>src/burn/engine/core.cpp</c>): jarayon ko'rsatkichi ko'rinadi, savol berilmaydi.</item>
-    /// <item><c>/norestart</c> — dvigatel emas, bootstrapper qatlami o'qiydi
-    /// (<c>src/api/burn/balutil/balinfo.cpp</c>) va <c>BAL_INFO_RESTART_NEVER</c> qo'yadi.
-    /// U yozilmasa, <c>/passive</c> rejimida standart qiymat <c>AUTOMATIC</c> bo'ladi — ya'ni
-    /// Visual C++ ish vaqti 3010 qaytarsa (Bundle.wxs da <c>scheduleReboot</c>), kompyuter
-    /// <b>so'ramasdan qayta yuklanardi</b>.</item>
-    /// </list>
-    /// </summary>
-    [Fact]
-    public void The_restart_script_runs_the_installer_quietly_and_reopens_the_app()
-    {
-        var script = UpdateService.BuildRestartScript(
-            10,
-            @"C:\Users\Ali Vali\AppData\Local\Yordamchi\Updates\YordamchiSetup-2.2.0.exe",
-            @"C:\Program Files\Yordamchi\Yordamchi.exe");
-
-        // Bo'shliqli yo'llar qo'shtirnoqsiz qolsa cmd ularni ikkita argumentga bo'lib yuboradi.
-        Assert.Contains(
-            "start \"\" /wait \"C:\\Users\\Ali Vali\\AppData\\Local\\Yordamchi\\Updates\\YordamchiSetup-2.2.0.exe\" /passive /norestart",
-            script,
-            StringComparison.Ordinal);
-
-        Assert.Contains(
-            "start \"\" \"C:\\Program Files\\Yordamchi\\Yordamchi.exe\"",
-            script,
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_restart_script_starts_the_installer_before_reopening_the_app()
-    {
-        var script = UpdateService.BuildRestartScript(10, @"C:\a\Setup.exe", @"C:\b\Yordamchi.exe");
-
-        var installerAt = script.IndexOf("/passive", StringComparison.Ordinal);
-        var restartAt = script.IndexOf(@"""C:\b\Yordamchi.exe""", StringComparison.Ordinal);
-
-        Assert.True(installerAt > 0);
-        Assert.True(restartAt > installerAt);
-    }
-
-    [Fact]
-    public void The_restart_script_avoids_timeout_because_it_runs_without_a_console()
-    {
-        // "timeout" stdin ni talab qiladi va oynasiz ishga tushirilganda darhol xato beradi.
-        var script = UpdateService.BuildRestartScript(10, @"C:\a\Setup.exe", @"C:\b\Yordamchi.exe");
-
-        Assert.DoesNotContain("timeout ", script, StringComparison.Ordinal);
-
-        // Matn chiqishini tahlil qilish ham xuddi shu sababdan yaramaydi: konsolsiz quvur
-        // (pipe) bo'sh qaytadi va tekshiruv jimgina "jarayon yo'q" degan xulosaga kelardi.
-        Assert.DoesNotContain("| find", script, StringComparison.Ordinal);
-    }
-
-    // =================================================================================
     //  So'rovlar cheklovi
     // =================================================================================
 
@@ -351,13 +276,6 @@ public sealed class UpdateServiceTests
         Assert.False(UpdateService.IsRateLimited(ok));
     }
 
-    [Theory]
-    [InlineData("", @"C:\b\Yordamchi.exe")]
-    [InlineData(@"C:\a\Setup.exe", "   ")]
-    public void The_restart_script_refuses_empty_paths(string installerPath, string applicationPath) =>
-        Assert.Throws<ArgumentException>(
-            () => UpdateService.BuildRestartScript(10, installerPath, applicationPath));
-
     // =================================================================================
     //  Haqiqiy GitHub javobi
     //
@@ -390,8 +308,8 @@ public sealed class UpdateServiceTests
     [Fact]
     public void The_real_response_really_contains_a_second_asset_that_must_be_skipped()
     {
-        // Relizda .msi ham bor. Agar naqsh kengroq bo'lsa, dastur MSI ni yuklab olib,
-        // uni bootstrapper bayroqlari bilan ishga tushirishga urinardi.
+        // Relizda .msi ham bor. Agar naqsh kengroq bo'lsa, dastur foydalanuvchiga o'rnatuvchi
+        // o'rniga MSI ni ko'rsatib, uni noto'g'ri faylga yo'naltirardi.
         Assert.Contains(GitHubReleaseSample.MsiAssetName, GitHubReleaseSample.Json, StringComparison.Ordinal);
 
         var update = UpdateService.ParseRelease(GitHubReleaseSample.Json, new Version(2, 0, 0));

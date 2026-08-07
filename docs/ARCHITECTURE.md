@@ -1,6 +1,6 @@
 # Yordamchi — arxitektura hujjati
 
-**Versiya:** 2.2.0
+**Versiya:** 2.3.0
 **Muallif:** Abduxalil Voxidjonov — [@abduxalilvoxidjonov](https://t.me/abduxalilvoxidjonov)
 **Platforma:** WPF (.NET 8, `net8.0-windows`), x64, o'zi-yetarli (self-contained)
 
@@ -123,7 +123,7 @@ services.AddSingleton<IPdfEngineService, PdfEngineService>();
 services.AddSingleton<IScreenRecorderService, ScreenRecorderService>();
 services.AddSingleton<IArchiveService, ArchiveService>();
 
-// Yangilanish ham PDF quvuriga aloqador emas: u dasturning o'zini almashtiradi.
+// Yangilanish tekshiruvi ham PDF quvuriga aloqador emas: uning kirishi — GitHub relizi.
 // Singleton — muvaffaqiyatli tekshiruv natijasi shu nusxada keshlanadi.
 services.AddSingleton<IUpdateService, UpdateService>();
 ```
@@ -137,13 +137,13 @@ ekran yozuvi kabi holatga asoslangan seans emas; shuning uchun u `ViewModelBase.
 ning odatdagi progress/bekor qilish oqimidan foydalanadi.
 
 **`IUpdateService` — uchinchi shunday shartnoma.** Uning kirishi internetdagi reliz,
-chiqishi esa dasturning **o'zini** almashtiradigan o'rnatgich: bu yerda na `ToolRequest`,
+chiqishi esa foydalanuvchiga ko'rsatiladigan xabar: bu yerda na `ToolRequest`,
 na `ToolRunResult` ning ma'nosi bor. Uni fasadga qo'shish "PDF dvigateli" ga PDF ga
 umuman aloqasi yo'q to'rtinchi mas'uliyat qo'shgan bo'lardi. Xatolarni bir xil qilish
 uchun u ham `PdfServiceException` tashlaydi, ya'ni `ViewModelBase.RunAsync` uni odatdagidek
-progress-bar va tushunarli xabarga aylantiradi. Singleton bo'lishining o'z sababi bor:
-muvaffaqiyatli tekshiruv natijasi shu nusxada keshlanadi, shuning uchun qobiq (ochilishda)
-va "Dastur haqida" sahifasi GitHub ga ikki marta so'rov yubormaydi.
+tushunarli xabarga aylantiradi. Singleton bo'lishining o'z sababi bor: muvaffaqiyatli
+tekshiruv natijasi shu nusxada keshlanadi, shuning uchun takroriy tekshiruvda GitHub ga
+ikkinchi so'rov ketmaydi.
 
 Singleton tanlanishining amaliy sababi ham bor: `IScreenRecorderService` —
 `IDisposable`, va `ServiceProvider` dastur yopilganda uni `Dispose` qiladi. `Dispose`
@@ -158,6 +158,11 @@ Yon paneldagi to'rtta bo'lim (`MainViewModel.NavigationItems`):
 | 1 | Arxiv | `ArchiveViewModel` |
 | 2 | Ekran yozuvi | `ScreenRecorderViewModel` |
 | 3 | Dastur haqida | `AboutViewModel` |
+
+Yangi versiya topilganda "Dastur haqida" bandi yonida kichik nuqta ko'rinadi
+(`NavigationItemViewModel.HasNotification`). Tekshiruvning o'zi `AboutViewModel` da qoladi,
+`MainViewModel` esa faqat uning natijasini yon panelga ko'zgu qiladi — shu tufayli GitHub
+ga so'rov yuboradigan joy bitta bo'lib qolaveradi.
 
 ---
 
@@ -191,7 +196,7 @@ Yordamchi.sln
    │  ├─ ScreenRecording.cs       Ekran yozuvi: RecordingSourceKind / RecordingSourceInfo /
    │  │                           AudioDeviceInfo / VideoEncoderKind / RecordingQuality /
    │  │                           RecorderState + ScreenRecordingOptions
-   │  ├─ UpdateInfo.cs            Topilgan yangilanish: versiya, teg, aktiv nomi, havola, hajm
+   │  ├─ UpdateInfo.cs            Topilgan yangilanish: versiya, teg, reliz nomi, havola, hajm
    │  ├─ PdfProgress.cs           IProgress<T> yuki: Completed / Total / Message
    │  └─ PdfServiceException.cs   PdfErrorKind bilan yagona xato turi
    │
@@ -205,7 +210,7 @@ Yordamchi.sln
    │  │  ├─ IImageBackgroundRemover.cs  u2net (ONNX) bilan fonni shaffof qilish
    │  │  ├─ IArchiveService.cs          Arxivlarni o'qish/ochish/yaratish (fasadga kirmaydi)
    │  │  ├─ IScreenRecorderService.cs   Ekran yozuvi (fasadga kirmaydi) + hodisa argumentlari
-   │  │  ├─ IUpdateService.cs           Yangilanishni tekshirish/yuklash/o'rnatish (fasadga kirmaydi)
+   │  │  ├─ IUpdateService.cs           Yangi versiya bor-yo'qligini tekshirish (fasadga kirmaydi)
    │  │  ├─ IDialogService.cs           Fayl/papka dialoglari, xabar oynalari
    │  │  └─ IThemeService.cs            Light/Dark almashtirish + tizim sozlamasini kuzatish
    │  │
@@ -219,8 +224,8 @@ Yordamchi.sln
    │  │                           yozish; chiqarishda "Zip Slip" tekshiruvi
    │  ├─ ScreenRecorderService.cs ScreenRecorderLib (Media Foundation) qobig'i; hodisalarni
    │  │                           UI oqimiga o'tkazadi, sifat → bitrate ni o'zi hisoblaydi
-   │  ├─ UpdateService.cs         GitHub relizlari API si; aktiv nomi/xost/hajm tekshiruvlari,
-   │  │                           `.part` orqali yuklash, qayta ishga tushirish skripti
+   │  ├─ UpdateService.cs         GitHub relizlari API si; aktiv nomi va xost tekshiruvlari,
+   │  │                           natijani jarayon davomida keshlash
    │  ├─ DialogService.cs         Win32 fayl dialoglari, MessageBox — UI ning yagona kirish nuqtasi
    │  ├─ ThemeService.cs          MergedDictionaries[0] ni almashtirish, DWM sarlavha rangi
    │  │
@@ -234,7 +239,8 @@ Yordamchi.sln
    │
    ├─ ViewModels/
    │  ├─ ViewModelBase.cs             IsBusy / Progress / Cancel / xatolarni ko'rsatish uchun asos
-   │  ├─ MainViewModel.cs             Shell: navigatsiya, dashboard ↔ workspace almashinuvi, mavzu tugmasi
+   │  ├─ MainViewModel.cs             Shell: navigatsiya, dashboard ↔ workspace almashinuvi, mavzu
+   │  │                               tugmasi; "Dastur haqida" bandidagi nuqtani ko'zguga oladi
    │  ├─ DashboardViewModel.cs        Bosh sahifa: kategoriyalar bo'yicha kartochkalar, qidiruv, ToolSelected
    │  ├─ ToolCardViewModel.cs         Bitta vosita kartochkasi (ToolDescriptor ustidagi qobiq)
    │  ├─ ToolWorkspaceViewModel.cs    Universal ishchi oyna: fayl tanlash → ToolRequest → ExecuteAsync
@@ -247,17 +253,16 @@ Yordamchi.sln
    │  │                               boshlash-pauza-to'xtatish, taymer, MinimizeRequested /
    │  │                               RestoreRequested / OverlayVisibilityChanged
    │  ├─ AboutViewModel.cs            Versiya, muallif, Telegram havolasi, litsenziyalar,
-   │  │                               yangilanish kartochkasi (tekshirish/yuklash/o'rnatish)
+   │  │                               yangilanish kartochkasi (tekshirish + relizlar sahifasi)
    │  ├─ WorkspaceFileViewModel.cs    Ishchi oynadagi bitta tanlangan fayl (nom, hajm, holat)
    │  ├─ PageItemViewModel.cs         Bitta sahifa kartasi (eskiz + burilish + tanlov)
    │  ├─ ImageItemViewModel.cs        Galereyadagi bitta rasm
-   │  └─ NavigationItemViewModel.cs   Yon paneldagi bitta bo'lim (Glyph + Content)
+   │  └─ NavigationItemViewModel.cs   Yon paneldagi bitta bo'lim (Glyph + Content + HasNotification)
    │
    ├─ Views/
    │  ├─ MainWindow.xaml(.cs)         Shell: yon panel + kontent hosti
    │  │                               (code-behind: Mica; MinimizeRequested / RestoreRequested →
-   │  │                               WindowState; suzuvchi panelni ochish-yopish;
-   │  │                               RestartRequested → Application.Shutdown)
+   │  │                               WindowState; suzuvchi panelni ochish-yopish)
    │  ├─ DashboardView.xaml(.cs)      PDF vositalari: 4 kategoriya, 17 kartochka, qidiruv maydoni
    │  ├─ ToolWorkspaceView.xaml(.cs)  Universal ishchi oyna: fayl ro'yxati, sozlamalar paneli, natija
    │  ├─ ToolOptionTemplates.xaml     Har bir Options VM uchun DataTemplate lar (ResourceDictionary)
@@ -623,65 +628,40 @@ Oynani boshqarish ViewModel dan tashqarida: `ScreenRecorderViewModel` faqat hodi
 ko'taradi (`MinimizeRequested`, `RestoreRequested`, `OverlayVisibilityChanged`),
 `MainWindow` esa `WindowState` ni o'zgartiradi va panelni ochib-yopadi.
 
-### `IUpdateService` — dastur ichidan yangilanish
+### `IUpdateService` — yangi versiyadan xabar berish
 
 Uchinchi shartnoma, `IPdfEngineService` fasadiga **kirmaydi** (sababi 1-bo'limda): kirishi
-— GitHub dagi reliz, chiqishi — dasturning o'zini almashtiradigan o'rnatgich.
+— GitHub dagi reliz, chiqishi — "Dastur haqida" sahifasida ko'rsatiladigan xabar.
 
 | A'zo | Nima qaytaradi / qiladi |
 |---|---|
 | `Version CurrentVersion` | Ishlab turgan yig'ilma versiyasi (`Assembly.GetName().Version`) |
-| `string ReleasesPageUrl` | Brauzerda ochiladigan relizlar sahifasi ("Nima o'zgardi" tugmasi) |
-| `CheckForUpdateAsync(ct)` | Eng so'nggi relizni so'raydi; **joriy versiyadan yangi** bo'lsa `UpdateInfo`, aks holda `null`. Muvaffaqiyatli natija jarayon davomida keshlanadi (GitHub API so'rovlari cheklangan), xato esa keshlanmaydi — internet tiklangach qayta urinish ishlaydi. `SemaphoreSlim` tufayli ikkita sahifa bir vaqtda so'rasa ham tarmoqqa bitta so'rov ketadi |
-| `DownloadAsync(update, progress, ct)` | O'rnatgichni `%LOCALAPPDATA%\Yordamchi\Updates` ga yuklaydi va to'liq yo'lini qaytaradi. Papka ataylab `Program Files` emas — u yozish uchun yopiq |
-| `LaunchInstaller(path)` | O'rnatish va qayta ochishni bajaradigan `.cmd` skriptni ajratilgan holda ishga tushiradi. Dasturning o'zini **yopmaydi** |
+| `string ReleasesPageUrl` | Brauzerda ochiladigan relizlar sahifasi ("Relizlar sahifasi" tugmasi) |
+| `CheckForUpdateAsync(ct)` | Eng so'nggi relizni so'raydi; **joriy versiyadan yangi** bo'lsa `UpdateInfo`, aks holda `null`. Muvaffaqiyatli natija jarayon davomida keshlanadi (GitHub API so'rovlari cheklangan), xato esa keshlanmaydi — internet tiklangach qayta urinish ishlaydi. `SemaphoreSlim` tufayli ikkita chaqiruv bir vaqtda kelsa ham tarmoqqa bitta so'rov ketadi |
 
-Uch bosqich uchta metodga bo'lingani ataylab: tekshiruv jimgina (ochilishda), yuklash
-progress-bar bilan va bekor qilinadigan, o'rnatish esa dasturning yopilishini talab qiladi.
-Yopish — `Window` darajasidagi amal, shuning uchun `AboutViewModel` faqat
-`RestartRequested` hodisasini ko'taradi va `MainWindow` `Application.Shutdown` ni chaqiradi
-(ekran yozuvidagi `MinimizeRequested` bilan bir xil naqsh).
+**Servis hech nima yuklab olmaydi va hech nimani ishga tushirmaydi** — bu ataylab
+qilingan qaror. Dastur internetdan olingan faylni administrator huquqi bilan ishga
+tushirsa, GitHub hisobi buzilgan yoki fayl yo'lda/mahalliy almashtirilgan holatda bu
+huquq oshirish (privilege escalation) yo'liga aylanadi. O'rnatgich kod bilan imzolanmagan
+ekan (Authenticode), faylning haqiqiyligini ishonchli tasdiqlab bo'lmaydi; shuning uchun
+bu xavfni olish o'rniga oxirgi qadam foydalanuvchiga qoldirildi — `AboutViewModel` faqat
+relizlar sahifasini brauzerda ochadi, yuklab olish va o'rnatish esa foydalanuvchining
+qo'lida qoladi.
 
-#### Xavfsizlik qoidalari
+#### Qabul qilish qoidalari
 
-Yuklab olingan fayl foydalanuvchining kompyuterida **administrator huquqi bilan** ishga
-tushadi. Shu sababli qabul qilish shartlari qattiq va nomuvofiqlik hech qachon "ehtimol
-to'g'ridir" deb o'tkazilmaydi:
+Reliz haqidagi xabar UI ga chiqishidan oldin bir necha shart tekshiriladi — nomuvofiqlik
+hech qachon "ehtimol to'g'ridir" deb o'tkazilmaydi:
 
 | Tekshiruv | Qoida |
 |---|---|
 | Aktiv nomi | `^YordamchiSetup-\d+(\.\d+){1,3}\.exe$` — `.msi`, `.zip` yoki boshqa nomdagi aktiv umuman ko'rilmaydi |
-| Protokol va xost | Faqat `https` va faqat `github.com` / `objects.githubusercontent.com` (aktivlar shu ikkinchi xostga yo'naltiriladi). Boshqa xost — biz nazorat qilmaydigan server |
+| Protokol va xost | Faqat `https` va faqat `github.com` / `objects.githubusercontent.com` (aktivlar shu ikkinchi xostga yo'naltiriladi). Boshqa xost — biz nazorat qilmaydigan server, demak havola ko'rsatilmaydi |
 | Reliz turi | `draft` yoki `prerelease` bo'lsa rad etiladi |
-| Versiya | Teg (`v2.3.0` ham, `2.3.0` ham) uch qismga keltirilib solishtiriladi. **Teng versiya ham rad etiladi**: `Version` ko'rsatilmagan qismni `-1` deb sanaydi, ya'ni normalizatsiyasiz `2.2.0` va `2.2.0.0` teng bo'lmay qolardi va "qayta o'rnatish" taklifi chiqaverardi |
-| Hajm e'lon qilinganmi | API `size` bermagan aktiv o'tmaydi: keyin uni solishtirishga narsa qolmaydi, ya'ni yaxlitlik tekshiruvi yo'qoladi |
-| Yuklab olingan hajm | Faylning hajmi API aytgan qiymatga **baytma-bayt** teng bo'lishi shart; aks holda fayl o'chiriladi va xato qaytadi |
-| `.part` orqali yozish | Yuklash `<nom>.exe.part` ga boradi va faqat hajm tekshiruvidan o'tgach asl nomiga ko'chiriladi — chala o'rnatgich hech qachon ishga tushirilmaydi. Bekor qilinganda ham, xatoda ham `.part` o'chiriladi |
-| Ikki marta tekshirish | Nom va havola naqshi `DownloadAsync` da qaytadan tekshiriladi: `UpdateInfo` `ParseRelease` dan tashqarida ham yasalishi mumkin, ishga tushiriladigan fayl uchun esa ortiqcha tekshiruv joyi kam |
+| Versiya | Teg (`v2.3.0` ham, `2.3.0` ham) uch qismga keltirilib solishtiriladi. **Teng versiya ham rad etiladi**: `Version` ko'rsatilmagan qismni `-1` deb sanaydi, ya'ni normalizatsiyasiz `2.3.0` va `2.3.0.0` teng bo'lmay qolardi va "qayta o'rnatish" taklifi chiqaverardi |
 
 `ParseRelease` va `IsTrustedDownloadUrl` — `static` va tarmoqqa chiqmaydigan metodlar,
 shuning uchun barcha qabul qilish qoidalari haqiqiy so'rovsiz to'liq sinaladi.
-
-#### Qayta ishga tushirish skripti
-
-O'rnatgich ishlayotgan dasturning fayllarini almashtiradi, ya'ni avval dastur yopilishi
-kerak — lekin yopilgan dastur o'zi o'rnatgichni kuta olmaydi. Shu sababli oraliqda
-`%LOCALAPPDATA%\Yordamchi\Updates\yordamchi-update.cmd` turadi:
-
-| Qadam | Nima qiladi |
-|---|---|
-| 1 | `tasklist` bilan joriy jarayon (PID) chiqib ketishini kutadi — band faylni o'rnatgich almashtira olmaydi |
-| 2 | `start "" /wait "<o'rnatgich>" /passive /norestart` — o'rnatish tugashini kutadi |
-| 3 | `start "" "<Yordamchi.exe>"` — yangi versiyani qaytadan ochadi |
-
-Nozik joylar: skript **BOM siz UTF-8** da yoziladi (BOM li `.cmd` faylining birinchi
-buyrug'ini `cmd.exe` tanimaydi) va `chcp 65001` bilan boshlanadi — yo'llarda lotin
-bo'lmagan belgilar (foydalanuvchi nomi) bo'lishi mumkin. Kutish `timeout` emas, `ping`
-bilan: `timeout` stdin ni talab qiladi va oynasiz ishga tushirilganda xato bilan tugaydi.
-Skript nomi doimiy — papkada har yangilanishdan yangi fayl to'planib qolmaydi. Ishga
-tushirish `UseShellExecute` bilan: skript joriy jarayondan ajraladi va biz yopilganda u
-bilan birga o'lmaydi. `LaunchInstaller` xato bersa dastur **yopilmaydi** — aks holda
-foydalanuvchi na eski, na yangi versiyada qolardi.
 
 ### Yordamchi UI servislari
 
@@ -1149,8 +1129,7 @@ o'chiriladi. O'tgan vaqt `PeriodicTimer` bilan sekundiga bir marta yangilanadi
 oynani kichraytiradi/qaytaradi va `RecordingOverlayWindow` ni ochib-yopadi; oyna
 yopilganda obunalar bekor qilinadi. Kichraytirish kerak, aks holda videoning boshida
 dasturning o'z oynasi ko'rinib qolardi; panel esa shundan keyin boshqaruvsiz qolmaslik
-uchun (4-bo'limga qarang). Xuddi shu naqsh yangilanishda ham ishlatiladi:
-`AboutViewModel.RestartRequested` → `Application.Shutdown`.
+uchun (4-bo'limga qarang).
 
 **Yozuv dastur yopilganda ham to'g'ri yakunlanadi.** `ScreenRecorderService` singleton va
 `IDisposable`; `ServiceProvider.Dispose` (`App.OnExit`) uni tozalaganda hali ketayotgan
@@ -1172,10 +1151,10 @@ chiqmaydi: ekran yozuvi Windows Media Foundation ga bog'langan.
 ## 11. Testlar
 
 Testlar `tests\Yordamchi.Tests` da yashaydi va **`Yordamchi.sln`** ga qo'shilgan, ya'ni
-`dotnet test Yordamchi.sln -c Release` hammasini ishga tushiradi. Hozirda **528 ta sinov**
-bor (2.1.0 da 455 ta edi): 2.2.0 da yangilanish xizmatining qabul qilish qoidalari va
-yozuv seansining hayot sikli — panel qachon ochiladi/yopiladi, oyna qachon qaytariladi —
-qo'shildi.
+`dotnet test Yordamchi.sln -c Release` hammasini ishga tushiradi. Hozirda **541 ta
+sinov** bor: ular orasida yangilanish xizmatining qabul qilish qoidalari va yozuv
+seansining hayot sikli — panel qachon ochiladi/yopiladi, oyna qachon qaytariladi — ham
+bor.
 
 | Vosita | Nima uchun |
 |---|---|
@@ -1291,17 +1270,11 @@ yiqilmasa, u hech narsani tekshirmayapti.
   `WDA_EXCLUDEFROMCAPTURE` aynan shu versiyada paydo bo'lgan. Eskiroq tizimda
   `CaptureExclusion.IsSupported` `false` qaytaradi, panel umuman ochilmaydi (aks holda u
   har kadrda ko'rinardi) va boshqaruv sahifada qoladi. Yozuvning o'zi ishlayveradi.
-- **Yangilanish administrator ruxsatini (UAC) so'raydi.** MSI `Scope="perMachine"` —
-  dastur `C:\Program Files` ga o'rnatiladi, uni almashtirish uchun ko'tarilgan huquq shart.
-  Buni aylanib o'tib bo'lmaydi; jimgina (silent) yangilanish faqat per-user o'rnatishga
-  o'tilsa mumkin bo'lardi, u esa Visual C++ ish vaqti zanjirini buzadi.
-- **Yangilanish faqat GitHub relizlaridan.** Boshqa manba, boshqa xost yoki boshqa nomdagi
-  aktiv qo'llab-quvvatlanmaydi va sozlama orqali ham o'zgartirilmaydi — bu ataylab:
-  ishga tushiriladigan faylning manbasi bitta bo'lishi kerak.
-- **Imzo tekshirilmaydi.** Yaxlitlik faqat hajm bo'yicha tasdiqlanadi (GitHub aytgan
-  `size` bilan baytma-bayt). To'liq kafolat uchun o'rnatgichni **kod bilan imzolash**
-  (Authenticode) va imzoni yuklab olingandan keyin tekshirish kerak — hozircha o'rnatgich
-  imzolanmagan, shuning uchun bu tekshiruv ham yo'q.
+- **Dastur o'zini o'zi yangilamaydi.** U faqat yangi versiya chiqqanini aytadi; o'rnatgichni
+  foydalanuvchi relizlar sahifasidan o'zi yuklab oladi va o'zi ishga tushiradi (sababi
+  4-bo'limda).
+- **Yangilanish haqidagi xabar faqat GitHub relizlaridan.** Boshqa manba, boshqa xost yoki
+  boshqa nomdagi aktiv qo'llab-quvvatlanmaydi va sozlama orqali ham o'zgartirilmaydi.
 
 ---
 
