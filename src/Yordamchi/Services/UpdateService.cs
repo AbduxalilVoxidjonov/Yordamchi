@@ -470,6 +470,26 @@ public sealed partial class UpdateService : IUpdateService
     /// <param name="processId">Chiqib ketishi kutiladigan joriy jarayon identifikatori.</param>
     /// <param name="installerPath">Yuklab olingan o'rnatgich.</param>
     /// <param name="applicationPath">O'rnatishdan keyin qayta ochiladigan dastur (<c>Yordamchi.exe</c>).</param>
+    /// <summary>
+    /// Javob so'rovlar cheklovi sababli rad etilganmi.
+    /// <para>
+    /// GitHub buni ikki xil ko'rsatadi: eski yo'l — <c>403</c> va <c>X-RateLimit-Remaining: 0</c>
+    /// sarlavhasi, yangisi — <c>429</c>. Oddiy <c>403</c> (masalan yopiq repozitoriy) bundan
+    /// farq qiladi va u yerda sarlavha bo'lmaydi, shuning uchun ikkalasi aralashib ketmaydi.
+    /// </para>
+    /// </summary>
+    public static bool IsRateLimited(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            return true;
+
+        if (response.StatusCode != HttpStatusCode.Forbidden)
+            return false;
+
+        return response.Headers.TryGetValues("X-RateLimit-Remaining", out var values)
+               && values.FirstOrDefault() == "0";
+    }
+
     public static string BuildRestartScript(int processId, string installerPath, string applicationPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(installerPath);
@@ -545,6 +565,21 @@ public sealed partial class UpdateService : IUpdateService
             // foydalanuvchiga qizil xato ko'rsatish o'rniga "yangilanish yo'q" deb qaraymiz.
             if (response.StatusCode == HttpStatusCode.NotFound)
                 return null;
+
+            // GitHub autentifikatsiyasiz so'rovlarni IP bo'yicha soatiga 60 taga cheklaydi.
+            // Bitta foydalanuvchi bunga hech qachon yetmaydi, lekin umumiy tarmoqda (ofis,
+            // NAT ortidagi o'nlab kompyuter) bu butunlay real holat. "Server javob bermadi"
+            // deyish bu yerda noto'g'ri bo'lardi: server javob berdi, shunchaki bizni
+            // vaqtincha to'xtatib qo'ydi — va bu o'zidan o'ziga o'tadi.
+            if (IsRateLimited(response))
+            {
+                throw new PdfServiceException(
+                    PdfErrorKind.OperationFailed,
+                    "GitHub so'rovlar sonini vaqtincha cheklab qo'ydi (bir necha kompyuter "
+                    + "bitta internet manzilidan foydalanayotgan bo'lishi mumkin). Bir soatdan "
+                    + "keyin o'zi tiklanadi; shu orada yangilanishni relizlar sahifasidan "
+                    + "qo'lda yuklab olsa bo'ladi.");
+            }
 
             if (!response.IsSuccessStatusCode)
             {

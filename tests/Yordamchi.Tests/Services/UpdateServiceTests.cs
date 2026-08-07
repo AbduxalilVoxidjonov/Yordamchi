@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Net;
+using System.Net.Http;
 using Yordamchi.Models;
 using Yordamchi.Services;
 using Yordamchi.Tests.TestSupport;
@@ -297,6 +299,56 @@ public sealed class UpdateServiceTests
         // Matn chiqishini tahlil qilish ham xuddi shu sababdan yaramaydi: konsolsiz quvur
         // (pipe) bo'sh qaytadi va tekshiruv jimgina "jarayon yo'q" degan xulosaga kelardi.
         Assert.DoesNotContain("| find", script, StringComparison.Ordinal);
+    }
+
+    // =================================================================================
+    //  So'rovlar cheklovi
+    // =================================================================================
+
+    [Fact]
+    public void A_throttled_response_is_told_apart_from_a_plain_refusal()
+    {
+        // GitHub autentifikatsiyasiz so'rovlarni IP bo'yicha soatiga 60 taga cheklaydi va buni
+        // 403 bilan bildiradi — ya'ni oddiy "ruxsat yo'q" bilan bir xil kod. Ularni ajratmasak,
+        // umumiy tarmoqdagi (ofis, NAT) foydalanuvchi "server javob bermadi" degan noto'g'ri
+        // va foydasiz xabar olardi.
+        using var throttled = new HttpResponseMessage(HttpStatusCode.Forbidden);
+        throttled.Headers.Add("X-RateLimit-Remaining", "0");
+
+        Assert.True(UpdateService.IsRateLimited(throttled));
+    }
+
+    [Fact]
+    public void A_plain_forbidden_response_is_not_treated_as_throttling()
+    {
+        using var forbidden = new HttpResponseMessage(HttpStatusCode.Forbidden);
+
+        Assert.False(UpdateService.IsRateLimited(forbidden));
+    }
+
+    [Fact]
+    public void A_response_with_requests_left_is_not_throttling()
+    {
+        using var allowed = new HttpResponseMessage(HttpStatusCode.Forbidden);
+        allowed.Headers.Add("X-RateLimit-Remaining", "42");
+
+        Assert.False(UpdateService.IsRateLimited(allowed));
+    }
+
+    [Fact]
+    public void The_newer_too_many_requests_status_counts_as_throttling()
+    {
+        using var throttled = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+
+        Assert.True(UpdateService.IsRateLimited(throttled));
+    }
+
+    [Fact]
+    public void A_successful_response_is_never_throttling()
+    {
+        using var ok = new HttpResponseMessage(HttpStatusCode.OK);
+
+        Assert.False(UpdateService.IsRateLimited(ok));
     }
 
     [Theory]
