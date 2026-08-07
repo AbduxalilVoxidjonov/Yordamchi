@@ -95,6 +95,45 @@ public static class FileDrop
     }
 
     // ---------------------------------------------------------------------------------------------
+    // IncludeFolders
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Identifies the <c>IncludeFolders</c> attached property. When <see langword="true"/>, a dropped
+    /// directory is forwarded <em>as its own path</em> instead of being expanded into its files.
+    /// </summary>
+    /// <remarks>
+    /// Off by default, because every PDF/image drop zone wants files. The archive page is the exception:
+    /// zipping a folder has to keep the folder — expanding it here would flatten the structure the user
+    /// dropped, and the extension filter would silently discard everything inside it.
+    /// </remarks>
+    public static readonly DependencyProperty IncludeFoldersProperty =
+        DependencyProperty.RegisterAttached(
+            "IncludeFolders",
+            typeof(bool),
+            typeof(FileDrop),
+            new PropertyMetadata(false));
+
+    /// <summary>Gets whether dropped directories are forwarded as directories.</summary>
+    /// <param name="element">The drop zone.</param>
+    /// <returns><see langword="true"/> when folders are passed through unexpanded.</returns>
+    [AttachedPropertyBrowsableForType(typeof(UIElement))]
+    public static bool GetIncludeFolders(DependencyObject element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        return (bool)element.GetValue(IncludeFoldersProperty);
+    }
+
+    /// <summary>Sets whether dropped directories are forwarded as directories rather than expanded.</summary>
+    /// <param name="element">The drop zone.</param>
+    /// <param name="value"><see langword="true"/> to pass folders through unexpanded.</param>
+    public static void SetIncludeFolders(DependencyObject element, bool value)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        element.SetValue(IncludeFoldersProperty, value);
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // IsDragOver (read-only)
     // ---------------------------------------------------------------------------------------------
 
@@ -280,6 +319,7 @@ public static class FileDrop
             return [];
 
         var filter = element.GetValue(AcceptedExtensionsProperty) as HashSet<string>;
+        var includeFolders = GetIncludeFolders(element);
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var accepted = new List<string>(dropped.Length);
 
@@ -300,6 +340,15 @@ public static class FileDrop
 
             if (Directory.Exists(full))
             {
+                // Opted in (archive page): the folder itself is the payload, so no filter and no walk.
+                if (includeFolders)
+                {
+                    if (seen.Add(full))
+                        accepted.Add(full);
+
+                    continue;
+                }
+
                 // Directories expand to their immediate children only (non-recursive). Dropping a folder
                 // of scans is the common case; walking an arbitrarily deep tree from the UI thread would
                 // stall the drop and can pull in thousands of unintended files.

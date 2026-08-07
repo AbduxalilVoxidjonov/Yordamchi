@@ -1,6 +1,6 @@
 # Yordamchi — arxitektura hujjati
 
-**Versiya:** 2.0.0
+**Versiya:** 2.1.0
 **Muallif:** Abduxalil Voxidjonov — [@abduxalilvoxidjonov](https://t.me/abduxalilvoxidjonov)
 **Platforma:** WPF (.NET 8, `net8.0-windows`), x64, o'zi-yetarli (self-contained)
 
@@ -33,7 +33,7 @@ yo'nalishi faqat bitta tomonga — ichkariga (abstraksiyalar va modellar tomon) 
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  Views (XAML)                                                            │
 │  MainWindow, DashboardView, ToolWorkspaceView, BackgroundRemoverView,    │
-│  ScreenRecorderView…                                                     │
+│  ArchiveView, ScreenRecorderView…                                        │
 │  Code-behind faqat InitializeComponent va HWND (Mica, oynani             │
 │  kichraytirish) ishlari uchun.                                           │
 └───────────────────────────────┬──────────────────────────────────────────┘
@@ -42,7 +42,7 @@ yo'nalishi faqat bitta tomonga — ichkariga (abstraksiyalar va modellar tomon) 
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  ViewModels (CommunityToolkit.Mvvm)                                      │
 │  MainViewModel, DashboardViewModel, ToolWorkspaceViewModel,              │
-│  ScreenRecorderViewModel, …                                              │
+│  ArchiveViewModel, ScreenRecorderViewModel, …                            │
 │  WPF dialoglarini bilmaydi; faqat abstraksiyalarga tayanadi.             │
 └───────────────────────────────┬──────────────────────────────────────────┘
                                 │  interfeyslar
@@ -51,7 +51,8 @@ yo'nalishi faqat bitta tomonga — ichkariga (abstraksiyalar va modellar tomon) 
 │  Services.Abstractions (shartnomalar)                                    │
 │  IPdfEngineService · IPdfService · IPdfManipulatorService ·              │
 │  IDocumentConversionService · IOcrService · IImageBackgroundRemover ·    │
-│  IScreenRecorderService · IDialogService · IThemeService                 │
+│  IArchiveService · IScreenRecorderService · IDialogService ·             │
+│  IThemeService                                                           │
 └───────────────────────────────┬──────────────────────────────────────────┘
                                 │  DI (Microsoft.Extensions.DependencyInjection)
                                 ▼
@@ -97,7 +98,7 @@ yo'nalishi faqat bitta tomonga — ichkariga (abstraksiyalar va modellar tomon) 
 `ToolRequest` yasaydi va uni `IPdfEngineService.ExecuteAsync` ga beradi. Shu tufayli yangi
 vosita qo'shish UI kodini deyarli o'zgartirmaydi.
 
-### Nega ekran yozuvi fasadga kirmaydi
+### Nega ekran yozuvi va arxiv fasadga kirmaydi
 
 `IScreenRecorderService` — abstraksiyalar qatoridagi to'liq huquqli shartnoma, lekin u
 **ataylab** `IPdfEngineService` ning sub-servisi qilinmagan. Sabablari:
@@ -115,29 +116,39 @@ Shu sababli `App.xaml.cs` da u fasaddan mustaqil ravishda ro'yxatga olinadi va f
 ```csharp
 services.AddSingleton<IPdfEngineService, PdfEngineService>();
 
-// Ekran yozuvi PDF quvuriga umuman aloqador emas, shuning uchun u fasadga
-// qo'shilmaydi va o'z sahifasi bilan to'g'ridan-to'g'ri ishlaydi.
+// Ekran yozuvi va arxivlash PDF quvuriga umuman aloqador emas, shuning uchun ular
+// fasadga qo'shilmaydi va o'z sahifalari bilan to'g'ridan-to'g'ri ishlaydi.
 services.AddSingleton<IScreenRecorderService, ScreenRecorderService>();
+services.AddSingleton<IArchiveService, ArchiveService>();
 ```
+
+**`IArchiveService` ham xuddi shu sababdan tashqarida.** U PDF ni umuman bilmaydi, boshqa
+kutubxonalarga (SharpCompress, SharpZipLib) tayanadi va o'z xato holatlariga ega (parol
+noto'g'ri, format tanilmadi, arxiv xavfli yozuv saqlaydi). Uni fasadga qo'shish
+`IPdfEngineService` ni "PDF dvigateli" dan "hamma narsaning ro'yxati" ga aylantirib
+yuborardi. Farqi ekran yozuvidan bittasi bor: arxivlash — <b>bir martalik amal</b>, ya'ni
+ekran yozuvi kabi holatga asoslangan seans emas; shuning uchun u `ViewModelBase.RunAsync`
+ning odatdagi progress/bekor qilish oqimidan foydalanadi.
 
 Singleton tanlanishining amaliy sababi ham bor: `IScreenRecorderService` —
 `IDisposable`, va `ServiceProvider` dastur yopilganda uni `Dispose` qiladi. `Dispose`
 esa hali yozilayotgan faylni to'g'ri yakunlaydi, aks holda `.mp4` da `moov` atomi
 yozilmay qoladi va fayl umuman ochilmaydi.
 
-Yon paneldagi uchta bo'lim (`MainViewModel.NavigationItems`):
+Yon paneldagi to'rtta bo'lim (`MainViewModel.NavigationItems`):
 
 | # | Bo'lim | Sahifa (`ViewModelBase.Title`) |
 |---|---|---|
 | 0 | PDF vositalari | `DashboardViewModel` |
-| 1 | Ekran yozuvi | `ScreenRecorderViewModel` |
-| 2 | Dastur haqida | `AboutViewModel` |
+| 1 | Arxiv | `ArchiveViewModel` |
+| 2 | Ekran yozuvi | `ScreenRecorderViewModel` |
+| 3 | Dastur haqida | `AboutViewModel` |
 
 ---
 
 ## 2. Papkalar va sinflar xaritasi
 
-> Quyidagi daraxt `src\Yordamchi` papkasining haqiqiy tarkibi. Ba'zi fayllar 2.0.0 ishlab
+> Quyidagi daraxt `src\Yordamchi` papkasining haqiqiy tarkibi. Ba'zi fayllar 2.x ishlab
 > chiqish jarayonida qo'shilgan — ular ham ro'yxatda.
 
 ```
@@ -160,6 +171,8 @@ Yordamchi.sln
    │  ├─ PageEdit.cs              "Shu fayldan shu sahifani shu burchak bilan ol"
    │  ├─ PageRotation.cs          Burilish enum'i + Add/RotateClockwise kengaytmalari
    │  ├─ ImageToPdfOptions.cs     Sahifa o'lchami, chekka (margin), downscale chegarasi
+   │  ├─ ArchiveModels.cs        Arxiv: ArchiveFormat / ArchiveCompressionLevel / ZipEncryption
+   │  │                          enum'lari + ArchiveEntryInfo / ArchiveInfo / CreateArchiveOptions
    │  ├─ ScreenRecording.cs       Ekran yozuvi: RecordingSourceKind / RecordingSourceInfo /
    │  │                           AudioDeviceInfo / VideoEncoderKind / RecordingQuality /
    │  │                           RecorderState + ScreenRecordingOptions
@@ -174,6 +187,7 @@ Yordamchi.sln
    │  │  ├─ IDocumentConversionService.cs  PDF ↔ Word/Excel/PowerPoint/rasm
    │  │  ├─ IOcrService.cs              Tesseract qobig'i + til fayllarini boshqarish
    │  │  ├─ IImageBackgroundRemover.cs  u2net (ONNX) bilan fonni shaffof qilish
+   │  │  ├─ IArchiveService.cs          Arxivlarni o'qish/ochish/yaratish (fasadga kirmaydi)
    │  │  ├─ IScreenRecorderService.cs   Ekran yozuvi (fasadga kirmaydi) + hodisa argumentlari
    │  │  ├─ IDialogService.cs           Fayl/papka dialoglari, xabar oynalari
    │  │  └─ IThemeService.cs            Light/Dark almashtirish + tizim sozlamasini kuzatish
@@ -184,6 +198,8 @@ Yordamchi.sln
    │  ├─ DocumentConversionService.cs  Konvertatsiya orkestratori: extractor → model → writer
    │  ├─ OcrService.cs            Tesseract; tessdata papkasini topadi va til fayllarini yuklab oladi
    │  ├─ OnnxBackgroundRemover.cs u2net/u2netp ONNX modeli, maska → alfa kanal
+   │  ├─ ArchiveService.cs        SharpCompress bilan o'qish, SharpZipLib bilan parolli ZIP
+   │  │                           yozish; chiqarishda "Zip Slip" tekshiruvi
    │  ├─ ScreenRecorderService.cs ScreenRecorderLib (Media Foundation) qobig'i; hodisalarni
    │  │                           UI oqimiga o'tkazadi, sifat → bitrate ni o'zi hisoblaydi
    │  ├─ DialogService.cs         Win32 fayl dialoglari, MessageBox — UI ning yagona kirish nuqtasi
@@ -205,6 +221,9 @@ Yordamchi.sln
    │  ├─ ToolWorkspaceViewModel.cs    Universal ishchi oyna: fayl tanlash → ToolRequest → ExecuteAsync
    │  ├─ ToolOptionsViewModels.cs     Har bir vosita sozlamalari uchun VM'lar (DataTemplate bilan tanlanadi)
    │  ├─ BackgroundRemoverViewModel.cs AI fon olib tashlash: oldin/keyin ko'rinishi, saqlash
+   │  ├─ ArchiveViewModel.cs          Arxiv sahifasi: arxivlash / arxivdan ochish rejimlari
+   │  ├─ ArchiveItemViewModels.cs     ArchiveSourceViewModel (manba fayl/papka) +
+   │  │                               ArchiveEntryViewModel (arxiv ichidagi yozuv)
    │  ├─ ScreenRecorderViewModel.cs   Ekran yozuvi sahifasi: manba/video/ovoz sozlamalari,
    │  │                               boshlash-pauza-to'xtatish, taymer, MinimizeRequested
    │  ├─ AboutViewModel.cs            Versiya, muallif, Telegram havolasi, litsenziyalar
@@ -220,16 +239,18 @@ Yordamchi.sln
    │  ├─ ToolWorkspaceView.xaml(.cs)  Universal ishchi oyna: fayl ro'yxati, sozlamalar paneli, natija
    │  ├─ ToolOptionTemplates.xaml     Har bir Options VM uchun DataTemplate lar (ResourceDictionary)
    │  ├─ BackgroundRemoverView.xaml(.cs)  Oldin/keyin taqqoslash, shaffoflik shaxmat foni
+   │  ├─ ArchiveView.xaml(.cs)        Arxiv: rejim kaliti, manbalar/yozuvlar ro'yxati, sozlamalar
    │  ├─ ScreenRecorderView.xaml(.cs) Ekran yozuvi: boshqaruv paneli, manba, video, ovoz, saqlash
    │  └─ AboutView.xaml(.cs)          Dastur haqida: versiya, muallif, Telegram
    │
    ├─ Behaviors/                      ── XAML'dan ulanadigan attached behavior'lar
    │  ├─ DragDropReorder.cs           Kolleksiyani o'z joyida qayta tartiblash + auto-scroll
    │  ├─ InsertionAdorner.cs          Qo'yiladigan joyni ko'rsatuvchi accent chiziq
-   │  └─ FileDrop.cs                  Explorer'dan fayl tashlab yuborish (drop)
+   │  └─ FileDrop.cs                  Explorer'dan fayl tashlab yuborish (drop); IncludeFolders
+   │                                     yoqilganda papka papka bo'yicha o'tadi (arxiv sahifasi)
    │
    ├─ Converters/                     ── IValueConverter'lar (XAML uchun)
-   │  ├─ UiConverters.cs                      2.0.0 UI uchun umumiy konvertorlar to'plami
+   │  ├─ UiConverters.cs                      2.x UI uchun umumiy konvertorlar to'plami
    │  ├─ BooleanToVisibilityConverter.cs      bool → Visibility
    │  ├─ InverseBooleanConverter.cs           bool → !bool
    │  ├─ BooleanToOpacityConverter.cs         bool → shaffoflik (o'chirilgan holat)
@@ -412,6 +433,51 @@ metodiga yo'naltiriladi. Barcha kutilgan nosozliklar `PdfServiceException` (ichi
 | `string ModelPath` | Model kutilayotgan to'liq yo'l (xato xabarida ko'rsatiladi) |
 | `string DownloadableModelName` / `DownloadableModelSizeText` | Tasdiqlash oynasida ko'rsatiladigan nom va hajm (`u2net.onnx`, `~168 MB`) |
 | `DownloadModelAsync(progress, ct)` | Modelni rasmiy relizdan `%LOCALAPPDATA%\Yordamchi\Models` ga yuklaydi; avval `.tmp` ga yozadi |
+
+### `IArchiveService` — arxivlar
+
+`IPdfEngineService` fasadiga **kirmaydi** (sababi 1-bo'limda). Xatolarni dastur bo'ylab
+yagona qilish uchun `PdfServiceException` tashlaydi — nomi "Pdf" bilan boshlansa ham, u
+dasturning umumiy xato turi va uni `ViewModelBase` tushunarli xabarga aylantiradi.
+
+| A'zo | Vazifasi |
+|---|---|
+| `IReadOnlyList<string> SupportedReadExtensions` | O'qish mumkin bo'lgan kengaytmalar |
+| `string OpenFilter` | Fayl dialogi uchun tayyor filtr satri |
+| `bool LooksLikeArchive(path)` | Kengaytmasiga qarab tez tekshiruv (faylni ochmaydi) |
+| `ReadAsync(archivePath, password, ct)` | Ichidagi ro'yxat → `ArchiveInfo` (format, yozuvlar, umumiy hajm, shifrlanganmi) |
+| `ExtractAsync(archivePath, targetFolder, password, entryPaths, progress, ct)` | Chiqaradi; `entryPaths` berilsa faqat o'sha yozuvlar. Chiqarilgan fayllar sonini qaytaradi |
+| `CreateZipAsync(sourcePaths, archivePath, options, progress, ct)` | Fayl va papkalardan `.zip` yig'adi (papkalar rekursiv). Yozilgan fayllar sonini qaytaradi |
+
+#### Nega bu yerda ham ikkita kutubxona
+
+| Kutubxona | Vazifasi | Nega yolg'iz yetmaydi |
+|---|---|---|
+| **SharpCompress** | ZIP, RAR (RAR5 ham), 7z, TAR, GZip **o'qish** | ZIP ni **shifrlab yoza olmaydi** |
+| **SharpZipLib** | Parolli ZIP **yozish** (WinZip AES-256 yoki ZipCrypto) | RAR va 7z ni umuman o'qiy olmaydi |
+
+#### "Zip Slip" himoyasi
+
+Arxivga `..\..\Windows\System32\...` kabi yo'lli yozuv qo'yish mumkin — chiqarishda u
+tanlangan papkadan tashqariga yozib yuboradi. `ArchiveService` bunda kutubxonaga
+ishonmaydi: har bir yozuvning natija yo'li `Path.GetFullPath` bilan to'liq yechiladi va
+maqsad papkasi ichida qolishi alohida tekshiriladi. Chiqib ketmoqchi bo'lgan arxivda
+amal butunlay to'xtatiladi (`PdfErrorKind.CorruptedDocument`), chunki bunday fayl allaqachon
+ishonchsiz. Disk harfi (`C:\...`) va UNC (`\server\...`) yo'llari ham xuddi shu yerda
+zararsizlantiriladi.
+
+#### Parol xatosini tanish
+
+SharpCompress arxiv formatini aniqlashda ham deshifrlaydi, shuning uchun **noto'g'ri
+parol** "oqim turini aniqlab bo'lmadi" degan mutlaqo boshqa xato ko'rinishida chiqadi.
+Buni ajratish uchun ochish muvaffaqiyatsiz bo'lganda `ArchiveFactory.IsArchive` bilan
+faylning imzosi parolsiz tekshiriladi:
+
+| Imzo to'g'ri | Parol kiritilgan | Xulosa |
+|---|---|---|
+| ✔ | ✔ | `InvalidPassword` — parol to'g'ri kelmadi |
+| ✔ | ✘ | `PasswordProtected` — parol so'raladi |
+| ✘ | — | `UnsupportedFormat` — bu umuman arxiv emas |
 
 ### `IScreenRecorderService` — ekran yozuvi
 
@@ -614,6 +680,8 @@ Manba: `Models\ToolDescriptor.cs` → `ToolCatalog.All`.
 | `DocumentFormat.OpenXml` | 3.5.1 | `.docx` / `.xlsx` / `.pptx` yozish va o'qish | MIT |
 | `Tesseract` | 5.2.0 | OCR — skaner qilingan sahifalardan matn tanish | Apache-2.0 |
 | `Microsoft.ML.OnnxRuntime` | 1.20.1 | u2net segmentatsiya modelini ishga tushirish | MIT |
+| `SharpCompress` | 0.50.4 | Arxivlarni **o'qish**: ZIP, RAR, 7z, TAR, GZip | MIT |
+| `SharpZipLib` | 1.4.2 | Parolli (AES-256 / ZipCrypto) ZIP **yozish** | MIT |
 | `ScreenRecorderLib` | 6.6.0 | Ekranni videoga yozish: Windows Media Foundation (H.264/H.265) + WASAPI ovozi | MIT |
 | `CommunityToolkit.Mvvm` | 8.4.2 | `[ObservableProperty]`, `[RelayCommand]` source generatorlari | MIT |
 | `Microsoft.Extensions.DependencyInjection` | 9.0.0 | Composition root, servislarni ro'yxatga olish | MIT |
@@ -971,7 +1039,15 @@ chiqmaydi: ekran yozuvi Windows Media Foundation ga bog'langan.
   `WordToPdfRenderer` ishlatiladi va murakkab formatlash soddalashtiriladi.
 - **PDF → Excel jadval aniqlash evristik.** Chegara chiziqlari yo'q jadvallar ustun
   koordinatalari bo'yicha taxmin qilinadi.
-- **Bookmark/outline va formalar saqlanmaydi** — PDFsharp sahifalarni import qilganda
+- **Arxiv yaratish faqat `.zip`.** 7z va RAR yozuvchisi ochiq kutubxonalarda yo'q (RAR
+  formatining o'zi yopiq), TAR/GZip esa Windows foydalanuvchisiga deyarli kerak emas.
+  O'qish sanab o'tilgan barcha formatlar uchun ishlaydi.
+- **`.tar.gz` / `.tar.bz2` bitta qadamda ochilmaydi.** `ArchiveFactory` tashqi qobiqni
+  ochadi va ro'yxatda ichki `.tar` fayli ko'rinadi; uni chiqarib, so'ng qayta ochish kerak.
+- **AES-256 bilan shifrlangan ZIP Windows Explorer da ochilmaydi.** Bu formatning o'zi
+  emas, Explorer ning cheklovi. Shu sababli UI da `ZipCrypto` muqobili ham beriladi va
+  tanlov oqibati sahifada matn bilan tushuntiriladi.
+- - **Bookmark/outline va formalar saqlanmaydi** — PDFsharp sahifalarni import qilganda
   hujjat darajasidagi bu tuzilmalar ko'chirilmaydi.
 - **OCR aniqligi manba sifatiga bog'liq.** 300 dpi va undan yuqori skanlar uchun natija
   yaxshi; qiyshiq yoki shovqinli rasmlarda xatolar bo'lishi mumkin.

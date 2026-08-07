@@ -1,8 +1,8 @@
 <div align="center">
 
-# Yordamchi 2.0.0
+# Yordamchi 2.1.0
 
-**Windows uchun to'liq funksional PDF vositalari to'plami — 17 ta vosita va ekran yozuvi, bitta dastur.**
+**Windows uchun to'liq funksional PDF vositalari to'plami — 17 ta vosita, arxivlash va ekran yozuvi, bitta dastur.**
 
 WPF (.NET 8) · MVVM · Fluent Design · Light/Dark rejim · to'liq o'zbek tilida
 
@@ -13,17 +13,18 @@ WPF (.NET 8) · MVVM · Fluent Design · Light/Dark rejim · to'liq o'zbek tilid
 Yordamchi — kundalik ishda kerak bo'ladigan barcha PDF amallarini bitta oynada jamlagan
 dastur: sahifalarni tartiblash va birlashtirishdan tortib, Word/Excel/PowerPoint ga
 konvertatsiya, OCR va sun'iy intellekt bilan rasm fonini olib tashlashgacha. Bularga
-qo'shimcha — **ekranni ovoz bilan videoga yozib olish** moduli.
+qo'shimcha — **arxivlash** va **ekranni ovoz bilan videoga yozib olish** modullari.
 
 **Hech qanday internet talab qilinmaydi** (OCR til fayllari va AI modelini birinchi marta
 yuklab olishdan tashqari), fayllaringiz hech qayerga jo'natilmaydi — barcha ish sizning
 kompyuteringizda bajariladi.
 
-Chap yon paneldagi navigatsiya uch bo'limdan iborat:
+Chap yon paneldagi navigatsiya to'rt bo'limdan iborat:
 
 | Bo'lim | Nima ochiladi |
 |---|---|
 | **PDF vositalari** | Bosh sahifa: 17 ta vositaning kartochkalari, kategoriyalar va qidiruv |
+| **Arxiv** | Fayllarni ZIP ga jamlash va arxivlarni ochish (parolli arxivlar ham) |
 | **Ekran yozuvi** | Ekranni videoga yozib olish sahifasi |
 | **Dastur haqida** | Versiya, muallif va qo'shimcha komponentlar holati |
 
@@ -32,6 +33,7 @@ Chap yon paneldagi navigatsiya uch bo'limdan iborat:
     Bu yerga dastur skrinshotini qo'ying:
     ![Yordamchi — PDF vositalari](docs/images/dashboard.png)
     ![Ishchi oyna](docs/images/workspace.png)
+    ![Arxiv](docs/images/archive.png)
     ![Ekran yozuvi](docs/images/screen-recorder.png)
 -->
 
@@ -75,6 +77,50 @@ Chap yon paneldagi navigatsiya uch bo'limdan iborat:
 |---|---|
 | **OCR: skaner → Word** | Skaner qilingan rasm-PDF dan matnni tanib olib Word ga yozadi (o'zbek, ingliz, rus) |
 | **Orqa fonni olib tashlash** | AI (u2net) yordamida rasmlar fonini bir soniyada shaffof qiladi |
+
+---
+
+## 🗜 Arxiv
+
+Yon paneldagi **"Arxiv"** bo'limi ikkita rejimga ega. PDF vositalaridan alohida sahifa —
+bosh sahifadagi kartochkalar orasida turmaydi.
+
+### Arxivlash
+
+Fayl va papkalarni tanlang (yoki oynaga sudrab tashlang) va **`.zip`** arxiv yig'ing.
+Papkalar ichidagi barcha fayllari bilan, tuzilishi saqlangan holda qo'shiladi.
+
+| Sozlama | Tanlovlar | Standart |
+|---|---|---|
+| Siqish darajasi | Siqishsiz · Tez · Oddiy · Maksimal | Oddiy |
+| Papkalar tuzilishi | Saqlanadi / fayllar tekis yoziladi | Saqlanadi |
+| Parol | Yoqilgan / o'chirilgan | O'chirilgan |
+| Shifrlash usuli | **AES-256** · **ZipCrypto** | AES-256 |
+
+> **Qaysi shifrlashni tanlash kerak.** **AES-256** kuchli va zamonaviy, lekin Windows
+> Explorer ning ichki ZIP ochuvchisi uni tushunmaydi — qabul qiluvchida 7-Zip yoki WinRAR
+> bo'lishi kerak. **ZipCrypto** esa deyarli hamma joyda, jumladan Explorer da ham ochiladi,
+> lekin himoyasi zaif. Muhim ma'lumot uchun AES-256 ni tanlang.
+
+Parol ikki marta so'raladi: xato yozib qo'yib, o'z arxivingizni ocholmay qolmasligingiz
+uchun. Yarim yozilgan arxiv qolmaydi — fayl avval vaqtinchalik nomga yoziladi va faqat
+to'liq tugagach o'z nomiga o'tadi.
+
+### Arxivdan ochish
+
+Arxivni tanlang — ichidagi fayllar ro'yxati nomi, hajmi va sanasi bilan ko'rinadi.
+Keraklilarini belgilab, faqat o'shalarni chiqarish mumkin.
+
+| Xususiyat | Qiymat |
+|---|---|
+| O'qiladigan formatlar | `.zip` · `.rar` (RAR5 ham) · `.7z` · `.tar` · `.gz` · `.bz2` · `.cbz` · `.cbr` |
+| Parolli arxivlar | Qo'llab-quvvatlanadi — parolni o'ng paneldagi maydonga kiriting |
+| Chiqariladigan papka | Arxiv yonidagi, uning nomi bilan atalgan papka taklif qilinadi |
+
+> **Xavfsizlik.** Arxiv ichidagi yozuv `..\..\Windows\...` kabi yo'l bilan tanlangan
+> papkadan tashqariga yozishga urinsa ("Zip Slip" hujumi), dastur chiqarishni to'xtatadi va
+> ogohlantiradi. Bu tekshiruv kutubxonaga ishonib qo'yilmagan — har bir yozuvning natija
+> yo'li to'liq yechilib, papka ichida qolishi alohida tasdiqlanadi.
 
 ---
 
@@ -166,7 +212,7 @@ boshida shu oynaning o'zi ko'rinib qoladi.
 
 ## O'rnatish
 
-1. `artifacts\YordamchiSetup-2.0.0.exe` faylini yuklab oling va ishga tushiring.
+1. `artifacts\YordamchiSetup-2.1.0.exe` faylini yuklab oling va ishga tushiring.
 2. Litsenziyani qabul qiling, kerak bo'lsa o'rnatish papkasini o'zgartiring.
 3. "O'rnatish" tugmasini bosing — bir marta administrator ruxsati (UAC) so'raladi.
 
@@ -184,16 +230,16 @@ O'rnatuvchi:
 
 ### Korporativ (jimgina) o'rnatish
 
-MSI ham mavjud — `artifacts\Yordamchi-2.0.0-x64.msi`:
+MSI ham mavjud — `artifacts\Yordamchi-2.1.0-x64.msi`:
 
 ```powershell
-msiexec /i Yordamchi-2.0.0-x64.msi /qn INSTALLFOLDER="C:\Apps\Yordamchi"
+msiexec /i Yordamchi-2.1.0-x64.msi /qn INSTALLFOLDER="C:\Apps\Yordamchi"
 ```
 
 O'chirish:
 
 ```powershell
-msiexec /x Yordamchi-2.0.0-x64.msi /qn
+msiexec /x Yordamchi-2.1.0-x64.msi /qn
 ```
 
 ---
@@ -219,7 +265,7 @@ dotnet run --project src\Yordamchi
 dotnet publish src\Yordamchi\Yordamchi.csproj `
     -c Release -r win-x64 --self-contained true `
     -p:PublishReadyToRun=true `
-    -p:Version=2.0.0 -p:FileVersion=2.0.0.0 -p:AssemblyVersion=2.0.0.0 `
+    -p:Version=2.1.0 -p:FileVersion=2.1.0.0 -p:AssemblyVersion=2.1.0.0 `
     -o publish\win-x64
 ```
 
@@ -240,8 +286,8 @@ wix extension add -g WixToolset.Util.wixext/5.0.2
 So'ng bitta buyruq:
 
 ```powershell
-.\build-installer.ps1                        # standart versiya: 2.0.0.0
-.\build-installer.ps1 -Version 2.1.0.0       # boshqa versiya bilan
+.\build-installer.ps1                        # standart versiya: 2.1.0.0
+.\build-installer.ps1 -Version 2.2.0.0       # boshqa versiya bilan
 .\build-installer.ps1 -SkipPublish           # mavjud publish papkasini qayta ishlatish
 ```
 
@@ -250,9 +296,9 @@ Skript to'rt bosqichni bajaradi va natijani `artifacts\` ga qo'yadi:
 | # | Bosqich | Natija |
 |---|---|---|
 | 1 | `dotnet publish -r win-x64 --self-contained -p:PublishReadyToRun=true` | `publish\win-x64\` (~168 MB) |
-| 2 | `wix build installer\Package.wxs` | `artifacts\Yordamchi-2.0.0-x64.msi` (LZX:high siqish bilan ~60 MB) |
+| 2 | `wix build installer\Package.wxs` | `artifacts\Yordamchi-2.1.0-x64.msi` (LZX:high siqish bilan ~60 MB) |
 | 3 | `vc_redist.x64.exe` ni `https://aka.ms/vs/17/release/vc_redist.x64.exe` dan olish | `artifacts\vc_redist.x64.exe` — **bir martalik**, keyingi yig'ilishlarda qayta ishlatiladi |
-| 4 | `wix build installer\Bundle.wxs` | `artifacts\YordamchiSetup-2.0.0.exe` — MSI va VC++ ish vaqti ichiga joylangan (`Compressed="yes"`) |
+| 4 | `wix build installer\Bundle.wxs` | `artifacts\YordamchiSetup-2.1.0.exe` — MSI va VC++ ish vaqti ichiga joylangan (`Compressed="yes"`) |
 
 > 3-bosqich — yagona joy, u yerda skript internetga chiqadi. Fayl allaqachon
 > `artifacts\vc_redist.x64.exe` da bo'lsa, u yuklab olinmaydi; qo'lda ham qo'yish mumkin.
@@ -349,6 +395,8 @@ To'liq tavsif, papkalar xaritasi, ma'lumot oqimi va yangi vosita qo'shish qo'lla
 | `DocumentFormat.OpenXml` 3.5.1 | `.docx` / `.xlsx` / `.pptx` yozish | MIT |
 | `Tesseract` 5.2.0 | OCR | Apache-2.0 |
 | `Microsoft.ML.OnnxRuntime` 1.20.1 | u2net modelini ishga tushirish | MIT |
+| `SharpCompress` 0.50.4 | Arxivlarni o'qish: ZIP, RAR, 7z, TAR, GZip | MIT |
+| `SharpZipLib` 1.4.2 | Parolli (AES-256 / ZipCrypto) ZIP yozish | MIT |
 | `ScreenRecorderLib` 6.6.0 | Ekran yozuvi: Windows Media Foundation (H.264/H.265) + WASAPI ovozi | MIT |
 | `CommunityToolkit.Mvvm` 8.4.2 | MVVM source generatorlari | MIT |
 
@@ -361,6 +409,10 @@ To'liq tavsif, papkalar xaritasi, ma'lumot oqimi va yangi vosita qo'shish qo'lla
 - PDF dagi jadvallarni aniqlash evristik — chegara chiziqlari yo'q jadvallarda xatolar
   bo'lishi mumkin.
 - Bookmark (outline) va PDF formalari konvertatsiyada saqlanmaydi.
+- Arxiv **yaratish** faqat `.zip` formatida: 7z va RAR yozuvchisi ochiq kutubxonalarda yo'q
+  (RAR formatining o'zi yopiq). O'qish esa sanab o'tilgan barcha formatlar uchun ishlaydi.
+- `.tar.gz` va `.tar.bz2` ikki qavatli arxivlar bitta qadamda ochilmaydi: ro'yxatda ichki
+  `.tar` fayli ko'rinadi, uni chiqarib, so'ng yana ochish kerak.
 - OCR aniqligi skanning sifatiga bog'liq; 300 dpi va undan yuqori tavsiya etiladi.
 - Ekran yozuvi Windows 10 1903 (build 18362) va undan yangi tizimlarni talab qiladi;
   eskirog'ida sahifa ochiladi, lekin "Yozishni boshlash" tugmasi ishlamaydi.

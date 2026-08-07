@@ -52,9 +52,10 @@ public partial class App : Application
         // Barcha modullarni birlashtiruvchi fasad — UI faqat shu bilan ishlaydi.
         services.AddSingleton<IPdfEngineService, PdfEngineService>();
 
-        // Ekran yozuvi PDF quvuriga umuman aloqador emas, shuning uchun u fasadga
-        // qo'shilmaydi va o'z sahifasi bilan to'g'ridan-to'g'ri ishlaydi.
+        // Ekran yozuvi va arxivlash PDF quvuriga umuman aloqador emas, shuning uchun ular
+        // fasadga qo'shilmaydi va o'z sahifalari bilan to'g'ridan-to'g'ri ishlaydi.
         services.AddSingleton<IScreenRecorderService, ScreenRecorderService>();
+        services.AddSingleton<IArchiveService, ArchiveService>();
 
         // ---------- Qobiq xizmatlari ----------
         services.AddSingleton<IDialogService, DialogService>();
@@ -65,6 +66,7 @@ public partial class App : Application
         services.AddSingleton<DashboardViewModel>();
         services.AddSingleton<ToolWorkspaceViewModel>();
         services.AddSingleton<BackgroundRemoverViewModel>();
+        services.AddSingleton<ArchiveViewModel>();
         services.AddSingleton<ScreenRecorderViewModel>();
         services.AddSingleton<AboutViewModel>();
         services.AddSingleton<MainViewModel>();

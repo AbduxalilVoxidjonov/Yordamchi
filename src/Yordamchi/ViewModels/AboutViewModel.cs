@@ -42,7 +42,7 @@ public sealed partial class AboutViewModel : ViewModelBase
     public string VersionText => $"Versiya {Version}";
 
     public static string Version =>
-        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.0.0";
+        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.1.0";
 
     public string AuthorName => "Abduxalil Voxidjonov";
 
@@ -66,6 +66,9 @@ public sealed partial class AboutViewModel : ViewModelBase
         new("DocumentFormat.OpenXml", "Word, Excel va PowerPoint fayllarini yozish", "MIT"),
         new("Tesseract OCR", "Skaner qilingan hujjatlardan matn tanish", "Apache-2.0"),
         new("ONNX Runtime", "AI modelini (u2net) ishga tushirish", "MIT"),
+        new("SharpCompress", "ZIP, RAR, 7z va TAR arxivlarini o'qish", "MIT"),
+        new("SharpZipLib", "Parolli (AES-256) ZIP arxiv yozish", "MIT"),
+        new("ScreenRecorderLib", "Ekranni videoga yozib olish", "MIT"),
         new("CommunityToolkit.Mvvm", "MVVM arxitekturasi", "MIT")
     ];
 

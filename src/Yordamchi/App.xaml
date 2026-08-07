@@ -48,6 +48,10 @@
                 <views:BackgroundRemoverView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type viewModels:ArchiveViewModel}">
+                <views:ArchiveView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type viewModels:ScreenRecorderViewModel}">
                 <views:ScreenRecorderView />
             </DataTemplate>

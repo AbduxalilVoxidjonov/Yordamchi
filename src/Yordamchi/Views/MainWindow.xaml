@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:Yordamchi.ViewModels"
         mc:Ignorable="d"
-        Title="Yordamchi — PDF vositalari va ekran yozuvi"
+        Title="Yordamchi — PDF vositalari, arxiv va ekran yozuvi"
         Width="1420" Height="900"
         MinWidth="1080" MinHeight="680"
         WindowStartupLocation="CenterScreen"

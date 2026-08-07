@@ -20,9 +20,9 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
 
     <!-- Fayl xossalari oynasida, o'rnatgichda va "Dasturlar va komponentlar"da ko'rinadi. -->
-    <Version>2.0.0</Version>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.0.0</FileVersion>
+    <Version>2.1.0</Version>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
+    <FileVersion>2.1.0.0</FileVersion>
     <Product>Yordamchi</Product>
     <Company>Abduxalil Voxidjonov</Company>
     <Authors>Abduxalil Voxidjonov</Authors>
@@ -37,9 +37,7 @@
   -->
   <Target Name="StripSymbolsFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
     <ItemGroup>
-      <ResolvedFileToPublish
-          Remove="@(ResolvedFileToPublish)"
-          Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
     </ItemGroup>
   </Target>
 
@@ -53,6 +51,8 @@
 
     <!-- PDF rasterizatsiya (eskizlar, OCR uchun sahifa rasmlari): pdfium + SkiaSharp (MIT) -->
     <PackageReference Include="PDFtoImage" Version="5.3.0" />
+    <PackageReference Include="SharpCompress" Version="0.50.4" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="SkiaSharp" Version="4.150.1" />
 
     <!-- PDF dan matn, shrift va joylashuvni o'qish (Apache-2.0) -->
@@ -81,9 +81,7 @@
       self-contained publish qiladi, shuning uchun muammo yo'q; single-file ga o'tilsa
       bu fayl to'plamdan chiqarib qo'yilishi shart.
     -->
-    <PackageReference Include="ScreenRecorderLib" Version="6.6.0"
-                      GeneratePathProperty="true"
-                      ExcludeAssets="build;buildTransitive" />
+    <PackageReference Include="ScreenRecorderLib" Version="6.6.0" GeneratePathProperty="true" ExcludeAssets="build;buildTransitive" />
     <Reference Include="ScreenRecorderLib">
       <HintPath>$(PkgScreenRecorderLib)\build\x64\ScreenRecorderLib.dll</HintPath>
       <Private>true</Private>
