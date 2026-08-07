@@ -46,6 +46,15 @@ public sealed partial class ToolWorkspaceViewModel : ViewModelBase, IPageItemHos
     private readonly IPdfEngineService _engine;
     private readonly IPdfService _pdfService;
 
+    /// <summary>
+    /// Hozir <c>PropertyChanged</c> ga obuna bo'lingan elementlar. Kolleksiya <c>Reset</c>
+    /// (ya'ni <c>Clear()</c>) bilan o'zgarganda o'chirilganlar hodisa argumentida kelmaydi,
+    /// shuning uchun ularni shu yerda o'zimiz eslab turamiz — <see cref="Resync{T}"/> ga qarang.
+    /// </summary>
+    private readonly List<WorkspaceFileViewModel> _trackedFiles = [];
+
+    private readonly List<PageItemViewModel> _trackedPages = [];
+
     public ToolWorkspaceViewModel(IPdfEngineService engine, IPdfService pdfService, IDialogService dialogService)
         : base(dialogService)
     {
@@ -341,7 +350,14 @@ public sealed partial class ToolWorkspaceViewModel : ViewModelBase, IPageItemHos
                         .ConfigureAwait(true);
 
                     item.Thumbnail = thumbnail;
-                    item.DimensionsText = $"{thumbnail.PixelWidth} × {thumbnail.PixelHeight}";
+
+                    // Eskiz bo'lmasa o'lchamni ham yozib bo'lmaydi. Bu holatni umumiy catch ga
+                    // tashlab qo'yish qatorda "Object reference not set…" degan, foydalanuvchiga
+                    // hech narsa aytmaydigan matn chiqarardi.
+                    item.DimensionsText = thumbnail is null
+                        ? null
+                        : $"{thumbnail.PixelWidth} × {thumbnail.PixelHeight}";
+
                     break;
                 }
 
@@ -1020,6 +1036,8 @@ public sealed partial class ToolWorkspaceViewModel : ViewModelBase, IPageItemHos
 
     private void OnFilesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        Resync(_trackedFiles, Files, OnFilePropertyChanged);
+
         for (var i = 0; i < Files.Count; i++)
             Files[i].OrderNumber = i + 1;
 
@@ -1033,13 +1051,7 @@ public sealed partial class ToolWorkspaceViewModel : ViewModelBase, IPageItemHos
 
     private void OnPagesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.OldItems is not null)
-            foreach (PageItemViewModel page in e.OldItems)
-                page.PropertyChanged -= OnPagePropertyChanged;
-
-        if (e.NewItems is not null)
-            foreach (PageItemViewModel page in e.NewItems)
-                page.PropertyChanged += OnPagePropertyChanged;
+        Resync(_trackedPages, Pages, OnPagePropertyChanged);
 
         Renumber();
         UpdateSelectionCount();
@@ -1054,6 +1066,45 @@ public sealed partial class ToolWorkspaceViewModel : ViewModelBase, IPageItemHos
     {
         if (e.PropertyName == nameof(PageItemViewModel.IsSelected))
             UpdateSelectionCount();
+    }
+
+    /// <summary>
+    /// Faylning xato holati <see cref="LoadFileAsync"/> da <b>asinxron</b> to'ldiriladi — ya'ni
+    /// kolleksiya o'zgarishi (va u bilan birga <see cref="RefreshCommands"/>) allaqachon o'tib
+    /// ketgan bo'ladi. Shu xabar bo'lmasa, shikastlangan hujjat qo'shilganda "Bajarish" tugmasi
+    /// yoqiq qolar va foydalanuvchi xatoni faqat tugmani bosgandan keyin ko'rardi.
+    /// </summary>
+    private void OnFilePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(WorkspaceFileViewModel.ErrorMessage)
+            or nameof(WorkspaceFileViewModel.HasError))
+        {
+            ExecuteCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    /// <summary>
+    /// Kolleksiya o'zgarganda <see cref="INotifyPropertyChanged"/> obunalarini qayta sozlaydi.
+    /// <para>
+    /// Faqat <c>e.OldItems</c> / <c>e.NewItems</c> ga tayanib bo'lmaydi: <c>Clear()</c> da
+    /// hodisa <c>Reset</c> bo'lib keladi va <c>OldItems</c> <c>null</c> qoladi — o'chirilgan
+    /// elementlarning obunasi uzilmay, ular VM ga bog'lanib qolardi. Shuning uchun kuzatilayotgan
+    /// ro'yxat alohida saqlanadi va har safar to'liq qayta bog'lanadi.
+    /// </para>
+    /// </summary>
+    private static void Resync<T>(List<T> tracked, IEnumerable<T> current, PropertyChangedEventHandler handler)
+        where T : INotifyPropertyChanged
+    {
+        foreach (var item in tracked)
+            item.PropertyChanged -= handler;
+
+        tracked.Clear();
+
+        foreach (var item in current)
+        {
+            item.PropertyChanged += handler;
+            tracked.Add(item);
+        }
     }
 
     /// <summary>Tartib o'zgargandan keyin sahifa raqamlarini ketma-ket qiladi.</summary>
@@ -1086,11 +1137,6 @@ public sealed partial class ToolWorkspaceViewModel : ViewModelBase, IPageItemHos
 
     private void ClearFiles() => Files.Clear();
 
-    private void ClearPages()
-    {
-        foreach (var page in Pages)
-            page.PropertyChanged -= OnPagePropertyChanged;
-
-        Pages.Clear();
-    }
+    // Obunalarni uzish Resync ning zimmasida — Clear() ham oddiy kolleksiya o'zgarishi.
+    private void ClearPages() => Pages.Clear();
 }

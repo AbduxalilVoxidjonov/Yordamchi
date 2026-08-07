@@ -119,12 +119,13 @@ public sealed class OcrService : IOcrService, IDisposable
     /// <inheritdoc />
     public bool AreLanguagesInstalled(string language, out IReadOnlyList<string> missing)
     {
+        // Bo'sh ifoda bajarish paytida NormalizeLanguage orqali DefaultLanguage ga aylanadi.
+        // Shuning uchun oldindan tekshiruv ham aynan o'sha tillarni talab qilishi kerak —
+        // aks holda CheckPrerequisites "hammasi tayyor" der, amal esa MissingComponent bilan
+        // yiqilardi, ya'ni ogohlantirish paneli foydalanuvchini aldab qo'yardi.
         var requested = SplitLanguages(language);
         if (requested.Count == 0)
-        {
-            missing = [];
-            return true;
-        }
+            requested = SplitLanguages(OcrOptions.DefaultLanguage);
 
         var installed = new HashSet<string>(GetInstalledLanguages(), StringComparer.OrdinalIgnoreCase);
         var notFound = requested.Where(code => !installed.Contains(code)).ToList();
@@ -776,20 +777,12 @@ public sealed class OcrService : IOcrService, IDisposable
         // LOCALAPPDATA ham topilmasa — dastur papkasi yagona ishonchli tayanch nuqta.
         local ??= Path.Combine(AppContext.BaseDirectory, "tessdata");
 
-        if (HasTrainedData(local))
-            return local;
-
         // Dastur papkasida bo'sh tessdata bo'lsa ham, yozish huquqi kafolatlanmagan —
         // yuklab olinadigan fayllar uchun har doim LOCALAPPDATA tanlanadi.
-        try
-        {
-            Directory.CreateDirectory(local);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // Papka yaratilmasa ham yo'lni qaytaramiz: xato yuklab olish paytida aniq ko'rinadi.
-        }
-
+        //
+        // Papka ataylab shu yerda YARATILMAYDI: bu shunchaki xossani o'qish, va uni o'qish
+        // foydalanuvchi papkasida iz qoldirmasligi kerak (OCR dan umuman foydalanilmagan
+        // bo'lsa ham). Papkani yozadigan tomon — DownloadLanguagesAsync — o'zi yaratadi.
         return local;
     }
 

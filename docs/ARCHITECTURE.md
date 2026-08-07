@@ -21,6 +21,7 @@ Bu hujjat loyihaning ichki tuzilishini — qatlamlar, papkalar, sinflar, shartno
 8. [Tashqi resurslar: OCR tillari va AI modeli](#8-tashqi-resurslar-ocr-tillari-va-ai-modeli)
 9. [Kengaytirish qo'llanmasi: yangi vosita qo'shish](#9-kengaytirish-qollanmasi-yangi-vosita-qoshish)
 10. [Ko'ndalang qarorlar](#10-kondalang-qarorlar)
+11. [Testlar](#11-testlar)
 
 ---
 
@@ -1029,6 +1030,57 @@ almashtirsangiz, Core sof `net8.0-windows` (WPF siz) bo'ladi. To'liq `net8.0` es
 chiqmaydi: ekran yozuvi Windows Media Foundation ga bog'langan.
 
 ---
+
+---
+
+## 11. Testlar
+
+Testlar `tests\Yordamchi.Tests` da yashaydi va **`Yordamchi.sln`** ga qo'shilgan, ya'ni
+`dotnet test Yordamchi.sln -c Release` hammasini ishga tushiradi.
+
+| Vosita | Nima uchun |
+|---|---|
+| **xUnit** | .NET dagi odatiy tanlov; `[Theory]` bilan chegaraviy qiymatlarni ixcham yozish mumkin |
+| **NSubstitute** | Sub-servislarni qo'lda o'nlab metodli stub sifatida yozmaslik uchun (BSD-3) |
+
+> Assert kutubxonasi ataylab qo'shilmagan — xUnit ning o'z `Assert` i yetarli. Mashhur
+> `FluentAssertions` ning 8-versiyasi tijorat litsenziyasiga o'tgan, shuning uchun uni
+> loyihaga kiritish keraksiz huquqiy bog'liqlik bo'lardi.
+
+### Nima soxtalashtiriladi, nima yo'q
+
+Bu yerdagi asosiy qaror — **qayerda haqiqiy fayl ishlatish**:
+
+| Qatlam | Yondashuv | Sabab |
+|---|---|---|
+| `ArchiveService`, `PdfManipulatorService` | **Haqiqiy fayllar** (vaqtinchalik papkada) | Bu sinflarning butun qiymati tashqi kutubxona bilan kelishuvda. Soxta ZIP ustidagi sinov SharpZipLib va SharpCompress orasidagi moslikni umuman tekshirmagan bo'lardi |
+| `PdfEngineService` ning qaror mantiqi | **Substitute** sub-servislar | Bu yerda tekshiriladigan narsa — fayl emas, qoida: qaysi holatda qanday ogohlantirish chiqadi |
+| ViewModel'lar | **Substitute** servis + soxta dialog | UI oynasi ochilmasligi kerak; tekshiriladigani — tugmalar qoidasi va servisga uzatilgan qiymatlar |
+
+`TestSupport` papkasida ikkita yordamchi bor: `TempWorkspace` (har bir sinovga alohida
+vaqtinchalik papka, tugagach o'chiriladi) va `FakeDialogService` (javoblari oldindan
+beriladigan, chaqiruvlarni yozib boradigan dialog qobig'i).
+
+### Testlar uchun qoidalar
+
+- **Tarmoq yo'q.** Hech bir test haqiqiy yuklab olishni boshlamaydi. Yuklab olish mantiqi
+  faqat tarmoqqa chiqishdan *oldin* rad etiladigan holatlar bo'yicha sinaladi.
+- **Global holatga tegilmaydi.** Foydalanuvchining `%LOCALAPPDATA%` papkasi va muhit
+  o'zgaruvchilari o'zgartirilsa, `try/finally` bilan tiklanadi.
+- **Kutish yo'q.** `Thread.Sleep` o'rniga shart bo'yicha kutish; tasodifiy qiymat yo'q.
+- **Freymvork sinalmaydi.** `ObservableCollection` ishlashini tekshirish keraksiz — faqat
+  dasturning o'z qoidalari sinaladi.
+
+### Himoya testini mutatsiya bilan tekshirish
+
+Xavfsizlik tekshiruvi "yashil" bo'lgani uchun emas, **haqiqatan ushlagani uchun** ishonchli.
+Zip Slip himoyasi qo'shilganda `ResolveSafeDestination` dagi shart ataylab `if (false)` ga
+almashtirildi va sinovlar qayta ishga tushirildi: aynan o'sha to'rtta test yiqildi, qolgan
+207 tasi yashil qoldi. Bu ikki narsani isbotlaydi — test haqiqatan shu himoyani tekshiradi
+va u boshqa hech narsaga taalluqli emas.
+
+Yangi himoya qo'shganda shu qadamni takrorlang: **himoyani vaqtincha buzib ko'ring**. Test
+yiqilmasa, u hech narsani tekshirmayapti.
 
 ## Ma'lum cheklovlar
 

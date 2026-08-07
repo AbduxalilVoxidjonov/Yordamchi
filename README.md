@@ -259,6 +259,29 @@ dotnet build Yordamchi.sln -c Release
 dotnet run --project src\Yordamchi
 ```
 
+### Testlar
+
+```powershell
+dotnet test Yordamchi.sln -c Release
+```
+
+Testlar `tests\Yordamchi.Tests` da: **xUnit** + **NSubstitute**. Ular internetga chiqmaydi
+va foydalanuvchining fayllariga tegmaydi — har bir test o'z vaqtinchalik papkasida
+ishlaydi va tugagach o'zidan keyin tozalab ketadi.
+
+| Nima sinaladi | Qanday |
+|---|---|
+| `ArchiveService` | Haqiqiy fayllar bilan: yaratish → o'qish → chiqarish aylanmasi, parol, Zip Slip |
+| `PdfManipulatorService` | Test ichida PDFsharp bilan yaratilgan haqiqiy PDF lar ustida |
+| `IPdfEngineService` qarorlari | Sub-servislar o'rniga substitute; `Validate` / `CheckPrerequisites` mantiqi |
+| ViewModel qoidalari | Tugma qachon faol, servisga nima uzatiladi, xatodan keyin sahifa holati |
+| Konvertorlar va `ToolCatalog` | Chegaraviy qiymatlar va katalog butunligi |
+
+> Xavfsizlik tekshiruvlari "yashil bo'lgani uchun" emas, **haqiqatan ushlagani uchun**
+> ishonchli: Zip Slip himoyasi ataylab o'chirib ko'rilgan va aynan o'sha to'rtta test
+> yiqilgan. Yangi himoya qo'shganda shu usulni takrorlang — test yiqilmasa, u hech narsani
+> tekshirmayotgan bo'ladi.
+
 ### O'zi-yetarli build chiqarish
 
 ```powershell
