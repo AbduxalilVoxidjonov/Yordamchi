@@ -231,7 +231,7 @@ O'rnatuvchi:
 
 ### Korporativ (jimgina) o'rnatish
 
-MSI ham mavjud — `artifacts\Yordamchi-2.1.0-x64.msi`:
+MSI ham xuddi shu relizda — `Yordamchi-2.1.0-x64.msi`:
 
 ```powershell
 msiexec /i Yordamchi-2.1.0-x64.msi /qn INSTALLFOLDER="C:\Apps\Yordamchi"
