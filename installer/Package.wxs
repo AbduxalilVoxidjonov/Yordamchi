@@ -1,63 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    PdfEdit MSI.
+    Yordamchi MSI.
 
-    Installs the self-contained publish output (app + private .NET runtime + pdfium/Skia
-    natives) into Program Files, adds Start Menu and Desktop shortcuts, and registers a
-    proper entry in Add or Remove Programs.
+    O'zi-yetarli (self-contained) publish natijasini — dastur + shaxsiy .NET runtime +
+    pdfium/Skia/Tesseract/ONNX native kutubxonalari — "Program Files" ga o'rnatadi,
+    Start menyu va ish stolida yorliq yaratadi hamda "Dasturlar va komponentlar"
+    ro'yxatiga to'g'ri yozuv qo'shadi.
 
-    Built by build-installer.ps1; expects -d PublishDir=<folder> and -arch x64.
+    build-installer.ps1 tomonidan quriladi; `-d PublishDir=<papka>` va `-arch x64` kutadi.
+
+    Muallif: Abduxalil Voxidjonov — https://t.me/abduxalilvoxidjonov
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
 
-  <Package Name="PdfEdit"
-           Manufacturer="PdfEdit"
+  <Package Name="Yordamchi"
+           Manufacturer="Abduxalil Voxidjonov"
            Version="$(var.ProductVersion)"
            UpgradeCode="5ACEDECA-2D08-49FE-9CE6-D6B41801065F"
            Scope="perMachine"
            Compressed="yes"
            InstallerVersion="500">
 
-    <!-- Installing 1.0.1 over 1.0.0 replaces it instead of stacking a second copy. -->
-    <MajorUpgrade DowngradeErrorMessage="A newer version of PdfEdit is already installed. Uninstall it first." />
+    <!--
+        UpgradeCode ATAYLAB O'ZGARMAYDI. Mahsulot nomi "PDF Suite" dan "Yordamchi" ga
+        o'zgardi va o'rnatish papkasi ham boshqa, lekin UpgradeCode bir xil qolgani uchun
+        MSI eski o'rnatmani avval OLIB TASHLAYDI, so'ng yangisini qo'yadi — foydalanuvchida
+        ikkita alohida dastur bo'lib qolmaydi.
+        AllowSameVersionUpgrades — bir xil versiyani qayta o'rnatishga ham ruxsat beradi.
+    -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="Kompyuterda Yordamchi dasturining yangiroq versiyasi o'rnatilgan. Avval uni olib tashlang, so'ng bu versiyani o'rnating." />
 
-    <!-- LZX:high keeps the ~168 MB payload down to roughly a third. -->
+    <!-- LZX:high ~168 MB yukni taxminan uchdan biriga tushiradi. -->
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
-    <Icon Id="PdfEditIcon" SourceFile="$(var.IconFile)" />
-    <Property Id="ARPPRODUCTICON" Value="PdfEditIcon" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/AbduxalilVoxidjonov/PdfEditor" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/AbduxalilVoxidjonov/PdfEditor" />
+    <Icon Id="YordamchiIcon" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="YordamchiIcon" />
+    <Property Id="ARPHELPLINK" Value="https://t.me/abduxalilvoxidjonov" />
+    <Property Id="ARPURLINFOABOUT" Value="https://t.me/abduxalilvoxidjonov" />
+    <Property Id="ARPCONTACT" Value="Abduxalil Voxidjonov" />
+    <Property Id="ARPCOMMENTS" Value="Yordamchi — Windows uchun 17 ta PDF vositasi va ekran yozuvi. © 2026 Abduxalil Voxidjonov" />
     <Property Id="ARPNOREPAIR" Value="1" />
 
-    <!-- License -> install folder -> progress -> finish. -->
+    <!-- Litsenziya -> o'rnatish papkasi -> jarayon -> yakun. -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
     <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseFile)" />
 
-    <Feature Id="Main" Title="PdfEdit" Level="1">
+    <Feature Id="Main" Title="Yordamchi" Level="1">
       <ComponentGroupRef Id="ApplicationFiles" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DesktopShortcut" />
     </Feature>
   </Package>
 
-  <!-- ================= Directories ================= -->
+  <!-- ================= Papkalar ================= -->
   <Fragment>
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="PdfEdit" />
+      <Directory Id="INSTALLFOLDER" Name="Yordamchi" />
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="ApplicationMenuFolder" Name="PdfEdit" />
+      <Directory Id="ApplicationMenuFolder" Name="Yordamchi" />
     </StandardDirectory>
 
     <StandardDirectory Id="DesktopFolder" />
   </Fragment>
 
-  <!-- ================= Payload =================
-       <Files> harvests the whole publish tree automatically, preserving subdirectories,
-       so new runtime files never need to be listed by hand.
+  <!-- ================= Yuk (payload) =================
+       <Files> butun publish daraxtini avtomatik yig'adi va papka tuzilmasini saqlaydi,
+       shuning uchun yangi runtime fayllarini qo'lda sanab chiqish kerak emas.
   -->
   <Fragment>
     <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
@@ -65,31 +77,31 @@
     </ComponentGroup>
   </Fragment>
 
-  <!-- ================= Shortcuts ================= -->
+  <!-- ================= Yorliqlar ================= -->
   <Fragment>
     <Component Id="StartMenuShortcut"
                Directory="ApplicationMenuFolder"
                Guid="8FB0CD15-96F7-4AC7-8302-605A245CF64A">
-      <Shortcut Id="StartMenuPdfEdit"
-                Name="PdfEdit"
-                Description="Organize, merge and build PDF files"
-                Target="[INSTALLFOLDER]PdfEdit.exe"
+      <Shortcut Id="StartMenuYordamchi"
+                Name="Yordamchi"
+                Description="PDF vositalari, OCR, AI va ekran yozuvi"
+                Target="[INSTALLFOLDER]Yordamchi.exe"
                 WorkingDirectory="INSTALLFOLDER"
-                Icon="PdfEditIcon" />
+                Icon="YordamchiIcon" />
       <RemoveFolder Id="RemoveApplicationMenuFolder" Directory="ApplicationMenuFolder" On="uninstall" />
-      <RegistryValue Root="HKLM" Key="Software\PdfEdit" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      <RegistryValue Root="HKLM" Key="Software\Yordamchi" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
     <Component Id="DesktopShortcut"
                Directory="DesktopFolder"
                Guid="02852839-B7D9-42F2-86BC-BDB6DB48AFA9">
-      <Shortcut Id="DesktopPdfEdit"
-                Name="PdfEdit"
-                Description="Organize, merge and build PDF files"
-                Target="[INSTALLFOLDER]PdfEdit.exe"
+      <Shortcut Id="DesktopYordamchi"
+                Name="Yordamchi"
+                Description="PDF vositalari, OCR, AI va ekran yozuvi"
+                Target="[INSTALLFOLDER]Yordamchi.exe"
                 WorkingDirectory="INSTALLFOLDER"
-                Icon="PdfEditIcon" />
-      <RegistryValue Root="HKLM" Key="Software\PdfEdit" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+                Icon="YordamchiIcon" />
+      <RegistryValue Root="HKLM" Key="Software\Yordamchi" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
     </Component>
   </Fragment>
 </Wix>

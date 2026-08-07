@@ -1,0 +1,93 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Yordamchi</RootNamespace>
+    <AssemblyName>Yordamchi</AssemblyName>
+    <ApplicationIcon>Assets\Yordamchi.ico</ApplicationIcon>
+    <!-- pdfium (PDFtoImage), Tesseract va ONNX Runtime — hammasi x64 native kutubxonalar. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Word COM avtomatlashtiruvi kech bog'lanish (late binding) orqali chaqiriladi. -->
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+
+    <!-- Fayl xossalari oynasida, o'rnatgichda va "Dasturlar va komponentlar"da ko'rinadi. -->
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <Product>Yordamchi</Product>
+    <Company>Abduxalil Voxidjonov</Company>
+    <Authors>Abduxalil Voxidjonov</Authors>
+    <Copyright>© 2026 Abduxalil Voxidjonov</Copyright>
+    <Description>Yordamchi — Windows uchun to'liq funksional PDF vositalari to'plami</Description>
+  </PropertyGroup>
+
+  <!--
+    Nosozliklarni tuzatish belgilarini (pdb) yig'ilmaga qo'shmaymiz. Bu shunchaki chiroy uchun
+    emas: SkiaSharp'ning native paketi 85 MB libSkiaSharp.pdb olib keladi, ya'ni butun
+    o'zi-yetarli (self-contained) yig'ilmaning uchdan biri.
+  -->
+  <Target Name="StripSymbolsFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish
+          Remove="@(ResolvedFileToPublish)"
+          Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <!-- MVVM (source generatorlar: [ObservableProperty], [RelayCommand]) -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+
+    <!-- PDF yozish: birlashtirish / tartiblash / burish / himoyalash / suv belgisi (MIT) -->
+    <PackageReference Include="PDFsharp" Version="6.2.4" />
+
+    <!-- PDF rasterizatsiya (eskizlar, OCR uchun sahifa rasmlari): pdfium + SkiaSharp (MIT) -->
+    <PackageReference Include="PDFtoImage" Version="5.3.0" />
+    <PackageReference Include="SkiaSharp" Version="4.150.1" />
+
+    <!-- PDF dan matn, shrift va joylashuvni o'qish (Apache-2.0) -->
+    <PackageReference Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />
+
+    <!-- .docx / .xlsx / .pptx yozish va o'qish (MIT) -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
+
+    <!-- OCR: skaner qilingan PDF va rasmlardan matn ajratish (Apache-2.0) -->
+    <PackageReference Include="Tesseract" Version="5.2.0" />
+
+    <!-- AI: u2net modeli bilan rasm fonini olib tashlash (MIT) -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+
+    <!--
+      Ekranni videoga yozib olish: Windows Media Foundation (H.264/H.265) + WASAPI ovozi (MIT).
+
+      Bu paketda `lib\` papkasi yo'q: u `build\ScreenRecorderLib.targets` orqali havolani
+      $(Platform) qiymatiga qarab qo'shadi va "AnyCPU" da ochiqchasiga xato beradi. Bizda esa
+      $(Platform) = AnyCPU, x64 lik `PlatformTarget` bilan ta'minlanadi. Shuning uchun
+      paketning `build` aktivlari o'chirilgan va x64 yig'ilmasiga to'g'ridan-to'g'ri havola
+      qilinadi — shu tufayli .sln dagi "Any CPU" konfiguratsiyasiga tegish shart emas.
+
+      DIQQAT: ScreenRecorderLib.dll — C++/CLI aralash (IJW) yig'ilma. U PublishSingleFile
+      to'plamiga JOYLASHTIRILMAYDI (BadImageFormatException). Hozirgi o'rnatuvchi papkali
+      self-contained publish qiladi, shuning uchun muammo yo'q; single-file ga o'tilsa
+      bu fayl to'plamdan chiqarib qo'yilishi shart.
+    -->
+    <PackageReference Include="ScreenRecorderLib" Version="6.6.0"
+                      GeneratePathProperty="true"
+                      ExcludeAssets="build;buildTransitive" />
+    <Reference Include="ScreenRecorderLib">
+      <HintPath>$(PkgScreenRecorderLib)\build\x64\ScreenRecorderLib.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

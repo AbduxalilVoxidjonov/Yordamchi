@@ -1,0 +1,271 @@
+<UserControl x:Class="Yordamchi.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Yordamchi.ViewModels"
+             mc:Ignorable="d"
+             UseLayoutRounding="True"
+             d:DesignWidth="1080" d:DesignHeight="760"
+             d:DataContext="{d:DesignInstance Type=viewModels:DashboardViewModel}">
+
+    <UserControl.Resources>
+
+        <!-- ================================================================
+             Vosita kartochkasi.
+
+             Butun kartochka — bitta Button ning shabloni. Shu tufayli sichqoncha
+             bilan ham, klaviatura bilan ham (Tab + Enter/Space) ochiladi va
+             qo'shimcha shaffof qatlam kerak bo'lmaydi.
+             ================================================================ -->
+        <Style x:Key="ToolCardButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="248" />
+            <!-- 186 = ikonka(48) + sarlavha(~35) + tavsifning uch qatori(48) + to'ldirish(36)
+                 va ustiga 1-2 px zaxira. 176 da uchinchi qator bir piksel yetishmay
+                 kesilib qolar edi — hover'da matn o'lchovi arzimas o'zgarsa ham
+                 tavsif "…" bilan qisqarardi. -->
+            <Setter Property="Height" Value="186" />
+            <Setter Property="Margin" Value="0,0,16,16" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <!--
+                            Ikki qatlam: pastda faqat soya, ustida mazmun.
+
+                            Soya to'g'ridan-to'g'ri matn saqlaydigan Border ga qo'yilsa,
+                            WPF butun kartochkani oraliq teksturaga chizadi — ClearType
+                            o'chadi, hover'dagi katta BlurRadius esa matnni yana ham
+                            xiralashtiradi. Bo'sh "soya qatlami" bu muammoni butunlay
+                            yo'q qiladi: xiralashadigan narsa — faqat qora to'rtburchak.
+
+                            Hover'da kartochka MASSHTABLANMAYDI, faqat yuqoriga suriladi:
+                            ScaleTransform matnni piksel to'riga tushirmaydi, butun songa
+                            siljitish esa yozuvni o'tkir saqlaydi.
+                        -->
+                        <Grid RenderTransformOrigin="0.5,0.5">
+                            <Grid.RenderTransform>
+                                <TranslateTransform x:Name="CardLift" X="0" Y="0" />
+                            </Grid.RenderTransform>
+
+                            <!-- Soya qatlami. Margin kartochka chetidan ichkarida turadi,
+                                 shuning uchun qora to'ldirish hech qayerdan ko'rinmaydi. -->
+                            <Border x:Name="CardShadow"
+                                    Margin="3"
+                                    Background="{DynamicResource ShadowCasterBrush}"
+                                    CornerRadius="{DynamicResource CardCornerRadius}"
+                                    Effect="{DynamicResource CardShadowEffect}"
+                                    IsHitTestVisible="False" />
+
+                            <Border x:Name="Card"
+                                Background="{DynamicResource LayerFillBrush}"
+                                BorderBrush="{DynamicResource CardStrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource CardCornerRadius}"
+                                Padding="18"
+                                SnapsToDevicePixels="True">
+
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Rangli ikonka. Fon vosita rangi bilan to'ldirilgani uchun
+                                     belgi ataylab oq: u har ikkala mavzuda ham o'qiladi. -->
+                                <Border Grid.Row="0"
+                                        Width="48" Height="48"
+                                        CornerRadius="12"
+                                        HorizontalAlignment="Left"
+                                        Background="{Binding AccentBrush}">
+                                    <TextBlock Text="{Binding Glyph}"
+                                               FontFamily="{DynamicResource IconFontFamily}"
+                                               FontSize="24"
+                                               Foreground="White"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Border>
+
+                                <TextBlock Grid.Row="1"
+                                           Text="{Binding Title}"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           TextTrimming="CharacterEllipsis"
+                                           Margin="0,14,0,0" />
+
+                                <TextBlock Grid.Row="2"
+                                           Text="{Binding Description}"
+                                           Style="{DynamicResource CaptionTextStyle}"
+                                           TextWrapping="Wrap"
+                                           MaxHeight="54"
+                                           VerticalAlignment="Top"
+                                           Margin="0,6,0,0" />
+                            </Grid>
+                            </Border>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <!-- Kartochkani sal ko'tarish va ramkasini rangli qilish -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CardShadow" Property="Effect" Value="{DynamicResource HoverShadowEffect}" />
+                                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Card" Property="Background" Value="{DynamicResource LayerFillAltBrush}" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="CardLift" Storyboard.TargetProperty="Y"
+                                                             To="-4" Duration="0:0:0.15">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseOut" />
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="CardLift" Storyboard.TargetProperty="Y"
+                                                             To="0" Duration="0:0:0.2" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+
+                            <!-- Klaviatura bilan yurganda ham kartochka ajralib tursin -->
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Card" Property="BorderThickness" Value="2" />
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Card" Property="Background" Value="{DynamicResource LayerFillAltBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="ToolCardTemplate" DataType="{x:Type viewModels:ToolCardViewModel}">
+            <Button Style="{StaticResource ToolCardButtonStyle}"
+                    Command="{Binding OpenCommand}"
+                    ToolTip="{Binding Description}"
+                    AutomationProperties.Name="{Binding Title}" />
+        </DataTemplate>
+
+        <!-- Bitta bo'lim: sarlavha + kartochkalar to'plami. -->
+        <DataTemplate x:Key="ToolGroupTemplate" DataType="{x:Type viewModels:ToolGroupViewModel}">
+            <StackPanel Margin="0,0,0,10"
+                        Visibility="{Binding HasTools, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <TextBlock Text="{Binding Glyph}"
+                               FontFamily="{DynamicResource IconFontFamily}"
+                               FontSize="16"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <TextBlock Text="{Binding Title}"
+                               Style="{DynamicResource SectionHeaderTextStyle}"
+                               Margin="10,0,0,0" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding Tools}"
+                              ItemTemplate="{StaticResource ToolCardTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="32,26,32,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ============================ Sarlavha ============================ -->
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="{Binding HeadlineText}" Style="{DynamicResource PageTitleTextStyle}" />
+            <TextBlock Text="{Binding Description}"
+                       Style="{DynamicResource SubtitleTextStyle}"
+                       TextWrapping="Wrap" MaxWidth="640"
+                       HorizontalAlignment="Left" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <!-- ============================ Qidiruv ============================ -->
+        <Grid Grid.Row="1" Width="380" HorizontalAlignment="Left" Margin="0,22,0,0">
+            <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                     MinHeight="38"
+                     Padding="38,6,38,6"
+                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="&#xE721;"
+                       FontFamily="{DynamicResource IconFontFamily}"
+                       FontSize="14"
+                       Margin="14,0,0,0"
+                       HorizontalAlignment="Left" VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextTertiaryBrush}"
+                       IsHitTestVisible="False" />
+
+            <!-- Placeholder: matn bo'sh bo'lgandagina ko'rinadi -->
+            <TextBlock Text="Vosita qidirish…"
+                       Margin="40,0,0,0"
+                       HorizontalAlignment="Left" VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextTertiaryBrush}"
+                       IsHitTestVisible="False"
+                       Visibility="{Binding SearchText, Converter={StaticResource NullToVisibilityInverted}}" />
+
+            <Button Style="{DynamicResource IconButtonStyle}"
+                    Content="&#xE711;"
+                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Margin="0,0,4,0"
+                    ToolTip="Qidiruvni tozalash"
+                    Command="{Binding ClearSearchCommand}"
+                    Visibility="{Binding HasSearchText, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+
+        <!-- ============================ Bo'limlar ============================ -->
+        <Grid Grid.Row="2" Margin="0,24,0,0">
+            <ScrollViewer Style="{DynamicResource AppScrollViewerStyle}"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="0,0,8,0">
+                <ItemsControl ItemsSource="{Binding Groups}"
+                              ItemTemplate="{StaticResource ToolGroupTemplate}"
+                              Margin="0,0,0,24" />
+            </ScrollViewer>
+
+            <!-- Qidiruvda hech narsa topilmaganda -->
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding HasNoResults, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="&#xE721;"
+                           FontFamily="{DynamicResource IconFontFamily}"
+                           FontSize="40"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextTertiaryBrush}" />
+                <TextBlock Text="Hech narsa topilmadi"
+                           Style="{DynamicResource SectionHeaderTextStyle}"
+                           HorizontalAlignment="Center" Margin="0,14,0,0" />
+                <TextBlock Text="Boshqa so'z bilan urinib ko'ring."
+                           Style="{DynamicResource CaptionTextStyle}"
+                           HorizontalAlignment="Center" Margin="0,4,0,0" />
+                <Button Style="{DynamicResource SubtleButtonStyle}"
+                        Content="Qidiruvni tozalash"
+                        HorizontalAlignment="Center" Margin="0,16,0,0"
+                        Command="{Binding ClearSearchCommand}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

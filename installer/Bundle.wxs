@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    PdfEditSetup.exe — a WiX Burn bootstrapper wrapping PdfEdit.msi.
+    YordamchiSetup.exe — Yordamchi MSI ni o'rab turuvchi WiX Burn bootstrapper.
 
-    The bundle owns the entire user experience: licence page, Options page for the install
-    folder, progress, and a Launch button at the end. The MSI it chains runs silently, so
-    the user sees exactly one installer window rather than two nested wizards.
+    Butun o'rnatish tajribasi shu bundle ixtiyorida: litsenziya sahifasi, o'rnatish papkasini
+    tanlash uchun "Options" sahifasi, jarayon ko'rsatkichi va yakunda "Ishga tushirish" tugmasi.
+    Ichkaridagi MSI jimgina bajariladi — foydalanuvchi ikkita ichma-ich sehrgar emas, bitta
+    o'rnatuvchi oynasini ko'radi.
+
+    Muallif: Abduxalil Voxidjonov — https://t.me/abduxalilvoxidjonov
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
-  <Bundle Name="PdfEdit"
-          Manufacturer="PdfEdit"
+  <Bundle Name="Yordamchi"
+          Manufacturer="Abduxalil Voxidjonov"
           Version="$(var.ProductVersion)"
           UpgradeCode="9C4B780A-2F93-4653-8556-2779C830C48B"
           IconSourceFile="$(var.IconFile)"
-          AboutUrl="https://github.com/AbduxalilVoxidjonov/PdfEditor"
+          AboutUrl="https://t.me/abduxalilvoxidjonov"
+          HelpUrl="https://t.me/abduxalilvoxidjonov"
           Compressed="yes">
 
     <BootstrapperApplication>
@@ -22,20 +27,57 @@
           Theme="rtfLicense"
           LicenseFile="$(var.LicenseFile)"
           LogoFile="$(var.LogoFile)"
-          LaunchTarget="[InstallFolder]\PdfEdit.exe"
+          LaunchTarget="[InstallFolder]\Yordamchi.exe"
           ShowVersion="yes" />
     </BootstrapperApplication>
 
     <!--
-        wixstdba's Options page edits this variable; forwarding it to the MSI is what makes
-        the folder the user picks actually take effect.
+        wixstdba ning "Options" sahifasi shu o'zgaruvchini tahrirlaydi; uni MSI ga uzatish —
+        foydalanuvchi tanlagan papka haqiqatan ham ishlashini ta'minlaydigan yagona narsa.
     -->
     <Variable Name="InstallFolder"
               Type="formatted"
-              Value="[ProgramFiles64Folder]PdfEdit"
+              Value="[ProgramFiles64Folder]Yordamchi"
               Persisted="yes" />
 
+    <!--
+        Ekran yozuvi moduli (ScreenRecorderLib) C++/CLI da yozilgan va Visual C++ 2015–2022
+        ish vaqtiga (MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll, CONCRT140.dll)
+        tayanadi. Ular Windows tarkibida kelmaydi. Ko'p kompyuterda boshqa dasturlar orqali
+        allaqachon o'rnatilgan bo'ladi, shuning uchun avval reyestrdan tekshiramiz va faqat
+        yo'q bo'lsagina o'rnatamiz.
+
+        Qidiruv "14.0" kalitida — bu VC++ 2015, 2017, 2019 va 2022 uchun umumiy (ular bitta
+        ish vaqtining ketma-ket versiyalari).
+    -->
+    <util:RegistrySearch Id="VCRedistX64Installed"
+                         Root="HKLM"
+                         Key="SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+                         Value="Installed"
+                         Result="value"
+                         Variable="VCRedistX64Installed"
+                         Bitness="always64" />
+
     <Chain>
+      <!--
+          Yuk bundle ichiga joylanadi (Compressed="yes"): dastur internetsiz ishlashga
+          mo'ljallangan, o'rnatuvchi ham internetga chiqmasligi kerak.
+          Permanent — bu ish vaqti boshqa dasturlarga ham kerak, dasturimiz o'chirilganda
+          u olib tashlanmaydi.
+      -->
+      <ExePackage Id="VCRedistX64"
+                  SourceFile="$(var.VCRedistFile)"
+                  DisplayName="Microsoft Visual C++ 2015–2022 ish vaqti (x64)"
+                  Permanent="yes"
+                  Vital="yes"
+                  Compressed="yes"
+                  DetectCondition="VCRedistX64Installed = 1"
+                  InstallArguments="/install /quiet /norestart"
+                  RepairArguments="/repair /quiet /norestart">
+        <ExitCode Value="1638" Behavior="success" />
+        <ExitCode Value="3010" Behavior="scheduleReboot" />
+      </ExePackage>
+
       <MsiPackage SourceFile="$(var.MsiFile)" Vital="yes" Compressed="yes">
         <MsiProperty Name="INSTALLFOLDER" Value="[InstallFolder]" />
       </MsiPackage>

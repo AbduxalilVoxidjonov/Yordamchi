@@ -1,0 +1,927 @@
+<UserControl x:Class="Yordamchi.Views.ToolWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:behaviors="clr-namespace:Yordamchi.Behaviors"
+             xmlns:converters="clr-namespace:Yordamchi.Converters"
+             xmlns:viewModels="clr-namespace:Yordamchi.ViewModels"
+             mc:Ignorable="d"
+             UseLayoutRounding="True"
+             d:DesignWidth="1180" d:DesignHeight="780"
+             d:DataContext="{d:DesignInstance Type=viewModels:ToolWorkspaceViewModel}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Sozlamalar panelining DataTemplate lari -->
+                <ResourceDictionary Source="pack://application:,,,/Yordamchi;component/Views/ToolOptionTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:ColorHexToBrushConverter x:Key="HexToBrush" />
+
+            <!-- ================================================================
+                 Sahifa kartochkasi: eskiz, raqam nishoni va hover da chiqadigan
+                 amallar (burish, o'chirish, kattalashtirib ko'rish).
+                 ================================================================ -->
+            <DataTemplate x:Key="PageCardTemplate" DataType="{x:Type viewModels:PageItemViewModel}">
+                <Grid x:Name="Root" ToolTip="{Binding ToolTipText}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!--
+                        Ikki qatlam: pastda faqat soya, ustida mazmun. Soya to'g'ridan-to'g'ri
+                        kartochkaga qo'yilsa, WPF butun kartochkani oraliq teksturaga chizadi
+                        va ustidagi yozuvlar (sahifa raqami, nishonlar) ClearType siz xiralashadi.
+                        Masshtablash endi ikkala qatlamni birga qamrab olishi uchun
+                        ScaleTransform o'rab turuvchi Grid ga ko'chirilgan.
+                    -->
+                    <Grid Grid.Row="0"
+                          Width="{Binding DataContext.ThumbnailSize, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                          Height="{Binding DataContext.ThumbnailSize, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Multiply}, ConverterParameter=1.32}"
+                          RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1" />
+                        </Grid.RenderTransform>
+
+                        <!-- Soya qatlami: kartochka ostida, chetidan 3 px ichkarida —
+                             qora to'ldirish hech qayerdan ko'rinmaydi. -->
+                        <Border x:Name="CardShadow"
+                                Margin="3"
+                                Background="{DynamicResource ShadowCasterBrush}"
+                                CornerRadius="{DynamicResource CardCornerRadius}"
+                                Effect="{DynamicResource CardShadowEffect}"
+                                IsHitTestVisible="False" />
+
+                        <Border x:Name="Card"
+                                Background="{DynamicResource ThumbnailBackgroundBrush}"
+                                BorderBrush="{DynamicResource CardStrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource CardCornerRadius}"
+                                ClipToBounds="True">
+
+                            <Grid>
+                                <!-- 90° burilish kartochka ichida qayta joylashishi uchun LayoutTransform -->
+                                <Image Source="{Binding Thumbnail}"
+                                       Margin="10"
+                                       Stretch="Uniform"
+                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                       LayoutTransform="{Binding Rotation, Converter={StaticResource RotationToTransform}}" />
+
+                                <Border x:Name="Scrim"
+                                        Background="{DynamicResource ScrimBrush}"
+                                        Opacity="0"
+                                        IsHitTestVisible="False" />
+
+                                <!-- Manba fayl nishoni (bir nechta hujjat aralashganda) -->
+                                <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
+                                        Padding="8,3"
+                                        CornerRadius="{DynamicResource PillCornerRadius}"
+                                        Background="{DynamicResource ThumbnailOverlayFillBrush}"
+                                        MaxWidth="110"
+                                        Visibility="{Binding ShowSourceBadge, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding SourceFileName}"
+                                               Foreground="{DynamicResource ThumbnailOverlayForegroundBrush}"
+                                               FontSize="11"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Border>
+
+                                <!-- Sahifa raqami -->
+                                <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8"
+                                        Padding="10,3"
+                                        CornerRadius="{DynamicResource PillCornerRadius}"
+                                        Background="{DynamicResource ThumbnailOverlayFillBrush}">
+                                    <TextBlock Text="{Binding PageNumber}"
+                                               Foreground="{DynamicResource ThumbnailOverlayForegroundBrush}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold" />
+                                </Border>
+
+                                <!-- Burilgani haqida belgi -->
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
+                                        Padding="7,3"
+                                        CornerRadius="{DynamicResource PillCornerRadius}"
+                                        Background="{DynamicResource ThumbnailOverlayFillBrush}"
+                                        Visibility="{Binding IsRotated, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="&#xE7AD;"
+                                               FontFamily="{DynamicResource IconFontFamily}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource ThumbnailOverlayForegroundBrush}" />
+                                </Border>
+
+                                <!-- Hover da chiqadigan amallar -->
+                                <StackPanel x:Name="Actions"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Margin="6"
+                                            Opacity="0">
+                                    <Button Style="{DynamicResource ThumbnailActionButtonStyle}"
+                                            Content="&#xE71E;"
+                                            Margin="0,0,4,0"
+                                            ToolTip="Kattalashtirib ko'rish"
+                                            Command="{Binding DataContext.PreviewPageCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}" />
+
+                                    <Button Style="{DynamicResource ThumbnailActionButtonStyle}"
+                                            Content="&#xE80C;"
+                                            Margin="0,0,4,0"
+                                            ToolTip="Chapga burish"
+                                            Command="{Binding RotateCounterClockwiseCommand}" />
+
+                                    <Button Style="{DynamicResource ThumbnailActionButtonStyle}"
+                                            Content="&#xE7AD;"
+                                            Margin="0,0,4,0"
+                                            ToolTip="O'ngga burish"
+                                            Command="{Binding RotateClockwiseCommand}" />
+
+                                    <Button Style="{DynamicResource ThumbnailDangerActionButtonStyle}"
+                                            Content="&#xE74D;"
+                                            ToolTip="Sahifani o'chirish"
+                                            Command="{Binding DeleteCommand}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <TextBlock Grid.Row="1"
+                               Text="{Binding OriginalPageNumber, StringFormat=asl sahifa {0}}"
+                               Style="{DynamicResource CaptionTextStyle}"
+                               HorizontalAlignment="Center"
+                               Margin="0,6,0,0" />
+                </Grid>
+
+                <DataTemplate.Triggers>
+                    <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
+                        <!-- Soya faqat o'z qatlamida almashadi — matnli kartochkada emas. -->
+                        <Setter TargetName="CardShadow" Property="Effect" Value="{DynamicResource HoverShadowEffect}" />
+                        <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                        <Trigger.EnterActions>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="Scrim" Storyboard.TargetProperty="Opacity"
+                                                     To="1" Duration="0:0:0.15">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Storyboard.TargetName="Actions" Storyboard.TargetProperty="Opacity"
+                                                     To="1" Duration="0:0:0.15" />
+                                    <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleX"
+                                                     To="1.04" Duration="0:0:0.18">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleY"
+                                                     To="1.04" Duration="0:0:0.18">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </Trigger.EnterActions>
+                        <Trigger.ExitActions>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="Scrim" Storyboard.TargetProperty="Opacity"
+                                                     To="0" Duration="0:0:0.2" />
+                                    <DoubleAnimation Storyboard.TargetName="Actions" Storyboard.TargetProperty="Opacity"
+                                                     To="0" Duration="0:0:0.2" />
+                                    <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleX"
+                                                     To="1" Duration="0:0:0.2" />
+                                    <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleY"
+                                                     To="1" Duration="0:0:0.2" />
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </Trigger.ExitActions>
+                    </Trigger>
+
+                    <DataTrigger Value="True"
+                                 Binding="{Binding (behaviors:DragDropReorder.IsDraggedItem), RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                        <!-- 0.35 da sudralayotgan kartochka qorong'i fonda deyarli
+                             yo'qolib ketardi; 0.55 "ko'chirilmoqda" ni bildiradi,
+                             lekin element ko'zdan qolmaydi. -->
+                        <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- ================================================================
+                 Rasm kartochkasi (rasm vositalarida fayllar katak ko'rinishida).
+                 ================================================================ -->
+            <DataTemplate x:Key="FileCardTemplate" DataType="{x:Type viewModels:WorkspaceFileViewModel}">
+                <Grid x:Name="Root" ToolTip="{Binding FilePath}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Soya alohida qatlamda: sahifa kartochkasidagi kabi (yuqoriga qarang). -->
+                    <Grid Grid.Row="0"
+                          Width="{Binding DataContext.ThumbnailSize, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                          Height="{Binding DataContext.ThumbnailSize, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                          RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1" />
+                        </Grid.RenderTransform>
+
+                        <Border x:Name="CardShadow"
+                                Margin="3"
+                                Background="{DynamicResource ShadowCasterBrush}"
+                                CornerRadius="{DynamicResource CardCornerRadius}"
+                                Effect="{DynamicResource CardShadowEffect}"
+                                IsHitTestVisible="False" />
+
+                        <Border x:Name="Card"
+                                Background="{DynamicResource ThumbnailBackgroundBrush}"
+                                BorderBrush="{DynamicResource CardStrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource CardCornerRadius}"
+                                ClipToBounds="True">
+
+                            <Grid>
+                                <Image Source="{Binding Thumbnail}" Margin="6" Stretch="Uniform"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+
+                                <TextBlock Text="Yuklanmoqda…"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10"
+                                            Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="&#xE783;" FontFamily="{DynamicResource IconFontFamily}"
+                                               FontSize="26" HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource DangerBrush}" />
+                                    <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" FontSize="11"
+                                               TextAlignment="Center" Margin="0,6,0,0"
+                                               Foreground="{DynamicResource DangerBrush}" />
+                                </StackPanel>
+
+                                <Border x:Name="Scrim" Background="{DynamicResource ScrimBrush}"
+                                        Opacity="0" IsHitTestVisible="False" />
+
+                                <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8"
+                                        Padding="10,3"
+                                        CornerRadius="{DynamicResource PillCornerRadius}"
+                                        Background="{DynamicResource ThumbnailOverlayFillBrush}">
+                                    <TextBlock Text="{Binding OrderNumber}"
+                                               Foreground="{DynamicResource ThumbnailOverlayForegroundBrush}"
+                                               FontSize="12" FontWeight="SemiBold" />
+                                </Border>
+
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"
+                                        Padding="8,3"
+                                        CornerRadius="{DynamicResource PillCornerRadius}"
+                                        Background="{DynamicResource ThumbnailOverlayFillBrush}"
+                                        Visibility="{Binding DimensionsText, Converter={StaticResource NullToVisibility}}">
+                                    <TextBlock Text="{Binding DimensionsText}"
+                                               Foreground="{DynamicResource ThumbnailOverlayForegroundBrush}" FontSize="11" />
+                                </Border>
+
+                                <Button x:Name="RemoveButton"
+                                        Style="{DynamicResource ThumbnailDangerActionButtonStyle}"
+                                        Content="&#xE74D;"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
+                                        Opacity="0"
+                                        ToolTip="Ro'yxatdan olib tashlash"
+                                        Command="{Binding RemoveCommand}" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <TextBlock Grid.Row="1" Text="{Binding FileName}"
+                               Style="{DynamicResource CaptionTextStyle}"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="{Binding DataContext.ThumbnailSize, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                               HorizontalAlignment="Center" Margin="0,6,0,0" />
+                </Grid>
+
+                <DataTemplate.Triggers>
+                    <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
+                        <!-- Soya faqat o'z qatlamida almashadi — matnli kartochkada emas. -->
+                        <Setter TargetName="CardShadow" Property="Effect" Value="{DynamicResource HoverShadowEffect}" />
+                        <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                        <Trigger.EnterActions>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="Scrim" Storyboard.TargetProperty="Opacity"
+                                                     To="1" Duration="0:0:0.15" />
+                                    <DoubleAnimation Storyboard.TargetName="RemoveButton" Storyboard.TargetProperty="Opacity"
+                                                     To="1" Duration="0:0:0.15" />
+                                    <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleX"
+                                                     To="1.04" Duration="0:0:0.18">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleY"
+                                                     To="1.04" Duration="0:0:0.18">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </Trigger.EnterActions>
+                        <Trigger.ExitActions>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="Scrim" Storyboard.TargetProperty="Opacity"
+                                                     To="0" Duration="0:0:0.2" />
+                                    <DoubleAnimation Storyboard.TargetName="RemoveButton" Storyboard.TargetProperty="Opacity"
+                                                     To="0" Duration="0:0:0.2" />
+                                    <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleX"
+                                                     To="1" Duration="0:0:0.2" />
+                                    <DoubleAnimation Storyboard.TargetName="CardScale" Storyboard.TargetProperty="ScaleY"
+                                                     To="1" Duration="0:0:0.2" />
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </Trigger.ExitActions>
+                    </Trigger>
+
+                    <DataTrigger Value="True"
+                                 Binding="{Binding (behaviors:DragDropReorder.IsDraggedItem), RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                        <!-- 0.35 da sudralayotgan kartochka qorong'i fonda deyarli
+                             yo'qolib ketardi; 0.55 "ko'chirilmoqda" ni bildiradi,
+                             lekin element ko'zdan qolmaydi. -->
+                        <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- ================================================================
+                 Fayl qatori (PDF va Word vositalari uchun).
+                 ================================================================ -->
+            <DataTemplate x:Key="FileRowTemplate" DataType="{x:Type viewModels:WorkspaceFileViewModel}">
+                <Border x:Name="Row"
+                        Background="{DynamicResource LayerFillAltBrush}"
+                        BorderBrush="{DynamicResource CardStrokeBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource CardCornerRadius}"
+                        Padding="10,8"
+                        Margin="0,0,0,8"
+                        ToolTip="{Binding FilePath}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Tartib raqami -->
+                        <Border Grid.Column="0"
+                                Width="26" Height="26"
+                                CornerRadius="{DynamicResource PillCornerRadius}"
+                                Background="{DynamicResource AccentBrush}"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="{Binding OrderNumber}"
+                                       Foreground="{DynamicResource TextOnAccentBrush}"
+                                       FontSize="12" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <!-- Kichik ko'rinish yoki fayl turi ikonasi -->
+                        <Grid Grid.Column="1" Width="34" Height="42" Margin="12,0,0,0">
+                            <Border Background="{DynamicResource ThumbnailBackgroundBrush}"
+                                    CornerRadius="4"
+                                    ClipToBounds="True">
+                                <Image Source="{Binding Thumbnail}" Stretch="Uniform" Margin="1"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                            </Border>
+                            <TextBlock Text="{Binding Glyph}"
+                                       FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="18"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisibilityInverted}}" />
+                        </Grid>
+
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="12,0,12,0">
+                            <TextBlock Text="{Binding FileName}"
+                                       FontWeight="SemiBold" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <TextBlock Text="{Binding FileSizeBytes, Converter={StaticResource FileSize}}"
+                                           Style="{DynamicResource CaptionTextStyle}" />
+                                <TextBlock Text=" · " Style="{DynamicResource CaptionTextStyle}"
+                                           Visibility="{Binding DetailsText, Converter={StaticResource NullToVisibility}}" />
+                                <TextBlock Text="{Binding DetailsText}"
+                                           Style="{DynamicResource CaptionTextStyle}"
+                                           TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Tartibni o'zgartirish (faqat ko'p faylli vositalarda) -->
+                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center"
+                                    Visibility="{Binding DataContext.IsMultiFileTool, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource BoolToVisibility}}">
+                            <Button Style="{DynamicResource IconButtonStyle}"
+                                    Content="&#xE70E;"
+                                    ToolTip="Yuqoriga surish"
+                                    Command="{Binding DataContext.MoveFileUpCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    CommandParameter="{Binding}" />
+                            <Button Style="{DynamicResource IconButtonStyle}"
+                                    Content="&#xE70D;"
+                                    Margin="2,0,0,0"
+                                    ToolTip="Pastga surish"
+                                    Command="{Binding DataContext.MoveFileDownCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    CommandParameter="{Binding}" />
+                        </StackPanel>
+
+                        <Button Grid.Column="4"
+                                Style="{DynamicResource IconButtonStyle}"
+                                Content="&#xE74D;"
+                                Margin="6,0,0,0"
+                                VerticalAlignment="Center"
+                                ToolTip="Ro'yxatdan olib tashlash"
+                                Command="{Binding RemoveCommand}" />
+                    </Grid>
+                </Border>
+
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                        <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- Tanlangan sahifa kartochkasi uchun konteyner (tanlash halqasi) -->
+            <Style x:Key="PageCardContainerStyle" TargetType="ListBoxItem"
+                   BasedOn="{StaticResource PageThumbnailItemStyle}">
+                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+            </Style>
+
+            <Style x:Key="FileCardContainerStyle" TargetType="ListBoxItem"
+                   BasedOn="{StaticResource PageThumbnailItemStyle}">
+                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+            </Style>
+
+            <!-- Fayl sudralib kelganda accent fon -->
+            <Style x:Key="ActiveDropZoneStyle" TargetType="Border"
+                   BasedOn="{StaticResource DropZoneBorderStyle}">
+                <Style.Triggers>
+                    <Trigger Property="behaviors:FileDrop.IsDragOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="32,20,32,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ==================== 0. Sarlavha paneli ==================== -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0"
+                    Style="{DynamicResource SubtleButtonStyle}"
+                    VerticalAlignment="Center"
+                    Margin="0,0,16,0"
+                    ToolTip="Barcha vositalarga qaytish"
+                    Command="{Binding BackCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE72B;" FontFamily="{DynamicResource IconFontFamily}"
+                               FontSize="14" VerticalAlignment="Center" />
+                    <TextBlock Text="Orqaga" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+
+            <Border Grid.Column="1"
+                    Width="44" Height="44"
+                    CornerRadius="12"
+                    VerticalAlignment="Center"
+                    Margin="0,0,14,0"
+                    Background="{Binding ToolAccentColor, Converter={StaticResource HexToBrush}}">
+                <TextBlock Text="{Binding ToolGlyph}"
+                           FontFamily="{DynamicResource IconFontFamily}"
+                           FontSize="20"
+                           Foreground="White"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+
+            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Title}" Style="{DynamicResource PageTitleTextStyle}" />
+                <TextBlock Text="{Binding Description}"
+                           Style="{DynamicResource SubtitleTextStyle}"
+                           TextWrapping="Wrap" MaxWidth="620"
+                           HorizontalAlignment="Left" Margin="0,2,0,0" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Right"
+                        Visibility="{Binding HasFiles, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{Binding SummaryText}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           HorizontalAlignment="Right"
+                           TextTrimming="CharacterEllipsis" MaxWidth="320" />
+                <TextBlock Style="{DynamicResource CaptionTextStyle}"
+                           HorizontalAlignment="Right"
+                           Text="{Binding TotalSizeBytes, Converter={StaticResource FileSize}, StringFormat={}{0} jami}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ==================== 1. Asosiy hudud ==================== -->
+        <Grid Grid.Row="1" Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ======== Chap ustun: fayllar va sahifalar ======== -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Sahifa amallari paneli -->
+                <Border Grid.Row="0"
+                        Style="{DynamicResource CardBorderStyle}"
+                        Padding="10,8"
+                        Margin="0,0,0,12"
+                        Visibility="{Binding ShowsPageGrid, Converter={StaticResource BoolToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <WrapPanel Grid.Column="0" VerticalAlignment="Center">
+                            <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE80C;" Margin="0,2,4,2"
+                                    ToolTip="Tanlangan sahifalarni chapga burish"
+                                    Command="{Binding RotateSelectedCounterClockwiseCommand}" />
+
+                            <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE7AD;" Margin="0,2,4,2"
+                                    ToolTip="Tanlangan sahifalarni o'ngga burish"
+                                    Command="{Binding RotateSelectedClockwiseCommand}" />
+
+                            <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE74D;" Margin="0,2,10,2"
+                                    ToolTip="Tanlangan sahifalarni o'chirish (Del)"
+                                    Command="{Binding DeleteSelectedCommand}" />
+
+                            <Border Style="{DynamicResource SeparatorLineStyle}" Width="1" Height="22"
+                                    Margin="0,0,10,0" VerticalAlignment="Center" />
+
+                            <Button Style="{DynamicResource SubtleButtonStyle}" Content="Hammasini tanlash" Margin="0,2,4,2"
+                                    Command="{Binding SelectAllCommand}" />
+
+                            <Button Style="{DynamicResource SubtleButtonStyle}" Content="Teskari" Margin="0,2,4,2"
+                                    Command="{Binding InvertSelectionCommand}" />
+
+                            <Button Style="{DynamicResource SubtleButtonStyle}" Content="Tanlovni bekor qilish" Margin="0,2,4,2"
+                                    Command="{Binding ClearSelectionCommand}" />
+
+                            <Button Style="{DynamicResource StandardButtonStyle}" Content="Burchakni qo'llash" Margin="6,2,4,2"
+                                    ToolTip="Sozlamalardagi burchakni qo'llaydi: &quot;Barcha sahifalarga qo'llansin&quot; yoqilgan bo'lsa — hamma sahifaga, aks holda faqat tanlanganlarga"
+                                    Command="{Binding RotateAllCommand}" />
+                        </WrapPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE71F;"
+                                    ToolTip="Eskizlarni kichraytirish" Command="{Binding ZoomOutCommand}" />
+                            <Button Style="{DynamicResource IconButtonStyle}" Content="&#xE8A3;" Margin="2,0,0,0"
+                                    ToolTip="Eskizlarni kattalashtirish" Command="{Binding ZoomInCommand}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Fayllar ro'yxati (qator ko'rinishi) -->
+                <Border Grid.Row="1"
+                        Margin="0,0,0,12"
+                        Visibility="{Binding ShowsFileList, Converter={StaticResource BoolToVisibility}}">
+                    <ScrollViewer Style="{DynamicResource AppScrollViewerStyle}"
+                                  MaxHeight="220"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Files}"
+                                      ItemTemplate="{StaticResource FileRowTemplate}"
+                                      behaviors:FileDrop.Command="{Binding DropFilesCommand}"
+                                      behaviors:FileDrop.Extensions="{Binding AcceptedExtensions}" />
+                    </ScrollViewer>
+                </Border>
+
+                <!-- Asosiy ish maydoni: bo'sh holat / sahifa eskizlari / rasm katagi -->
+                <Grid Grid.Row="2">
+
+                    <!-- Bo'sh holat: katta drag&drop hududi -->
+                    <Border Style="{StaticResource ActiveDropZoneStyle}"
+                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                            MinWidth="460"
+                            behaviors:FileDrop.Command="{Binding DropFilesCommand}"
+                            behaviors:FileDrop.Extensions="{Binding AcceptedExtensions}"
+                            Visibility="{Binding Files.Count, Converter={StaticResource CountToVisibilityInverted}}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding ToolGlyph}"
+                                       FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="44" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextTertiaryBrush}" />
+                            <TextBlock Text="{Binding EmptyStateTitle}"
+                                       Style="{DynamicResource SectionHeaderTextStyle}"
+                                       HorizontalAlignment="Center" Margin="0,14,0,0" />
+                            <TextBlock Text="{Binding EmptyStateHint}"
+                                       Style="{DynamicResource CaptionTextStyle}"
+                                       HorizontalAlignment="Center" TextAlignment="Center"
+                                       TextWrapping="Wrap" MaxWidth="380" Margin="0,4,0,0" />
+                            <Button Style="{DynamicResource AccentButtonStyle}"
+                                    Content="Fayl tanlash"
+                                    HorizontalAlignment="Center" Margin="0,18,0,0"
+                                    Command="{Binding OpenFilesCommand}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!--
+                        Sahifa eskizlari.
+                        Eskizlar VM tomonda bo'lakma-bo'lak qo'shiladi, shuning uchun katta
+                        hujjatda ham ro'yxat qotib qolmaydi. WrapPanel piksel bo'yicha
+                        aylantirilgani uchun (PageThumbnailListBoxStyle: CanContentScroll=False)
+                        virtualizatsiya konteynerlarni qayta ishlatish rejimida ishlaydi.
+                    -->
+                    <ListBox x:Name="PageGrid"
+                             Style="{DynamicResource PageThumbnailListBoxStyle}"
+                             ItemContainerStyle="{StaticResource PageCardContainerStyle}"
+                             ItemTemplate="{StaticResource PageCardTemplate}"
+                             ItemsSource="{Binding Pages}"
+                             SelectionMode="Extended"
+                             VirtualizingStackPanel.IsVirtualizing="True"
+                             VirtualizingStackPanel.VirtualizationMode="Recycling"
+                             behaviors:DragDropReorder.IsEnabled="True"
+                             behaviors:FileDrop.Command="{Binding DropFilesCommand}"
+                             behaviors:FileDrop.Extensions="{Binding AcceptedExtensions}"
+                             Visibility="{Binding ShowsPageGrid, Converter={StaticResource BoolToVisibility}}">
+                        <ListBox.InputBindings>
+                            <KeyBinding Key="Delete" Command="{Binding DeleteSelectedCommand}" />
+                        </ListBox.InputBindings>
+                    </ListBox>
+
+                    <!-- Rasm fayllari katak ko'rinishida -->
+                    <ListBox Style="{DynamicResource PageThumbnailListBoxStyle}"
+                             ItemContainerStyle="{StaticResource FileCardContainerStyle}"
+                             ItemTemplate="{StaticResource FileCardTemplate}"
+                             ItemsSource="{Binding Files}"
+                             SelectionMode="Extended"
+                             VirtualizingStackPanel.IsVirtualizing="True"
+                             VirtualizingStackPanel.VirtualizationMode="Recycling"
+                             behaviors:DragDropReorder.IsEnabled="True"
+                             behaviors:FileDrop.Command="{Binding DropFilesCommand}"
+                             behaviors:FileDrop.Extensions="{Binding AcceptedExtensions}"
+                             Visibility="{Binding ShowsFileGallery, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+            </Grid>
+
+            <!-- ======== O'ng ustun: sozlamalar ======== -->
+            <Border Grid.Column="1"
+                    Style="{DynamicResource CardBorderStyle}"
+                    Width="320"
+                    Margin="20,0,0,0"
+                    Padding="18"
+                    Visibility="{Binding Options, Converter={StaticResource NullToVisibility}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Sozlamalar"
+                               Style="{DynamicResource SectionHeaderTextStyle}"
+                               Margin="0,0,0,14" />
+
+                    <ScrollViewer Grid.Row="1"
+                                  Style="{DynamicResource AppScrollViewerStyle}"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Padding="0,0,6,0">
+                        <ContentControl Content="{Binding Options}" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ==================== 2. Holat va ogohlantirish ==================== -->
+        <Grid Grid.Row="2" Margin="0,14,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Tashqi komponent yetishmasa (masalan OCR til fayllari) -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource LayerFillAltBrush}"
+                    BorderBrush="{DynamicResource DangerBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource CardCornerRadius}"
+                    Padding="12,10"
+                    Margin="0,0,0,10"
+                    Visibility="{Binding HasPrerequisiteWarning, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="&#xE7BA;"
+                               FontFamily="{DynamicResource IconFontFamily}"
+                               FontSize="16"
+                               VerticalAlignment="Top"
+                               Foreground="{DynamicResource DangerBrush}" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding PrerequisiteWarning}"
+                               Margin="10,0,0,0"
+                               TextWrapping="Wrap"
+                               MaxWidth="900"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                    <!-- Faqat dastur o'zi olib bera oladigan komponentlar uchun (OCR tili, AI modeli) -->
+                    <Button Grid.Column="2"
+                            Style="{DynamicResource AccentButtonStyle}"
+                            Content="Yuklab olish"
+                            Margin="12,0,0,0"
+                            VerticalAlignment="Center"
+                            Command="{Binding DownloadMissingComponentCommand}"
+                            Visibility="{Binding HasDownloadableComponent, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+            </Border>
+
+            <TextBlock Grid.Row="1"
+                       Text="{Binding StatusMessage}"
+                       Style="{DynamicResource CaptionTextStyle}"
+                       TextTrimming="CharacterEllipsis"
+                       Visibility="{Binding StatusMessage, Converter={StaticResource NullToVisibility}}" />
+        </Grid>
+
+        <!-- ==================== 3. Pastki panel ==================== -->
+        <Border Grid.Row="3"
+                Style="{DynamicResource CardBorderStyle}"
+                Padding="16,12"
+                Margin="0,14,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Chap tomon: natija joyi yoki "Tayyor!" paneli -->
+                <Grid Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+                    <TextBlock Text="{Binding OutputHintText}"
+                               Style="{DynamicResource CaptionTextStyle}"
+                               TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibilityInverted}}" />
+
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="&#xE73E;"
+                                   FontFamily="{DynamicResource IconFontFamily}"
+                                   FontSize="18"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SuccessBrush}" />
+
+                        <StackPanel Margin="10,0,14,0" VerticalAlignment="Center">
+                            <TextBlock Text="Tayyor!"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource SuccessBrush}" />
+                            <TextBlock Text="{Binding ResultMessage}"
+                                       Style="{DynamicResource CaptionTextStyle}"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="420" />
+                        </StackPanel>
+
+                        <Button Style="{DynamicResource StandardButtonStyle}"
+                                Content="Faylni ochish"
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Center"
+                                Command="{Binding OpenResultCommand}" />
+
+                        <Button Style="{DynamicResource SubtleButtonStyle}"
+                                Content="Papkani ochish"
+                                VerticalAlignment="Center"
+                                Command="{Binding RevealResultCommand}" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- O'ng tomon: jarayon va bajarish -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ProgressBar Style="{DynamicResource AppProgressBarStyle}"
+                                 Width="160"
+                                 Margin="0,0,12,0"
+                                 VerticalAlignment="Center"
+                                 Minimum="0" Maximum="100"
+                                 Value="{Binding ProgressValue}"
+                                 IsIndeterminate="{Binding IsProgressIndeterminate}"
+                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Button Style="{DynamicResource StandardButtonStyle}"
+                            Content="Bekor qilish"
+                            Margin="0,0,10,0"
+                            Command="{Binding CancelCommand}"
+                            Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Button Style="{DynamicResource SubtleButtonStyle}"
+                            Content="Tozalash"
+                            Margin="0,0,10,0"
+                            Command="{Binding ClearCommand}"
+                            Visibility="{Binding HasFiles, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Button Style="{DynamicResource AccentButtonStyle}"
+                            MinWidth="160"
+                            Command="{Binding ExecuteCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74E;" FontFamily="{DynamicResource IconFontFamily}"
+                                       FontSize="15" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding ExecuteButtonText}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ==================== Band (busy) qoplamasi ==================== -->
+        <Border Grid.Row="0" Grid.RowSpan="4"
+                Background="{DynamicResource BusyOverlayBrush}"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+            <Border Style="{DynamicResource CardBorderStyle}" Padding="24" Width="380"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Text="{Binding BusyMessage}"
+                               Style="{DynamicResource SectionHeaderTextStyle}"
+                               TextTrimming="CharacterEllipsis" />
+                    <ProgressBar Style="{DynamicResource AppProgressBarStyle}" Margin="0,16,0,0"
+                                 Minimum="0" Maximum="100"
+                                 Value="{Binding ProgressValue}"
+                                 IsIndeterminate="{Binding IsProgressIndeterminate}" />
+                    <Button Content="Bekor qilish" Style="{DynamicResource StandardButtonStyle}"
+                            HorizontalAlignment="Right" Margin="0,18,0,0"
+                            Command="{Binding CancelCommand}" />
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ==================== Kattalashtirilgan ko'rish ==================== -->
+        <Border Grid.Row="0" Grid.RowSpan="4"
+                Background="{DynamicResource BusyOverlayBrush}"
+                Visibility="{Binding IsPreviewOpen, Converter={StaticResource BoolToVisibility}}">
+            <!-- Qoplamaning istalgan joyiga bosilsa yopiladi -->
+            <Border.InputBindings>
+                <MouseBinding MouseAction="LeftClick" Command="{Binding ClosePreviewCommand}" />
+            </Border.InputBindings>
+
+            <Border Style="{DynamicResource CardBorderStyle}"
+                    Padding="16"
+                    MaxWidth="1000"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Margin="40">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding PreviewTitle}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+                        <Button Style="{DynamicResource IconButtonStyle}"
+                                Content="&#xE711;"
+                                HorizontalAlignment="Right"
+                                ToolTip="Yopish"
+                                Command="{Binding ClosePreviewCommand}" />
+                    </Grid>
+
+                    <Border Grid.Row="1"
+                            Background="{DynamicResource ThumbnailBackgroundBrush}"
+                            CornerRadius="{DynamicResource CardCornerRadius}"
+                            ClipToBounds="True">
+                        <Image Source="{Binding PreviewImage}"
+                               Stretch="Uniform"
+                               StretchDirection="DownOnly"
+                               Margin="8"
+                               MaxHeight="640"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
+                    </Border>
+                </Grid>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

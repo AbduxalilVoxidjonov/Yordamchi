@@ -1,0 +1,392 @@
+<UserControl x:Class="Yordamchi.Views.ScreenRecorderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:converters="clr-namespace:Yordamchi.Converters"
+             xmlns:viewModels="clr-namespace:Yordamchi.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="1000" d:DesignHeight="820"
+             d:DataContext="{d:DesignInstance Type=viewModels:ScreenRecorderViewModel}">
+
+    <UserControl.Resources>
+        <converters:EnumEqualsConverter x:Key="RecEnumEquals" />
+        <converters:EnumEqualsToVisibilityConverter x:Key="RecEnumVisible" />
+        <converters:BooleanToVisibilityConverter x:Key="RecBoolVisible" />
+        <converters:BooleanToVisibilityConverter x:Key="RecBoolVisibleInverted" Invert="True" />
+        <!-- Yozib olish davomida sozlamalar bloki o'chiriladi. Standart 0.4 qorong'i
+             mavzuda deyarli ko'rinmay ketadi — 0.65 da matn hali ham o'qiladi,
+             lekin blok aniq "hozir tegib bo'lmaydi" degan ma'noni beradi. -->
+        <converters:BooleanToOpacityConverter x:Key="RecBoolOpacity" FalseOpacity="0.65" />
+
+        <Style x:Key="RecLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="RecHintStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer Style="{DynamicResource AppScrollViewerStyle}"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="32,26,32,32" MaxWidth="980" HorizontalAlignment="Left">
+
+            <!-- ==================== Sarlavha ==================== -->
+            <TextBlock Text="{Binding Title}" Style="{DynamicResource PageTitleTextStyle}" />
+            <TextBlock Text="{Binding Description}" Style="{DynamicResource SubtitleTextStyle}" Margin="0,4,0,0" />
+
+            <!-- ==================== Qo'llab-quvvatlanmasa ==================== -->
+            <Border Style="{DynamicResource CardBorderStyle}"
+                    Padding="20" Margin="0,20,0,0"
+                    Visibility="{Binding IsSupported, Converter={StaticResource RecBoolVisibleInverted}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE7BA;"
+                               FontFamily="{DynamicResource IconFontFamily}"
+                               FontSize="20"
+                               Foreground="{DynamicResource DangerForegroundBrush}"
+                               VerticalAlignment="Top" />
+                    <TextBlock Margin="14,0,0,0"
+                               TextWrapping="Wrap"
+                               Text="Bu kompyuterda ekranni yozib olish mumkin emas: Windows 10 (1903, build 18362) yoki undan yangi versiya talab qilinadi." />
+                </StackPanel>
+            </Border>
+
+            <!-- ==================== Boshqaruv paneli ====================
+                 Sahifadagi eng muhim blok, shuning uchun eng tepada va eng yirik. -->
+            <Border Style="{DynamicResource CardBorderStyle}" Padding="28" Margin="0,22,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Holat nishoni: yozilayotganda qizil, aks holda neytral -->
+                    <Ellipse Grid.Column="0"
+                             Width="14" Height="14"
+                             VerticalAlignment="Center"
+                             Fill="{DynamicResource TextTertiaryBrush}">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                        <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                        <Setter Property="Fill" Value="{DynamicResource WarningBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+
+                    <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding StateText}" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Style="{DynamicResource CaptionTextStyle}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Taymer teng kenglikdagi raqamlar bilan: sekund o'zgarganda
+                             yozuv sakrab turmasligi uchun. -->
+                        <TextBlock Text="{Binding ElapsedText}"
+                                   FontFamily="Consolas, Cascadia Mono, Segoe UI"
+                                   FontSize="26"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,22,0" />
+
+                        <Button Style="{DynamicResource AccentButtonStyle}"
+                                Command="{Binding StartCommand}"
+                                Visibility="{Binding IsIdleState, Converter={StaticResource RecBoolVisible}}"
+                                MinWidth="150">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE7C8;" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center" />
+                                <TextBlock Text="Yozishni boshlash" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{DynamicResource StandardButtonStyle}"
+                                Command="{Binding TogglePauseCommand}"
+                                Visibility="{Binding IsIdleState, Converter={StaticResource RecBoolVisibleInverted}}"
+                                MinWidth="132"
+                                Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="&#xE769;" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                                    <Setter Property="Text" Value="&#xE768;" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="To'xtatib turish" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                                    <Setter Property="Text" Value="Davom ettirish" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{DynamicResource DangerButtonStyle}"
+                                Command="{Binding StopCommand}"
+                                Visibility="{Binding IsIdleState, Converter={StaticResource RecBoolVisibleInverted}}"
+                                MinWidth="120">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE71A;" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center" />
+                                <TextBlock Text="To'xtatish" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ==================== Oxirgi yozuv ==================== -->
+            <Border Style="{DynamicResource CardBorderStyle}"
+                    Padding="20" Margin="0,16,0,0"
+                    Visibility="{Binding HasLastRecording, Converter={StaticResource RecBoolVisible}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="&#xE714;"
+                               FontFamily="{DynamicResource IconFontFamily}"
+                               FontSize="20"
+                               Foreground="{DynamicResource AccentBrush}"
+                               VerticalAlignment="Center" />
+
+                    <StackPanel Grid.Column="1" Margin="14,0,14,0" VerticalAlignment="Center">
+                        <TextBlock Text="Oxirgi yozuv" Style="{StaticResource RecLabelStyle}" Margin="0" />
+                        <TextBlock Text="{Binding LastRecordingPath}"
+                                   Style="{DynamicResource CaptionTextStyle}"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <Button Grid.Column="2"
+                            Style="{DynamicResource StandardButtonStyle}"
+                            Command="{Binding OpenOutputFolderCommand}"
+                            Content="Papkada ko'rsatish" />
+                </Grid>
+            </Border>
+
+            <!-- ==================== Nimani yozamiz ====================
+                 Yozib olish davomida manbani almashtirib bo'lmaydi, shuning uchun
+                 butun blok IsIdleState ga bog'langan. -->
+            <Border Style="{DynamicResource CardBorderStyle}"
+                    Padding="24" Margin="0,16,0,0"
+                    IsEnabled="{Binding IsIdleState}"
+                    Opacity="{Binding IsIdleState, Converter={StaticResource RecBoolOpacity}}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,14">
+                        <TextBlock Text="Nimani yozamiz" Style="{DynamicResource SectionHeaderTextStyle}" />
+                        <Button HorizontalAlignment="Right"
+                                Style="{DynamicResource SubtleButtonStyle}"
+                                Command="{Binding RefreshSourcesCommand}"
+                                ToolTip="Monitorlar va oynalar ro'yxatini yangilash">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72C;" FontFamily="{DynamicResource IconFontFamily}" VerticalAlignment="Center" />
+                                <TextBlock Text="Yangilash" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="RecSource"
+                                 Content="Butun ekran (monitor)"
+                                 IsChecked="{Binding SourceKind, Converter={StaticResource RecEnumEquals}, ConverterParameter=Display}" />
+
+                    <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                              Margin="26,8,0,0"
+                              MaxWidth="520" HorizontalAlignment="Left"
+                              ItemsSource="{Binding Displays}"
+                              SelectedItem="{Binding SelectedDisplay}"
+                              DisplayMemberPath="Title"
+                              Visibility="{Binding SourceKind, Converter={StaticResource RecEnumVisible}, ConverterParameter=Display}" />
+
+                    <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="RecSource"
+                                 Margin="0,14,0,0"
+                                 Content="Bitta oyna"
+                                 IsChecked="{Binding SourceKind, Converter={StaticResource RecEnumEquals}, ConverterParameter=Window}" />
+
+                    <StackPanel Margin="26,8,0,0"
+                                Visibility="{Binding SourceKind, Converter={StaticResource RecEnumVisible}, ConverterParameter=Window}">
+                        <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                                  MaxWidth="520" HorizontalAlignment="Left"
+                                  ItemsSource="{Binding Windows}"
+                                  SelectedItem="{Binding SelectedWindow}"
+                                  DisplayMemberPath="Title" />
+                        <TextBlock Style="{StaticResource RecHintStyle}"
+                                   Text="Oyna yozib olinayotganda uni yopmang va kichraytirmang — aks holda kadrlar to'xtaydi." />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ==================== Video sozlamalari ==================== -->
+            <Border Style="{DynamicResource CardBorderStyle}"
+                    Padding="24" Margin="0,16,0,0"
+                    IsEnabled="{Binding IsIdleState}"
+                    Opacity="{Binding IsIdleState, Converter={StaticResource RecBoolOpacity}}">
+                <StackPanel>
+                    <TextBlock Text="Video" Style="{DynamicResource SectionHeaderTextStyle}" Margin="0,0,0,14" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Kadrlar chastotasi (FPS)" Style="{StaticResource RecLabelStyle}" />
+                            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                                      ItemsSource="{Binding FramerateChoices}"
+                                      SelectedItem="{Binding Framerate}" />
+                            <TextBlock Style="{StaticResource RecHintStyle}"
+                                       Text="30 — ko'pchilik holat uchun. 60 silliqroq, lekin fayl va protsessor yuki ikki barobar." />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Kodek" Style="{StaticResource RecLabelStyle}" />
+                            <StackPanel>
+                                <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="RecCodec"
+                                             Content="H.264 — hamma joyda ochiladi"
+                                             IsChecked="{Binding Encoder, Converter={StaticResource RecEnumEquals}, ConverterParameter=H264}" />
+                                <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="RecCodec"
+                                             Margin="0,6,0,0"
+                                             Content="H.265 — fayl ~30% kichik"
+                                             IsChecked="{Binding Encoder, Converter={StaticResource RecEnumEquals}, ConverterParameter=H265}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="Sifat" Style="{StaticResource RecLabelStyle}" Margin="0,18,0,6" />
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="RecQuality"
+                                     Content="Past"
+                                     IsChecked="{Binding Quality, Converter={StaticResource RecEnumEquals}, ConverterParameter=Low}" />
+                        <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="RecQuality"
+                                     Margin="22,0,0,0"
+                                     Content="O'rtacha"
+                                     IsChecked="{Binding Quality, Converter={StaticResource RecEnumEquals}, ConverterParameter=Medium}" />
+                        <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="RecQuality"
+                                     Margin="22,0,0,0"
+                                     Content="Yuqori"
+                                     IsChecked="{Binding Quality, Converter={StaticResource RecEnumEquals}, ConverterParameter=High}" />
+                    </StackPanel>
+
+                    <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                              Margin="0,18,0,0"
+                              Content="Apparat (GPU) kodlashdan foydalanish"
+                              IsChecked="{Binding UseHardwareEncoding}" />
+                    <TextBlock Style="{StaticResource RecHintStyle}"
+                               Text="Yoqilgan bo'lsa videoni videokarta kodlaydi va protsessor deyarli bo'sh qoladi. Eski kompyuterlarda muammo chiqsa o'chirib ko'ring." />
+
+                    <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                              Margin="0,12,0,0"
+                              Content="Sichqoncha ko'rsatkichini ko'rsatish"
+                              IsChecked="{Binding ShowCursor}" />
+
+                    <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                              Margin="0,10,0,0"
+                              Content="Sichqoncha bosilganda halqa chizish"
+                              IsChecked="{Binding HighlightClicks}" />
+                </StackPanel>
+            </Border>
+
+            <!-- ==================== Ovoz ==================== -->
+            <Border Style="{DynamicResource CardBorderStyle}"
+                    Padding="24" Margin="0,16,0,0"
+                    IsEnabled="{Binding IsIdleState}"
+                    Opacity="{Binding IsIdleState, Converter={StaticResource RecBoolOpacity}}">
+                <StackPanel>
+                    <TextBlock Text="Ovoz" Style="{DynamicResource SectionHeaderTextStyle}" Margin="0,0,0,14" />
+
+                    <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                              Content="Tizim ovozi (dinamikdan chiqayotgan hamma narsa)"
+                              IsChecked="{Binding RecordSystemAudio}" />
+                    <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                              Margin="26,8,0,0"
+                              MaxWidth="520" HorizontalAlignment="Left"
+                              IsEnabled="{Binding RecordSystemAudio}"
+                              ItemsSource="{Binding Speakers}"
+                              SelectedItem="{Binding SelectedSpeaker}"
+                              DisplayMemberPath="Name" />
+
+                    <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                              Margin="0,18,0,0"
+                              Content="Mikrofon"
+                              IsChecked="{Binding RecordMicrophone}" />
+                    <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                              Margin="26,8,0,0"
+                              MaxWidth="520" HorizontalAlignment="Left"
+                              IsEnabled="{Binding RecordMicrophone}"
+                              ItemsSource="{Binding Microphones}"
+                              SelectedItem="{Binding SelectedMicrophone}"
+                              DisplayMemberPath="Name" />
+
+                    <TextBlock Style="{StaticResource RecHintStyle}"
+                               Text="Ikkalasi birga yoqilsa ovozlar bitta yo'lakka aralashtiriladi." />
+                </StackPanel>
+            </Border>
+
+            <!-- ==================== Saqlash ==================== -->
+            <Border Style="{DynamicResource CardBorderStyle}" Padding="24" Margin="0,16,0,0">
+                <StackPanel>
+                    <TextBlock Text="Saqlash" Style="{DynamicResource SectionHeaderTextStyle}" Margin="0,0,0,14" />
+
+                    <TextBlock Text="Papka" Style="{StaticResource RecLabelStyle}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox Grid.Column="0"
+                                 Style="{DynamicResource AppTextBoxStyle}"
+                                 IsReadOnly="True"
+                                 Text="{Binding OutputFolder}" />
+
+                        <Button Grid.Column="1"
+                                Style="{DynamicResource StandardButtonStyle}"
+                                Margin="10,0,0,0"
+                                Content="Tanlash…"
+                                IsEnabled="{Binding IsIdleState}"
+                                Command="{Binding BrowseFolderCommand}" />
+                    </Grid>
+                    <TextBlock Style="{StaticResource RecHintStyle}"
+                               Text="Fayl nomi sana va vaqtdan avtomatik yig'iladi, masalan: yozuv-2026-08-06-21-15-40.mp4" />
+
+                    <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                              Margin="0,18,0,0"
+                              IsEnabled="{Binding IsIdleState}"
+                              Content="Yozish boshlanganda dastur oynasi kichraytirilsin"
+                              IsChecked="{Binding MinimizeWhileRecording}" />
+                    <TextBlock Style="{StaticResource RecHintStyle}"
+                               Text="Aks holda videoning boshida shu oynaning o'zi ko'rinib qoladi." />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

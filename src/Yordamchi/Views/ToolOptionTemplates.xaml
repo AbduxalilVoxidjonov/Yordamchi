@@ -1,0 +1,703 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:Yordamchi.Converters"
+                    xmlns:viewModels="clr-namespace:Yordamchi.ViewModels">
+
+    <!--
+        ==============================================================================
+        Sozlamalar panelining ko'rinishlari.
+
+        ToolWorkspaceView dagi <ContentControl Content="{Binding Options}"/> qaysi
+        sozlama ViewModel i berilsa, shu yerdagi mos DataTemplate ni avtomatik topadi
+        (kalitsiz, DataType bo'yicha).
+
+        MUHIM: bu fayl mustaqil ResourceDictionary. Shuning uchun App.xaml dagi
+        konverterlarga tayanmaymiz — kerakli konverterlar shu yerda qayta e'lon
+        qilingan, uslublar esa faqat DynamicResource orqali olinadi.
+        ==============================================================================
+    -->
+
+    <converters:ColorHexToBrushConverter x:Key="OptionHexToBrush" />
+    <converters:FractionToPercentConverter x:Key="OptionPercent" />
+    <converters:EnumEqualsConverter x:Key="OptionEnumEquals" />
+    <converters:EnumEqualsToVisibilityConverter x:Key="OptionEnumVisible" />
+    <converters:BooleanToVisibilityConverter x:Key="OptionBoolVisible" />
+    <converters:BooleanToOpacityConverter x:Key="OptionBoolOpacity" />
+    <converters:NullOrEmptyToVisibilityConverter x:Key="OptionTextVisible" />
+
+    <!-- ============================ Umumiy kichik uslublar ============================ -->
+
+    <!-- Boshqaruv elementi ustidagi izoh. BasedOn ishlatilmaydi: mustaqil lug'atda
+         StaticResource bilan tashqi uslubga ulanish ishonchsiz. -->
+    <Style x:Key="OptionLabelStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- Variant ostidagi mayda tushuntirish. -->
+    <Style x:Key="OptionHintStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="26,0,0,10" />
+    </Style>
+
+    <!-- Ogohlantirish matni (parollar mos kelmadi va h.k.). -->
+    <Style x:Key="OptionWarningStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,6,0,0" />
+    </Style>
+
+    <!-- Bir sozlama bloki. -->
+    <Style x:Key="OptionBlockStyle" TargetType="{x:Type StackPanel}">
+        <Setter Property="Margin" Value="0,0,0,14" />
+    </Style>
+
+    <!--
+        Slayder. Themes/Controls.xaml da Slider uchun uslub yo'q, shuning uchun bu yerda
+        o'zimiznikini e'lon qilamiz — barcha ranglar DynamicResource orqali, ya'ni tungi
+        rejimda ham to'g'ri ko'rinadi.
+    -->
+    <Style x:Key="OptionSliderStyle" TargetType="{x:Type Slider}">
+        <Setter Property="Height" Value="26" />
+        <Setter Property="IsMoveToPointEnabled" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Slider}">
+                    <Grid Background="Transparent">
+                        <Border Height="4" VerticalAlignment="Center"
+                                CornerRadius="2"
+                                Background="{DynamicResource DividerBrush}" />
+
+                        <Track x:Name="PART_Track">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" IsTabStop="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                            <Border Background="Transparent" />
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.DecreaseRepeatButton>
+
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" IsTabStop="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                            <Border Background="Transparent" />
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.IncreaseRepeatButton>
+
+                            <Track.Thumb>
+                                <Thumb Width="18" Height="18" Cursor="Hand">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="{x:Type Thumb}">
+                                            <Grid Background="Transparent">
+                                                <Ellipse Fill="{DynamicResource AccentBrush}" />
+                                                <Ellipse Width="7" Height="7"
+                                                         Fill="{DynamicResource ContentBackgroundBrush}" />
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <!-- Yo'lakcha qorong'i mavzuda allaqachon 12% oq: 0.45 da u
+                             deyarli ko'rinmas edi. 0.7 slayder o'chirilganini bildiradi,
+                             lekin uni fon bilan qo'shilib ketishiga yo'l qo'ymaydi. -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.7" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================ PDF bo'lish ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:SplitOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Bo'lish usuli" Style="{StaticResource OptionLabelStyle}" />
+
+            <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="SplitMode"
+                         Content="Har bir sahifa alohida fayl"
+                         IsChecked="{Binding Mode, Converter={StaticResource OptionEnumEquals}, ConverterParameter=EveryPage}" />
+            <TextBlock Text="10 sahifali hujjatdan 10 ta fayl chiqadi."
+                       Style="{StaticResource OptionHintStyle}" />
+
+            <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="SplitMode"
+                         Content="Belgilangan oraliqlar"
+                         IsChecked="{Binding Mode, Converter={StaticResource OptionEnumEquals}, ConverterParameter=Ranges}" />
+
+            <StackPanel Margin="26,0,0,10"
+                        Visibility="{Binding Mode, Converter={StaticResource OptionEnumVisible}, ConverterParameter=Ranges}">
+                <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                         Text="{Binding RangeExpression, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="Masalan: 1-3, 7, 10-12"
+                           Style="{StaticResource OptionHintStyle}" Margin="0,6,0,0" />
+            </StackPanel>
+
+            <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="SplitMode"
+                         Content="Teng bo'laklarga"
+                         IsChecked="{Binding Mode, Converter={StaticResource OptionEnumEquals}, ConverterParameter=FixedChunks}" />
+
+            <StackPanel Margin="26,0,0,0"
+                        Visibility="{Binding Mode, Converter={StaticResource OptionEnumVisible}, ConverterParameter=FixedChunks}">
+                <TextBlock Text="Bitta fayldagi sahifalar soni" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                         Text="{Binding PagesPerFile, UpdateSourceTrigger=LostFocus}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ Siqish ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:CompressOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Siqish darajasi" Style="{StaticResource OptionLabelStyle}" />
+
+            <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="CompressLevel"
+                         Content="Kam"
+                         IsChecked="{Binding Level, Converter={StaticResource OptionEnumEquals}, ConverterParameter=Low}" />
+            <TextBlock Text="{Binding LowHint}" Style="{StaticResource OptionHintStyle}" />
+
+            <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="CompressLevel"
+                         Content="O'rtacha"
+                         IsChecked="{Binding Level, Converter={StaticResource OptionEnumEquals}, ConverterParameter=Medium}" />
+            <TextBlock Text="{Binding MediumHint}" Style="{StaticResource OptionHintStyle}" />
+
+            <RadioButton Style="{DynamicResource AppRadioButtonStyle}" GroupName="CompressLevel"
+                         Content="Kuchli"
+                         IsChecked="{Binding Level, Converter={StaticResource OptionEnumEquals}, ConverterParameter=High}" />
+            <TextBlock Text="{Binding HighHint}" Style="{StaticResource OptionHintStyle}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ Himoyalash ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:ProtectOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Ochish uchun parol" Style="{StaticResource OptionLabelStyle}" />
+            <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                     Text="{Binding UserPassword, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="Parolni tasdiqlang" Style="{StaticResource OptionLabelStyle}" Margin="0,12,0,6" />
+            <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                     Text="{Binding ConfirmPassword, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="Egalik paroli (ixtiyoriy)" Style="{StaticResource OptionLabelStyle}" Margin="0,12,0,6" />
+            <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                     Text="{Binding OwnerPassword, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Text="Ochish parolini bo'sh qoldirib faqat shu parolni kiritsangiz, hujjat erkin ochiladi, lekin quyidagi cheklovlar amal qiladi."
+                       Style="{StaticResource OptionHintStyle}" Margin="0,6,0,0" />
+
+            <TextBlock Text="{Binding ValidationMessage}"
+                       Style="{StaticResource OptionWarningStyle}"
+                       Visibility="{Binding HasValidationMessage, Converter={StaticResource OptionBoolVisible}}" />
+
+            <!-- WPF ning PasswordBox i MVVM ga bog'lanmaydi (Password xossasi dependency property emas),
+                 shuning uchun parol oddiy matn maydonida ko'rinadi. -->
+            <TextBlock Text="Parol ekranda ochiq ko'rinadi — atrofdagilarga e'tibor bering."
+                       Style="{StaticResource OptionHintStyle}" Margin="0,8,0,0" />
+
+            <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,16,0,14" />
+
+            <TextBlock Text="Nimalarga ruxsat beriladi" Style="{StaticResource OptionLabelStyle}" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Chop etish" IsChecked="{Binding AllowPrinting}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Yuqori sifatli chop etish" IsChecked="{Binding AllowHighQualityPrinting}"
+                      IsEnabled="{Binding AllowPrinting}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Matn va rasm nusxalash" IsChecked="{Binding AllowCopying}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Hujjatni tahrirlash" IsChecked="{Binding AllowModifying}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Izoh qo'shish" IsChecked="{Binding AllowAnnotations}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Shakllarni to'ldirish" IsChecked="{Binding AllowFormFilling}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Sahifalarni qo'shish/o'chirish" IsChecked="{Binding AllowAssembly}" />
+
+            <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,10,0,14" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                      Content="AES-256 shifrlash (PDF 2.0)" IsChecked="{Binding UseAes256}" />
+            <TextBlock Text="O'chirilsa AES-128 ishlatiladi — u eski dasturlarda ham ochiladi."
+                       Style="{StaticResource OptionHintStyle}" Margin="26,6,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ Qulfni ochish ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:UnlockOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Hujjat paroli" Style="{StaticResource OptionLabelStyle}" />
+            <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                     Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Text="Parolni bilmasangiz hujjat ochilmaydi — dastur parolni tanlab topmaydi."
+                       Style="{StaticResource OptionHintStyle}" Margin="0,8,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ Suv belgisi ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:WatermarkOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Matn" Style="{StaticResource OptionLabelStyle}" />
+            <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                     Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="Shrift o'lchami" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Slider Grid.Column="0" Style="{StaticResource OptionSliderStyle}"
+                        Minimum="10" Maximum="140" SmallChange="1" LargeChange="10"
+                        Value="{Binding FontSize}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
+                           Width="40" TextAlignment="Right"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{Binding FontSize, StringFormat={}{0:0}}" />
+            </Grid>
+
+            <TextBlock Text="Shaffoflik" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Slider Grid.Column="0" Style="{StaticResource OptionSliderStyle}"
+                        Minimum="0.05" Maximum="1" SmallChange="0.05" LargeChange="0.1"
+                        Value="{Binding Opacity}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
+                           Width="40" TextAlignment="Right"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{Binding Opacity, Converter={StaticResource OptionPercent}}" />
+            </Grid>
+
+            <TextBlock Text="Burilish burchagi" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Slider Grid.Column="0" Style="{StaticResource OptionSliderStyle}"
+                        Minimum="0" Maximum="90" SmallChange="5" LargeChange="15"
+                        Value="{Binding RotationDegrees}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
+                           Width="40" TextAlignment="Right"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{Binding RotationDegrees, StringFormat={}{0:0}°}" />
+            </Grid>
+
+            <TextBlock Text="Rang" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Width="26" Height="26" CornerRadius="6" Margin="0,0,10,0"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource CardStrokeBrush}"
+                        Background="{Binding ColorHex, Converter={StaticResource OptionHexToBrush}}" />
+                <ComboBox Grid.Column="1"
+                          Style="{DynamicResource AppComboBoxStyle}"
+                          ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                          ItemsSource="{Binding ColorChoices}"
+                          DisplayMemberPath="Title"
+                          SelectedValuePath="Value"
+                          SelectedValue="{Binding ColorHex, Mode=TwoWay}" />
+            </Grid>
+
+            <TextBlock Text="Joylashuvi" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding PositionChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Position, Mode=TwoWay}" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,14,0,0"
+                      Content="Sahifa mazmuni ustidan chizilsin"
+                      IsChecked="{Binding DrawOnTop}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ Sahifa raqamlari ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:PageNumberOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Joylashuvi" Style="{StaticResource OptionLabelStyle}" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding PositionChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Position, Mode=TwoWay}" />
+
+            <TextBlock Text="Ko'rinishi" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding FormatChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Format, Mode=TwoWay}" />
+
+            <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Boshlang'ich raqam" Style="{StaticResource OptionLabelStyle}" />
+                    <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                             Text="{Binding StartNumber, UpdateSourceTrigger=LostFocus}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Boshidan tashlab ketish" Style="{StaticResource OptionLabelStyle}" />
+                    <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                             Text="{Binding SkipFirstPages, UpdateSourceTrigger=LostFocus}" />
+                </StackPanel>
+            </Grid>
+
+            <TextBlock Text="Shrift o'lchami" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Slider Grid.Column="0" Style="{StaticResource OptionSliderStyle}"
+                        Minimum="6" Maximum="24" SmallChange="1" LargeChange="2"
+                        Value="{Binding FontSize}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
+                           Width="40" TextAlignment="Right"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{Binding FontSize, StringFormat={}{0:0}}" />
+            </Grid>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ Burish ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:RotateOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Burilish burchagi" Style="{StaticResource OptionLabelStyle}" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding AngleChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Angle, Mode=TwoWay}" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,14,0,0"
+                      Content="Barcha sahifalarga qo'llansin"
+                      IsChecked="{Binding ApplyToAll}" />
+
+            <TextBlock Text="Belgilanmasa, faqat eskizlarda belgilangan (tanlangan) sahifalar buriladi — hech narsa tanlanmagan bo'lsa amal bajarilmaydi. Eskizlar ustidagi tugmalar bilan har bir sahifani alohida burish ham mumkin."
+                       Style="{StaticResource OptionHintStyle}" Margin="26,6,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ PDF -> Word ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:PdfToWordOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Matnni tanish rejimi" Style="{StaticResource OptionLabelStyle}" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding RecognitionChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Recognition, Mode=TwoWay}" />
+
+            <StackPanel Margin="0,14,0,0"
+                        IsEnabled="{Binding IsOcrLanguageRelevant}"
+                        Opacity="{Binding IsOcrLanguageRelevant, Converter={StaticResource OptionBoolOpacity}}">
+                <TextBlock Text="OCR tili" Style="{StaticResource OptionLabelStyle}" />
+                <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                          ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                          ItemsSource="{Binding LanguageChoices}"
+                          DisplayMemberPath="Title"
+                          SelectedValuePath="Value"
+                          SelectedValue="{Binding OcrLanguage, Mode=TwoWay}" />
+            </StackPanel>
+
+            <TextBlock Text="Joylashuv rejimi" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding LayoutChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Layout, Mode=TwoWay}" />
+
+            <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,16,0,14" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Jadvallarni aniqlash" IsChecked="{Binding DetectTables}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Sarlavhalarni aniqlash" IsChecked="{Binding DetectHeadings}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,0,0,8"
+                      Content="Rasmlarni ko'chirish" IsChecked="{Binding ExtractImages}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                      Content="Sahifa uzilishlarini qo'yish" IsChecked="{Binding InsertPageBreaks}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ Word -> PDF ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:WordToPdfOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Konvertatsiya dvigateli" Style="{StaticResource OptionLabelStyle}" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding EngineChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Engine, Mode=TwoWay}" />
+
+            <!-- Shrift joylashtirish o'chirib bo'lmaydigan holat: PDFsharp 6 da shriftni
+                 joylashtirmaslik imkoniyati olib tashlangan. Katakcha yoqilgan qoldirilsa
+                 UI bajarilmaydigan va'da bergan bo'lardi, shuning uchun u faqat ma'lumot
+                 uchun ko'rsatiladi. -->
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,14,0,0"
+                      Content="Shriftlarni PDF ichiga joylash"
+                      IsChecked="{Binding EmbedFonts, Mode=OneWay}"
+                      IsEnabled="False"
+                      Opacity="{Binding IsEmbedFontsAdjustable, Converter={StaticResource OptionBoolOpacity}}" />
+            <TextBlock Text="Shriftlar har doim (faqat ishlatilgan belgilar bilan) joylashtiriladi — natija har qanday kompyuterda bir xil ko'rinadi."
+                       Style="{StaticResource OptionHintStyle}" Margin="26,6,0,8" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                      Content="Sarlavhalardan xatcho'p yasash" IsChecked="{Binding CreateBookmarks}" />
+
+            <TextBlock Text="Microsoft Word o'rnatilgan bo'lsa, natija asl hujjatga eng yaqin chiqadi."
+                       Style="{StaticResource OptionHintStyle}" Margin="0,12,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ PDF -> rasm ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:PdfToImageOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Rasm formati" Style="{StaticResource OptionLabelStyle}" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding FormatChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Format, Mode=TwoWay}" />
+
+            <TextBlock Text="Rezolyutsiya" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding DpiChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Dpi, Mode=TwoWay}" />
+
+            <StackPanel Margin="0,14,0,0"
+                        Visibility="{Binding IsJpeg, Converter={StaticResource OptionBoolVisible}}">
+                <TextBlock Text="JPEG sifati" Style="{StaticResource OptionLabelStyle}" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Slider Grid.Column="0" Style="{StaticResource OptionSliderStyle}"
+                            Minimum="40" Maximum="100" SmallChange="1" LargeChange="5"
+                            Value="{Binding JpegQuality}" />
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
+                               Width="40" TextAlignment="Right"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="{Binding JpegQuality}" />
+                </Grid>
+            </StackPanel>
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,14,0,0"
+                      Content="Oq fon chizilsin" IsChecked="{Binding WhiteBackground}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ Rasm -> PDF ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:ImageToPdfOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Sahifa o'lchami" Style="{StaticResource OptionLabelStyle}" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding PageSizeChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding PageSizeMode, Mode=TwoWay}" />
+
+            <StackPanel Margin="0,14,0,0"
+                        IsEnabled="{Binding IsFixedPageSize}"
+                        Opacity="{Binding IsFixedPageSize, Converter={StaticResource OptionBoolOpacity}}">
+                <TextBlock Text="Chekka (punkt)" Style="{StaticResource OptionLabelStyle}" />
+                <TextBox Style="{DynamicResource AppTextBoxStyle}"
+                         Text="{Binding MarginPoints, UpdateSourceTrigger=LostFocus}" />
+
+                <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,12,0,0"
+                          Content="Keng rasmlar uchun sahifani aylantirish"
+                          IsChecked="{Binding AutoOrientation}" />
+            </StackPanel>
+
+            <TextBlock Text="Rasm sifati" Style="{StaticResource OptionLabelStyle}" Margin="0,16,0,6" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding SizeLimitChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding MaxImageEdgePixels, Mode=TwoWay}" />
+
+            <TextBlock Text="Katta fotosuratlar PDF ga joylashdan oldin kichraytiriladi — hajm sezilarli kamayadi, sifat esa deyarli o'zgarmaydi."
+                       Style="{StaticResource OptionHintStyle}" Margin="0,10,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ OCR ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:OcrOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Hujjat tili" Style="{StaticResource OptionLabelStyle}" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding LanguageChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Language, Mode=TwoWay}" />
+
+            <TextBlock Text="Skanerlash aniqligi" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding DpiChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Dpi, Mode=TwoWay}" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,14,0,8"
+                      Content="Abzaslarni ajratish" IsChecked="{Binding DetectParagraphs}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                      Content="Rasmni oldindan tayyorlash (kontrast)" IsChecked="{Binding Preprocess}" />
+
+            <TextBlock Text="Yuqori aniqlik sekinroq ishlaydi, lekin mayda matnni yaxshiroq taniydi."
+                       Style="{StaticResource OptionHintStyle}" Margin="0,12,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ PDF -> Excel ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:PdfToExcelOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Matnni tanish rejimi" Style="{StaticResource OptionLabelStyle}" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding RecognitionChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Recognition, Mode=TwoWay}" />
+
+            <TextBlock Text="OCR tili" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding LanguageChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding OcrLanguage, Mode=TwoWay}" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,16,0,8"
+                      Content="Har bir sahifa alohida varaq" IsChecked="{Binding SheetPerPage}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                      Content="Jadval topilmasa matn yozilsin" IsChecked="{Binding IncludePlainText}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ PDF -> PowerPoint ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:PdfToPowerPointOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Matnni tanish rejimi" Style="{StaticResource OptionLabelStyle}" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding RecognitionChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding Recognition, Mode=TwoWay}" />
+
+            <TextBlock Text="OCR tili" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <ComboBox Style="{DynamicResource AppComboBoxStyle}"
+                      ItemContainerStyle="{DynamicResource AppComboBoxItemStyle}"
+                      ItemsSource="{Binding LanguageChoices}"
+                      DisplayMemberPath="Title"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding OcrLanguage, Mode=TwoWay}" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,16,0,8"
+                      Content="Birinchi qator slayd sarlavhasi bo'lsin" IsChecked="{Binding FirstLineAsTitle}" />
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}"
+                      Content="Sahifa rasmi fon sifatida qo'yilsin" IsChecked="{Binding IncludePageImage}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================ Fonni olib tashlash ============================ -->
+
+    <DataTemplate DataType="{x:Type viewModels:BackgroundRemoverOptionsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Chekka yumshoqligi" Style="{StaticResource OptionLabelStyle}" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Slider Grid.Column="0" Style="{StaticResource OptionSliderStyle}"
+                        Minimum="0" Maximum="8" SmallChange="0.5" LargeChange="1"
+                        Value="{Binding FeatherRadius}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
+                           Width="40" TextAlignment="Right"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{Binding FeatherRadius, StringFormat={}{0:0.0}}" />
+            </Grid>
+
+            <TextBlock Text="Shaffoflik chegarasi" Style="{StaticResource OptionLabelStyle}" Margin="0,14,0,6" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Slider Grid.Column="0" Style="{StaticResource OptionSliderStyle}"
+                        Minimum="0" Maximum="255" SmallChange="1" LargeChange="16"
+                        Value="{Binding AlphaThreshold}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
+                           Width="40" TextAlignment="Right"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{Binding AlphaThreshold}" />
+            </Grid>
+
+            <TextBlock Text="0 — chekka yumshoq qoladi (sochlar uchun yaxshiroq)."
+                       Style="{StaticResource OptionHintStyle}" Margin="0,4,0,0" />
+
+            <CheckBox Style="{DynamicResource AppCheckBoxStyle}" Margin="0,10,0,0"
+                      Content="Atrofdagi bo'sh joyni kesish" IsChecked="{Binding TrimTransparentBorder}" />
+        </StackPanel>
+    </DataTemplate>
+
+</ResourceDictionary>
