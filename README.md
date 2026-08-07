@@ -212,7 +212,8 @@ boshida shu oynaning o'zi ko'rinib qoladi.
 
 ## O'rnatish
 
-1. `artifacts\YordamchiSetup-2.1.0.exe` faylini yuklab oling va ishga tushiring.
+1. [**Releases**](https://github.com/AbduxalilVoxidjonov/PdfEditor/releases/latest) bo'limidan
+   `YordamchiSetup-2.1.0.exe` faylini yuklab oling va ishga tushiring.
 2. Litsenziyani qabul qiling, kerak bo'lsa o'rnatish papkasini o'zgartiring.
 3. "O'rnatish" tugmasini bosing — bir marta administrator ruxsati (UAC) so'raladi.
 
