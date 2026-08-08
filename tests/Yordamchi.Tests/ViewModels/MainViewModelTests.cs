@@ -116,6 +116,48 @@ public sealed class MainViewModelTests
         Assert.Equal("Dastur haqida", vm.SelectedNavigationItem?.Title);
     }
 
+    // =================================================================================
+    //  Yon panelni yig'ish
+    // =================================================================================
+
+    [Fact]
+    public void The_side_panel_starts_open()
+    {
+        var vm = CreateViewModel();
+
+        Assert.False(vm.IsNavigationCollapsed);
+        Assert.Equal("Yon panelni yig'ish", vm.NavigationToggleHint);
+    }
+
+    [Fact]
+    public void The_burger_button_folds_the_side_panel_and_opens_it_again()
+    {
+        var vm = CreateViewModel();
+
+        vm.ToggleNavigationCommand.Execute(null);
+
+        Assert.True(vm.IsNavigationCollapsed);
+        Assert.Equal("Yon panelni ochish", vm.NavigationToggleHint);
+
+        vm.ToggleNavigationCommand.Execute(null);
+
+        Assert.False(vm.IsNavigationCollapsed);
+    }
+
+    [Fact]
+    public void Folding_the_panel_keeps_the_current_page()
+    {
+        // Yig'ish — faqat ko'rinish holati; u navigatsiyaga tegmasligi kerak.
+        var vm = CreateViewModel();
+        vm.ShowAboutCommand.Execute(null);
+
+        var page = vm.CurrentViewModel;
+        vm.ToggleNavigationCommand.Execute(null);
+
+        Assert.Same(page, vm.CurrentViewModel);
+        Assert.Equal("Dastur haqida", vm.SelectedNavigationItem?.Title);
+    }
+
     private AboutViewModel CreateAbout() =>
         new(Substitute.For<IPdfEngineService>(), _updates, _dialogs);
 
@@ -132,6 +174,7 @@ public sealed class MainViewModelTests
             new ScreenRecorderViewModel(Substitute.For<IScreenRecorderService>(), _dialogs),
             new TransliterationViewModel(Substitute.For<ITransliterationService>(), _dialogs),
             new NumberSystemViewModel(new NumberSystemService(), _dialogs),
+            new RemoteControlViewModel(new RemoteControlService(), _dialogs),
             about ?? CreateAbout(),
             Substitute.For<IThemeService>());
     }

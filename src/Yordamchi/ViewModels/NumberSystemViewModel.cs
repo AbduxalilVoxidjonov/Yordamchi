@@ -8,23 +8,22 @@ using Yordamchi.Services.Abstractions;
 namespace Yordamchi.ViewModels;
 
 /// <summary>Asos tanlash ro'yxatining bitta bandi.</summary>
-/// <param name="Value">Asos: 2 dan 32 gacha.</param>
+/// <param name="Value">Asos: 2, 4, 8, 10, 16, 32, 64, 128 yoki 256.</param>
 /// <param name="Label">Ko'rinadigan yorliq: "16-lik — o'n oltilik".</param>
 public sealed record NumberBaseChoice(int Value, string Label);
 
 /// <summary>
 /// "Sanoq sistemasi" bo'limi: tepada son va uning asosi kiritiladi, pastda esa natija
-/// <b>barcha</b> asoslarda (2 dan 32 gacha) bir vaqtning o'zida ko'rinadi.
+/// <b>barcha</b> asoslarda bir vaqtning o'zida ko'rinadi.
 /// <para>
 /// Hisob har bosishda darhol bajariladi — "Hisoblash" tugmasi yo'q. Buning uchun ish sinxron
 /// bo'lishi shart, shuning uchun bu sahifa <c>ViewModelBase.RunAsync</c> ni ishlatmaydi:
-/// 31 ta o'tkazish mikrosoniyalarda tugaydi va "band" qoplamasi faqat xalaqit berardi.
+/// to'qqizta o'tkazish mikrosoniyalarda tugaydi va "band" qoplamasi faqat xalaqit berardi.
 /// </para>
 /// </summary>
 public sealed partial class NumberSystemViewModel : ViewModelBase
 {
     private readonly INumberSystemService _numbers;
-    private readonly List<NumberBaseRowViewModel> _allRows = [];
 
     public NumberSystemViewModel(INumberSystemService numbers, IDialogService dialogService)
         : base(dialogService)
@@ -36,7 +35,7 @@ public sealed partial class NumberSystemViewModel : ViewModelBase
 
         foreach (var radix in numbers.SupportedBases)
         {
-            _allRows.Add(new NumberBaseRowViewModel(
+            Rows.Add(new NumberBaseRowViewModel(
                 radix,
                 numbers.DescribeBase(radix),
                 numbers.PopularBases.Contains(radix),
@@ -44,7 +43,6 @@ public sealed partial class NumberSystemViewModel : ViewModelBase
                 SelectRow));
         }
 
-        ApplyFilter();
         UpdateSelection();
         Recalculate();
     }
@@ -52,13 +50,14 @@ public sealed partial class NumberSystemViewModel : ViewModelBase
     public override string Title => "Sanoq sistemasi";
 
     public override string Description =>
-        "Sonni 2 dan 32 gacha bo'lgan istalgan asosga o'tkazing — natija barcha sanoq sistemalarida bir vaqtda ko'rinadi.";
+        "Sonni 2, 4, 8, 10, 16, 32, 64, 128 va 256-lik sanoq sistemalari orasida o'tkazing — "
+        + "natija hammasida bir vaqtda ko'rinadi.";
 
     // =================================================================================
     //  Kiritish
     // =================================================================================
 
-    /// <summary>Asos tanlash ro'yxati (2–32).</summary>
+    /// <summary>Asos tanlash ro'yxati.</summary>
     public IReadOnlyList<NumberBaseChoice> BaseChoices { get; }
 
     /// <summary>Tepadagi tezkor tugmalar: 2, 8, 10, 16.</summary>
@@ -114,7 +113,7 @@ public sealed partial class NumberSystemViewModel : ViewModelBase
             _ => 0
         };
 
-        if (radix >= _numbers.MinBase && radix <= _numbers.MaxBase)
+        if (_numbers.IsSupportedBase(radix))
             SourceBase = radix;
     }
 
@@ -141,21 +140,18 @@ public sealed partial class NumberSystemViewModel : ViewModelBase
     [ObservableProperty]
     private bool _groupDigits = true;
 
-    /// <summary>Ro'yxatda faqat 2, 8, 10 va 16 qolsin.</summary>
-    [ObservableProperty]
-    private bool _onlyPopularBases;
-
     partial void OnFractionDigitsChanged(int value) => Recalculate();
 
     partial void OnGroupDigitsChanged(bool value) => Recalculate();
-
-    partial void OnOnlyPopularBasesChanged(bool value) => ApplyFilter();
 
     // =================================================================================
     //  Natijalar
     // =================================================================================
 
-    /// <summary>Ekranda ko'rinadigan qatorlar — filtr shu ro'yxatni qaytadan to'ldiradi.</summary>
+    /// <summary>
+    /// Har bir sanoq sistemasi uchun bitta qator. Ro'yxat sahifa ochilganda bir marta
+    /// to'ldiriladi va keyin faqat qiymatlari yangilanadi.
+    /// </summary>
     public ObservableCollection<NumberBaseRowViewModel> Rows { get; } = [];
 
     /// <summary>Qadam-baqadam yechim va "almashtirish" ishlaydigan asos.</summary>
@@ -165,7 +161,7 @@ public sealed partial class NumberSystemViewModel : ViewModelBase
 
     public string SelectedBaseName => _numbers.DescribeBase(SelectedBase);
 
-    public NumberBaseRowViewModel? SelectedRow => _allRows.FirstOrDefault(row => row.Base == SelectedBase);
+    public NumberBaseRowViewModel? SelectedRow => Rows.FirstOrDefault(row => row.Base == SelectedBase);
 
     /// <summary>Tanlangan asosdagi toza natija.</summary>
     public string SelectedValue => SelectedRow?.RawValue ?? string.Empty;
@@ -188,19 +184,8 @@ public sealed partial class NumberSystemViewModel : ViewModelBase
 
     private void UpdateSelection()
     {
-        foreach (var row in _allRows)
+        foreach (var row in Rows)
             row.IsSelected = row.Base == SelectedBase;
-    }
-
-    private void ApplyFilter()
-    {
-        Rows.Clear();
-
-        foreach (var row in _allRows)
-        {
-            if (!OnlyPopularBases || row.IsPopular)
-                Rows.Add(row);
-        }
     }
 
     // =================================================================================
@@ -281,7 +266,7 @@ public sealed partial class NumberSystemViewModel : ViewModelBase
 
         var ready = !HasError && !string.IsNullOrWhiteSpace(SourceText);
 
-        foreach (var row in _allRows)
+        foreach (var row in Rows)
         {
             if (!ready)
             {

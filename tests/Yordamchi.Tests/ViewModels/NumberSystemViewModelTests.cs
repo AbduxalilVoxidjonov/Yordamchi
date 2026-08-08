@@ -23,13 +23,11 @@ public sealed class NumberSystemViewModelTests
     // =================================================================================
 
     [Fact]
-    public void The_page_starts_with_every_base_from_two_to_thirty_two()
+    public void The_page_starts_with_the_nine_supported_bases()
     {
         var vm = CreateViewModel();
 
-        Assert.Equal(31, vm.Rows.Count);
-        Assert.Equal(2, vm.Rows[0].Base);
-        Assert.Equal(32, vm.Rows[^1].Base);
+        Assert.Equal(new[] { 2, 4, 8, 10, 16, 32, 64, 128, 256 }, vm.Rows.Select(row => row.Base));
     }
 
     [Fact]
@@ -40,10 +38,14 @@ public sealed class NumberSystemViewModelTests
         vm.SourceText = "255";
 
         Assert.Equal("11111111", Row(vm, 2).RawValue);
+        Assert.Equal("3333", Row(vm, 4).RawValue);
         Assert.Equal("377", Row(vm, 8).RawValue);
         Assert.Equal("255", Row(vm, 10).RawValue);
         Assert.Equal("FF", Row(vm, 16).RawValue);
         Assert.Equal("7V", Row(vm, 32).RawValue);
+        Assert.Equal("3:63", Row(vm, 64).RawValue);
+        Assert.Equal("1:127", Row(vm, 128).RawValue);
+        Assert.Equal("255", Row(vm, 256).RawValue);
     }
 
     [Fact]
@@ -131,17 +133,14 @@ public sealed class NumberSystemViewModelTests
     }
 
     [Fact]
-    public void The_filter_leaves_only_the_four_familiar_bases()
+    public void The_familiar_bases_stay_marked_in_the_list()
     {
+        // Filtr yo'q — to'qqizta qator baribir bir ekranga sig'adi; 2, 8, 10 va 16 esa
+        // ro'yxatda ajratib ko'rsatiladi.
         var vm = CreateViewModel();
 
-        vm.OnlyPopularBases = true;
-
-        Assert.Equal(new[] { 2, 8, 10, 16 }, vm.Rows.Select(row => row.Base));
-
-        vm.OnlyPopularBases = false;
-
-        Assert.Equal(31, vm.Rows.Count);
+        Assert.True(Row(vm, 16).IsPopular);
+        Assert.False(Row(vm, 256).IsPopular);
     }
 
     // =================================================================================
@@ -305,7 +304,9 @@ public sealed class NumberSystemViewModelTests
 
     [Theory]
     [InlineData(1)]
+    [InlineData(3)]
     [InlineData(33)]
+    [InlineData(512)]
     [InlineData("salom")]
     [InlineData(null)]
     public void An_impossible_base_is_ignored_rather_than_thrown(object? parameter)
@@ -337,8 +338,9 @@ public sealed class NumberSystemViewModelTests
     {
         var vm = CreateViewModel();
 
-        Assert.Equal(31, vm.BaseChoices.Count);
+        Assert.Equal(9, vm.BaseChoices.Count);
         Assert.Equal("16-lik — o'n oltilik", vm.BaseChoices.Single(choice => choice.Value == 16).Label);
+        Assert.Equal("256-lik — ikki yuz ellik oltilik", vm.BaseChoices.Single(choice => choice.Value == 256).Label);
         Assert.Equal(new[] { 2, 8, 10, 16 }, vm.QuickBases);
     }
 }

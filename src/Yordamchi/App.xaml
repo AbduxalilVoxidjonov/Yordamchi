@@ -64,6 +64,10 @@
                 <views:NumberSystemView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type viewModels:RemoteControlViewModel}">
+                <views:RemoteControlView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type viewModels:AboutViewModel}">
                 <views:AboutView />
             </DataTemplate>

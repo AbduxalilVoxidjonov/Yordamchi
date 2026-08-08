@@ -22,6 +22,10 @@ public sealed class NumberSystemService : INumberSystemService
 
     public IReadOnlyList<int> PopularBases => NumberBaseConverter.PopularBases;
 
+    public bool IsSupportedBase(int radix) => NumberBaseConverter.IsSupportedBase(radix);
+
+    public bool UsesDigitGroups(int radix) => NumberBaseConverter.UsesDigitGroups(radix);
+
     public string DescribeBase(int radix) => NumberBaseConverter.DescribeBase(radix);
 
     public string LabelBase(int radix) => NumberBaseConverter.LabelBase(radix);

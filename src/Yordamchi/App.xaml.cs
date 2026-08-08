@@ -64,6 +64,10 @@ public partial class App : Application
         // Sanoq sistemalari — sof hisob: na fayl, na PDF. U ham fasadga qo'shilmaydi.
         services.AddSingleton<INumberSystemService, NumberSystemService>();
 
+        // Kompyuterlarni boshqarish — boshqa kompyuterlarga o'rnatiladigan agentni GitHub'dan
+        // yuklab olish. PDF quvuriga aloqasi yo'q, shuning uchun u ham fasadga qo'shilmaydi.
+        services.AddSingleton<IRemoteControlService, RemoteControlService>();
+
         // Yangilanish ham PDF quvuriga aloqador emas: u dasturning o'zini almashtiradi.
         // Singleton — muvaffaqiyatli tekshiruv natijasi shu nusxada keshlanadi.
         services.AddSingleton<IUpdateService, UpdateService>();
@@ -81,6 +85,7 @@ public partial class App : Application
         services.AddSingleton<ScreenRecorderViewModel>();
         services.AddSingleton<TransliterationViewModel>();
         services.AddSingleton<NumberSystemViewModel>();
+        services.AddSingleton<RemoteControlViewModel>();
         services.AddSingleton<AboutViewModel>();
         services.AddSingleton<MainViewModel>();
 

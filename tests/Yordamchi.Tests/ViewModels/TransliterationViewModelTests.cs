@@ -50,6 +50,40 @@ public sealed class TransliterationViewModelTests : IDisposable
     }
 
     [Fact]
+    public void The_direction_button_shows_what_is_actually_applied()
+    {
+        var vm = CreateViewModel();
+
+        Assert.Equal("Kirill → Lotin", vm.DirectionLabel);
+
+        vm.SourceText = "O'zbekiston";
+
+        // Avtomatik holatda yorliq aniqlangan yo'nalishni ko'rsatishi kerak, tanlanganini emas.
+        Assert.Equal("Lotin → Kirill", vm.DirectionLabel);
+    }
+
+    [Fact]
+    public void The_direction_button_flips_the_direction_and_leaves_auto_mode()
+    {
+        var vm = CreateViewModel();
+        vm.SourceText = "O'zbekiston";
+
+        vm.ToggleDirectionCommand.Execute(null);
+
+        Assert.False(vm.AutoDetectDirection);
+        Assert.Equal(TransliterationDirection.CyrillicToLatin, vm.Direction);
+        Assert.Equal("Kirill → Lotin", vm.DirectionLabel);
+
+        // Matn lotinda, yo'nalish esa kirilldan — ya'ni tegilmaydi.
+        Assert.Equal("O'zbekiston", vm.ResultText);
+
+        vm.ToggleDirectionCommand.Execute(null);
+
+        Assert.Equal(TransliterationDirection.LatinToCyrillic, vm.Direction);
+        Assert.Equal("Ўзбекистон", vm.ResultText);
+    }
+
+    [Fact]
     public void A_chosen_direction_is_obeyed_even_when_it_looks_wrong()
     {
         var vm = CreateViewModel();

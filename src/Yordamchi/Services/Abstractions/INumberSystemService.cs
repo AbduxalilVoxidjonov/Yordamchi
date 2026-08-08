@@ -3,7 +3,7 @@ using Yordamchi.Models;
 namespace Yordamchi.Services.Abstractions;
 
 /// <summary>
-/// "Sanoq sistemasi" bo'limining shartnomasi: sonni 2 dan 32 gacha bo'lgan asoslar orasida
+/// "Sanoq sistemasi" bo'limining shartnomasi: sonni qo'llab-quvvatlanadigan asoslar orasida
 /// o'tkazish va yechimni bosqichma-bosqich tushuntirish.
 /// <para>
 /// <see cref="IPdfEngineService"/> fasadiga <b>kirmaydi</b>: bu yerda na fayl bor, na PDF —
@@ -17,11 +17,23 @@ public interface INumberSystemService
     /// <summary>Eng kichik asos (2).</summary>
     int MinBase { get; }
 
-    /// <summary>Eng katta asos (32).</summary>
+    /// <summary>Eng katta asos (256).</summary>
     int MaxBase { get; }
 
-    /// <summary>Barcha qo'llab-quvvatlanadigan asoslar: 2, 3, …, 32.</summary>
+    /// <summary>
+    /// Qo'llab-quvvatlanadigan asoslar: 2, 4, 8, 10, 16, 32, 64, 128, 256 — ikkining
+    /// darajalari va kundalik 10-lik. Oraliqdagi asoslar (3, 5, 6, 7, …) ataylab yo'q.
+    /// </summary>
     IReadOnlyList<int> SupportedBases { get; }
+
+    /// <summary>Shu asos ro'yxatda bormi.</summary>
+    bool IsSupportedBase(int radix);
+
+    /// <summary>
+    /// Shu asosda raqamlar o'nlikda yozilib «:» bilan ajratiladimi (64, 128, 256) — yoki
+    /// har bir raqam bitta belgi bilan yoziladimi (32-likkacha).
+    /// </summary>
+    bool UsesDigitGroups(int radix);
 
     /// <summary>Eng ko'p ishlatiladigan asoslar (2, 8, 10, 16) — UI ularni ajratib ko'rsatadi.</summary>
     IReadOnlyList<int> PopularBases { get; }

@@ -27,6 +27,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly ScreenRecorderViewModel _screenRecorder;
     private readonly TransliterationViewModel _transliteration;
     private readonly NumberSystemViewModel _numberSystem;
+    private readonly RemoteControlViewModel _remoteControl;
     private readonly AboutViewModel _about;
 
     public MainViewModel(
@@ -37,6 +38,7 @@ public sealed partial class MainViewModel : ObservableObject
         ScreenRecorderViewModel screenRecorder,
         TransliterationViewModel transliteration,
         NumberSystemViewModel numberSystem,
+        RemoteControlViewModel remoteControl,
         AboutViewModel about,
         IThemeService themeService)
     {
@@ -47,6 +49,7 @@ public sealed partial class MainViewModel : ObservableObject
         _screenRecorder = screenRecorder;
         _transliteration = transliteration;
         _numberSystem = numberSystem;
+        _remoteControl = remoteControl;
         _about = about;
         _themeService = themeService;
 
@@ -65,6 +68,7 @@ public sealed partial class MainViewModel : ObservableObject
             new NavigationItemViewModel("\uE714", screenRecorder),  // Ekran yozuvi
             new NavigationItemViewModel("\uF2B7", transliteration), // Kirill ↔ Lotin
             new NavigationItemViewModel("\uE8EF", numberSystem),    // Sanoq sistemasi
+            new NavigationItemViewModel("\uE977", remoteControl),   // Kompyuterlarni boshqarish
             new NavigationItemViewModel("\uE946", about)            // Dastur haqida
         ];
 
@@ -94,6 +98,27 @@ public sealed partial class MainViewModel : ObservableObject
         $"Versiya {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.3.0"}";
 
     public string AuthorText => "Abduxalil Voxidjonov";
+
+    // -----------------------------------------------------------------
+    //  Yon panelni yig'ish
+    // -----------------------------------------------------------------
+
+    /// <summary>
+    /// Yon panel yig'ilganmi: yig'ilgan holatda faqat nishonlar ko'rinadi va ishchi hudud
+    /// kengayadi. Holat faqat shu seansda saqlanadi — dasturda sozlamalarni diskka yozadigan
+    /// joy yo'q (mavzu ham xuddi shunday), shuning uchun bu yerda ham yangi saqlash mexanizmi
+    /// o'ylab topilmadi.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NavigationToggleHint))]
+    private bool _isNavigationCollapsed;
+
+    /// <summary>Burger tugmasining izohi — u nima qilishini aytadi, holatni emas.</summary>
+    public string NavigationToggleHint =>
+        IsNavigationCollapsed ? "Yon panelni ochish" : "Yon panelni yig'ish";
+
+    [RelayCommand]
+    private void ToggleNavigation() => IsNavigationCollapsed = !IsNavigationCollapsed;
 
     // -----------------------------------------------------------------
     //  Yangilanish nishoni

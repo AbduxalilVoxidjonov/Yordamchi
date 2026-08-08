@@ -166,7 +166,7 @@ Singleton tanlanishining amaliy sababi ham bor: `IScreenRecorderService` —
 esa hali yozilayotgan faylni to'g'ri yakunlaydi, aks holda `.mp4` da `moov` atomi
 yozilmay qoladi va fayl umuman ochilmaydi.
 
-Yon paneldagi oltita bo'lim (`MainViewModel.NavigationItems`):
+Yon paneldagi yettita bo'lim (`MainViewModel.NavigationItems`):
 
 | # | Bo'lim | Sahifa (`ViewModelBase.Title`) |
 |---|---|---|
@@ -175,12 +175,27 @@ Yon paneldagi oltita bo'lim (`MainViewModel.NavigationItems`):
 | 2 | Ekran yozuvi | `ScreenRecorderViewModel` |
 | 3 | Kirill ↔ Lotin | `TransliterationViewModel` |
 | 4 | Sanoq sistemasi | `NumberSystemViewModel` |
-| 5 | Dastur haqida | `AboutViewModel` |
+| 5 | Kompyuterlarni boshqarish | `RemoteControlViewModel` |
+| 6 | Dastur haqida | `AboutViewModel` |
 
 Yangi versiya topilganda "Dastur haqida" bandi yonida kichik nuqta ko'rinadi
 (`NavigationItemViewModel.HasNotification`). Tekshiruvning o'zi `AboutViewModel` da qoladi,
 `MainViewModel` esa faqat uning natijasini yon panelga ko'zgu qiladi — shu tufayli GitHub
 ga so'rov yuboradigan joy bitta bo'lib qolaveradi.
+
+#### Yon panelni yig'ish
+
+`MainViewModel.IsNavigationCollapsed` — sof ko'rinish holati, `ToggleNavigationCommand`
+uni almashtiradi. Yig'ilgan holatda panel **264 → 68** nuqtaga torayadi: nomlar, brend
+matni va quyi imzo yashirinadi, nishonlar markazga tushadi.
+
+| Qaror | Nega |
+|---|---|
+| Kenglik `Border` da o'zgaradi, `ColumnDefinition` esa `Auto` | `GridLength` ni standart animatsiya bilan o'zgartirib bo'lmaydi — buning uchun maxsus `GridLengthAnimation` yozish kerak bo'lardi |
+| 0,18 s `DoubleAnimation` (`CubicEase`) | Kenglik sakrab o'zgarsa, kontent ham sakraydi |
+| Nishonlar `Grid.ColumnSpan="3"` bilan markazga tushadi | Ustunlar kengligini triggerdan o'zgartirib bo'lmaydi; nishonni butun kenglikka yoyish soddaroq |
+| Yangi versiya nuqtasi nishon burchagiga ko'chadi | Yig'ilganda uni butunlay yashirish yangi versiya haqidagi yagona ishorani yo'qotardi |
+| Holat diskka yozilmaydi | Dasturda umuman sozlama saqlaydigan joy yo'q (mavzu ham shunday); bitta bayroq uchun yangi mexanizm o'ylab topish nomutanosib bo'lardi |
 
 ---
 
@@ -235,6 +250,7 @@ Yordamchi.sln
    │  │  ├─ IUpdateService.cs           Yangi versiya bor-yo'qligini tekshirish (fasadga kirmaydi)
    │  │  ├─ ITransliterationService.cs  Kirill ↔ lotin o'girish (fasadga kirmaydi)
    │  │  ├─ INumberSystemService.cs     Sanoq sistemalari (fasadga kirmaydi)
+   │  │  ├─ IRemoteControlService.cs    Boshqaruv agentini GitHub'dan yuklab olish (fasadga kirmaydi)
    │  │  ├─ IDialogService.cs           Fayl/papka dialoglari, xabar oynalari
    │  │  └─ IThemeService.cs            Light/Dark almashtirish + tizim sozlamasini kuzatish
    │  │
@@ -251,6 +267,8 @@ Yordamchi.sln
    │  ├─ UpdateService.cs         GitHub relizlari API si; aktiv nomi va xost tekshiruvlari,
    │  │                           natijani jarayon davomida keshlash
    │  ├─ NumberSystemService.cs   NumberBaseConverter ustidagi yupqa qobiq (shartnoma uchun)
+   │  ├─ RemoteControlService.cs  Boshqaruv agentini GitHub'dan yuklab olish (host tekshiruvi,
+   │  │                           progress bilan oqim, .tmp → ko'chirish); faylni ishga tushirmaydi
    │  ├─ TransliterationService.cs Matn va fayl o'girish orkestratori: nom tanlash, kodlashni
    │  │                           aniqlash, vaqtinchalik faylga yozib so'ng o'z o'rniga ko'chirish
    │  ├─ DialogService.cs         Win32 fayl dialoglari, MessageBox, clipboard — UI ning
@@ -287,6 +305,8 @@ Yordamchi.sln
    │  ├─ NumberSystemViewModel.cs     Sanoq sistemasi sahifasi: jonli hisob, barcha asoslar
    │  │                               jadvali, tanlov va qadam-baqadam yechim
    │  ├─ NumberBaseRowViewModel.cs    Jadvaldagi bitta asos va undagi natija
+   │  ├─ RemoteControlViewModel.cs    Kompyuterlarni boshqarish sahifasi: agentni yuklab olish
+   │  │                               + o'rnatish tartibi (InstallStep ro'yxati)
    │  ├─ ScreenRecorderViewModel.cs   Ekran yozuvi sahifasi: manba/video/ovoz sozlamalari,
    │  │                               boshlash-pauza-to'xtatish, taymer, MinimizeRequested /
    │  │                               RestoreRequested / OverlayVisibilityChanged
@@ -782,8 +802,10 @@ kirish ham, chiqish ham oddiy satr.
 
 | A'zo | Nima qaytaradi / qiladi |
 |---|---|
-| `MinBase` / `MaxBase` | 2 va 32 |
-| `SupportedBases` / `PopularBases` | Barcha asoslar (2…32) va eng ko'p ishlatiladigan to'rttasi (2, 8, 10, 16) |
+| `MinBase` / `MaxBase` | 2 va 256 |
+| `SupportedBases` / `PopularBases` | To'qqizta asos (2, 4, 8, 10, 16, 32, 64, 128, 256) va eng ko'p ishlatiladigan to'rttasi (2, 8, 10, 16) |
+| `IsSupportedBase(radix)` | Ro'yxat qat'iy: oraliqdagi asoslar (3, 5, 6, …) yo'q |
+| `UsesDigitGroups(radix)` | Shu asosda raqamlar «:» bilan ajratiladimi (64, 128, 256) |
 | `DescribeBase(radix)` / `LabelBase(radix)` | "o'n oltilik" / "16-lik — o'n oltilik" |
 | `DigitsOf(radix)` | "0–9 va A–F" — kiritish maydoni ostidagi eslatma uchun |
 | `Validate(text, fromBase)` | Kiritilgan son shu asosga mos keladimi; xato matni yoki `null` |
@@ -792,9 +814,32 @@ kirish ham, chiqish ham oddiy satr.
 | `Group(value, radix)` | Uzun natijani o'qishga qulay ajratish (faqat ko'rsatish uchun) |
 
 **Barcha metodlar sinxron** — bu ataylab qilingan qaror. Natija har bosishda yangilanadi;
-`Task` qaytarish bu yerda faqat keraksiz kontekst almashinuvi bo'lardi. 31 ta asos uchun
+`Task` qaytarish bu yerda faqat keraksiz kontekst almashinuvi bo'lardi. To'qqizta asos uchun
 o'tkazish mikrosoniyalarda tugaydi, shuning uchun sahifa `ViewModelBase.RunAsync` ni ham,
 "band" qoplamasini ham ishlatmaydi.
+
+#### Nega faqat ikkining darajalari va 10
+
+Ro'yxat qat'iy: `2, 4, 8, 10, 16, 32, 64, 128, 256`. Oraliqdagi asoslar (3, 5, 6, 7, 9, 11 …)
+amalda ishlatilmaydi, jadvalda esa har biri bitta qator egallab, kerakli asosni ko'z bilan
+qidirishga majbur qilardi. To'qqizta qator bir ekranga sig'adi — shu sababli "faqat mashhur
+asoslar" filtri ham kerak bo'lmay qoldi.
+
+#### Ikki xil raqam yozuvi
+
+| Asos | Bitta raqam qanday yoziladi | Misol |
+|---|---|---|
+| 2 … 32 | Bitta belgi: `0–9`, so'ng `A–V` | `255₁₀ = FF₁₆` |
+| 64, 128, 256 | O'nlikdagi son, raqamlar `:` bilan ajratiladi | `12345678₁₀ = 188:97:78₂₅₆` |
+
+64 tagacha belgi topish mumkin edi (Base64 alifbosi), lekin 128 va 256 uchun bunday alifbo
+yo'q. Ikki xil qoida o'rniga bitta: `MaxSymbolBase` (32) dan katta asoslarning hammasi
+guruh yozuvidan foydalanadi. Shu bitta chegara `DigitSymbol`, `JoinDigits`, kiritishni
+o'qish va qadam-baqadam yechim — hammasini boshqaradi.
+
+O'qishda bo'sh joy ham ajratkich sanaladi (`188 97 78`), ketma-ket ajratkichlar bittadek
+qaraladi, oxiridagi ajratkich esa xato emas — foydalanuvchi hali yozayotgan bo'lishi
+mumkin va har bosishda qizil xabar chiqarish xalaqit berardi.
 
 #### Nega `double` emas
 
@@ -833,6 +878,30 @@ belgilanadi va UI da `≈` ko'rinadi.
 Manba va nishon bir xil bo'lsa, yagona "o'tkazish kerak emas" bo'limi qaytadi. Juda uzun
 sonda yoyilma umuman ko'rsatilmaydi (20 ta raqamdan oshsa), uzun ro'yxatlar esa boshi va
 oxiri qoldirilib qisqartiriladi — aks holda o'ng panel o'qib bo'lmas holga kelardi.
+
+### `IRemoteControlService` — kompyuterlarni boshqarish
+
+"Kompyuterlarni boshqarish" bo'limi — boshqa kompyuterlarni masofadan boshqarish uchun
+**tarqatish markazi**. Agentning o'zi (DXGI ekran uzatish, kirish yuborish, SYSTEM xizmati,
+TCP/UDP tarmoq) — bu dasturga kirmaydigan **alohida katta loyiha**; u GitHub relizlariga
+qo'yiladi va shu bo'limdan yuklab olinadi. Bu yerdagi xizmat faqat **yuklab oladi**.
+
+| A'zo | Nima qiladi |
+|---|---|
+| `DefaultDownloadUrl` / `ExampleDownloadUrl` | Sozlangan manzil (hozircha bo'sh placeholder) va namuna GitHub havolasi |
+| `DownloadFolder` / `AgentFilePath` / `AgentFileName` | `%LOCALAPPDATA%\Yordamchi\RemoteControl\` va undagi fayl |
+| `IsAgentDownloaded` | Fayl allaqachon bormi |
+| `IsDownloadUrlReady(url)` | Manzil bo'sh emas, `https` va faqat GitHub xostida — `UpdateService.IsTrustedDownloadUrl` bilan |
+| `DownloadAgentAsync(...)` | Faylni oqim orqali (progress bilan) yuklaydi; **ishga tushirmaydi** |
+
+**Bir nechta ataylab qilingan qaror:**
+
+| Qaror | Nega |
+|---|---|
+| Yuklab olish faqat GitHub xostlaridan | Boshqa kompyuterlarga o'rnatiladigan dasturni begona serverdan tortib olish xavfli; ishonch ro'yxati butun dasturda bitta (`UpdateService`) |
+| Dastur faylni ishga tushirmaydi | Faqat yuklab oladi; o'rnatishni foydalanuvchi maqsadli kompyuterda administrator huquqida o'zi bajaradi |
+| O'rnatish qadamlarida "ko'rinadigan belgi" ochiq yozilgan | Masofaviy boshqaruv qonuniy bo'lishi uchun — faqat o'zing administratsiya qiladigan kompyuter, foydalanuvchi xabardor; agent yashirin ishlamaydi |
+| Manzil doimiy emas, UI maydonidan olinadi | Placeholder holatda real fayl hali yo'q; manzilni qayta yig'masdan kiritish mumkin (holat faqat shu seansda) |
 
 ### Yordamchi UI servislari
 
@@ -1321,9 +1390,9 @@ sezilmasdan o'giriladi, shuning uchun bu yerda `Task`, `RunAsync` yoki "band" qo
 holda juda katta hujjatni qo'yganda har bosish sezilib qolardi.
 
 **Jonli hisob — sinxron, ataylab (ikkinchi holat).** "Sanoq sistemasi" sahifasi ham
-`RunAsync` ni ishlatmaydi: 31 ta o'tkazish har bosishda qaytadan bajariladi va bu
+`RunAsync` ni ishlatmaydi: to'qqizta o'tkazish har bosishda qaytadan bajariladi va bu
 mikrosoniyalarda tugaydi. Jadval qatorlari esa **bir marta** yaratilib, keyin faqat qiymati
-yangilanadi — har bosishda 31 ta yangi obyekt yasash WPF ni ro'yxatni qaytadan qurishga
+yangilanadi — har bosishda yangi obyektlar yasash WPF ni ro'yxatni qaytadan qurishga
 majbur qilardi va foydalanuvchining tanlovi ham yo'qolib ketardi.
 
 **Kelajakdagi ajratish.** `Models` + `Services` ni alohida `Yordamchi.Core` kutubxonasiga
@@ -1341,10 +1410,10 @@ chiqmaydi: ekran yozuvi Windows Media Foundation ga bog'langan.
 ## 11. Testlar
 
 Testlar `tests\Yordamchi.Tests` da yashaydi va **`Yordamchi.sln`** ga qo'shilgan, ya'ni
-`dotnet test Yordamchi.sln -c Release` hammasini ishga tushiradi. Hozirda **746 ta
+`dotnet test Yordamchi.sln -c Release` hammasini ishga tushiradi. Hozirda **801 ta
 sinov** bor: ular orasida yangilanish xizmatining qabul qilish qoidalari, yozuv seansining
 hayot sikli — panel qachon ochiladi/yopiladi, oyna qachon qaytariladi — kirill ↔ lotin
-o'girishning har bir qoidasi hamda sanoq sistemalarining 31 × 31 asos juftligi bo'yicha
+o'girishning har bir qoidasi hamda sanoq sistemalarining 9 × 9 asos juftligi bo'yicha
 aylanmasi ham bor.
 
 | Vosita | Nima uchun |
@@ -1446,11 +1515,13 @@ yiqilmasa, u hech narsani tekshirmayapti.
   qilib o'qish o'rniga fayl rad etiladi va aniq xabar beriladi.
 - **Eski `.doc` o'girilmaydi.** OpenXML faqat `.docx` (OPC) bilan ishlaydi; binar `.doc`
   formati uchun butunlay boshqa o'quvchi kerak bo'lardi.
-- **Sanoq sistemasi asosi 2–32 bilan cheklangan.** 32 ta raqamdan keyin (`0–9`, `A–V`)
-  keyingi belgilar `W`, `X`, `Y`, `Z` — ular lotin alifbosida bor, lekin 36-likdan yuqorisi
-  uchun umumiy kelishilgan belgi yo'q va foydalanuvchi uchun ham ma'nosi qolmaydi.
-- **Kiritilgan son 512 belgidan oshmasligi kerak.** Undan uzun sonda har bosishdagi 31 ta
-  o'tkazish sezilarli vaqt olardi; chegara oshib ketsa aniq xabar beriladi.
+- **Sanoq sistemasi asoslari ro'yxati qat'iy: 2, 4, 8, 10, 16, 32, 64, 128, 256.** Oraliqdagi
+  asoslar amalda ishlatilmaydi va jadvalni uzaytirib, kerakligini qidirishga majbur qilardi.
+- **64, 128 va 256-likda raqamlar `:` bilan ajratiladi.** Bitta belgili raqamlar 32 tada
+  tugaydi (`0–9`, `A–V`); undan keyin umumiy kelishilgan alifbo yo'q, shuning uchun raqam
+  o'nlikda yoziladi. Ajratkichsiz yozilgan son bitta raqam deb o'qiladi.
+- **Kiritilgan son 512 belgidan oshmasligi kerak.** Undan uzun sonda har bosishdagi
+  o'tkazishlar sezilarli vaqt olardi; chegara oshib ketsa aniq xabar beriladi.
 - **Cheksiz kasr kesiladi, yaxlitlanmaydi.** Bu ataylab: yaxlitlangan natija qadam-baqadam
   yechimdagi raqamlar bilan mos kelmay qolardi. Kesilgan natija `≈` bilan belgilanadi.
 - **Aylanma o'girish har doim ham asl matnni qaytarmaydi.** `объект` → `obyekt` → `обект`:

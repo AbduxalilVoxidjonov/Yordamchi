@@ -19,28 +19,126 @@
         Background="{DynamicResource AppBackgroundBrush}"
         d:DataContext="{d:DesignInstance Type=viewModels:MainViewModel}">
 
+    <Window.Resources>
+        <!--
+            Yig'ilgan holatda banddagi ichki chekka ham yo'qoladi: 68 nuqtali tasmada
+            12 nuqtalik chekka nishonga joy qoldirmasdi.
+        -->
+        <Style x:Key="ShellNavigationItemStyle" TargetType="ListBoxItem"
+               BasedOn="{StaticResource NavigationItemStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsNavigationCollapsed,
+                                               RelativeSource={RelativeSource AncestorType=Window}}"
+                             Value="True">
+                    <Setter Property="Padding" Value="0" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
     <Grid x:Name="RootGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="264" />
+            <!-- Kenglik yon panelning o'zidan olinadi: u yig'ilganda animatsiya bilan torayadi. -->
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- ============================ Yon panel ============================ -->
         <Border Grid.Column="0" Background="{DynamicResource SidebarBackgroundBrush}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Width" Value="264" />
+                    <Style.Triggers>
+                        <!--
+                            GridLength ni animatsiya qilib bo'lmaydi (buning uchun maxsus
+                            animatsiya sinfi kerak bo'lardi), shuning uchun ustun "Auto",
+                            kenglik esa shu Border da o'zgaradi.
+                        -->
+                        <DataTrigger Binding="{Binding IsNavigationCollapsed}" Value="True">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Width"
+                                                         To="68" Duration="0:0:0.18">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Width"
+                                                         To="264" Duration="0:0:0.18">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
             <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
+                <!-- Yon panelni yig'ish/ochish -->
+                <Button Grid.Row="0"
+                        Content="&#xE700;"
+                        Command="{Binding ToggleNavigationCommand}"
+                        ToolTip="{Binding NavigationToggleHint}">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                            <Setter Property="HorizontalAlignment" Value="Left" />
+                            <Setter Property="Margin" Value="18,18,0,0" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsNavigationCollapsed}" Value="True">
+                                    <Setter Property="HorizontalAlignment" Value="Center" />
+                                    <Setter Property="Margin" Value="0,18,0,0" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
                 <!-- Brend -->
-                <StackPanel Grid.Row="0" Margin="24,28,24,16">
+                <StackPanel Grid.Row="1">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Margin" Value="24,16,24,16" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsNavigationCollapsed}" Value="True">
+                                    <Setter Property="Margin" Value="12,14,12,10" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
                     <Border Width="44" Height="44"
                             CornerRadius="{DynamicResource LargeCornerRadius}"
                             Background="{DynamicResource AccentBrush}"
-                            Effect="{DynamicResource CardShadowEffect}"
-                            HorizontalAlignment="Left">
+                            Effect="{DynamicResource CardShadowEffect}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="HorizontalAlignment" Value="Left" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsNavigationCollapsed}" Value="True">
+                                        <Setter Property="HorizontalAlignment" Value="Center" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+
                         <TextBlock Text="&#xE8A5;"
                                    FontFamily="{DynamicResource IconFontFamily}"
                                    FontSize="22"
@@ -53,25 +151,50 @@
                                FontFamily="{DynamicResource DisplayFontFamily}"
                                FontSize="22"
                                FontWeight="SemiBold"
-                               Margin="0,14,0,0" />
+                               Margin="0,14,0,0"
+                               Visibility="{Binding IsNavigationCollapsed, Converter={StaticResource BoolToVisibilityInverted}}" />
 
                     <TextBlock Text="{Binding ApplicationSubtitle}"
                                Style="{DynamicResource CaptionTextStyle}"
                                TextWrapping="Wrap"
-                               Margin="0,2,0,0" />
+                               Margin="0,2,0,0"
+                               Visibility="{Binding IsNavigationCollapsed, Converter={StaticResource BoolToVisibilityInverted}}" />
                 </StackPanel>
 
                 <!-- Navigatsiya -->
-                <ListBox Grid.Row="1"
+                <ListBox Grid.Row="2"
                          Margin="14,10,14,10"
                          Style="{DynamicResource NavigationListBoxStyle}"
-                         ItemContainerStyle="{DynamicResource NavigationItemStyle}"
+                         ItemContainerStyle="{StaticResource ShellNavigationItemStyle}"
                          ItemsSource="{Binding NavigationItems}"
                          SelectedItem="{Binding SelectedNavigationItem, Mode=TwoWay}">
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type viewModels:NavigationItemViewModel}">
-                            <Grid Margin="14,0,10,0" Background="Transparent"
-                                  ToolTip="{Binding Description}">
+                            <Grid Background="Transparent">
+                                <!-- Yig'ilgan holatda nom ko'rinmaydi, shuning uchun izohda
+                                     bo'lim nomi ham turadi — faqat nishon bo'yicha topish qiyin. -->
+                                <Grid.ToolTip>
+                                    <StackPanel MaxWidth="260">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Description}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,3,0,0" />
+                                    </StackPanel>
+                                </Grid.ToolTip>
+
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="Margin" Value="14,0,10,0" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DataContext.IsNavigationCollapsed,
+                                                                           RelativeSource={RelativeSource AncestorType=Window}}"
+                                                         Value="True">
+                                                <Setter Property="Margin" Value="0" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
@@ -82,32 +205,83 @@
                                            Text="{Binding Glyph}"
                                            FontFamily="{DynamicResource IconFontFamily}"
                                            FontSize="17"
-                                           VerticalAlignment="Center" />
+                                           VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <!-- Yig'ilganda nishon uchala ustunni egallab, markazga tushadi. -->
+                                                <DataTrigger Binding="{Binding DataContext.IsNavigationCollapsed,
+                                                                               RelativeSource={RelativeSource AncestorType=Window}}"
+                                                             Value="True">
+                                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                                    <Setter Property="HorizontalAlignment" Value="Center" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
 
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding Title}"
                                            Margin="14,0,0,0"
                                            VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis" />
+                                           TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding DataContext.IsNavigationCollapsed,
+                                                                RelativeSource={RelativeSource AncestorType=Window},
+                                                                Converter={StaticResource BoolToVisibilityInverted}}" />
 
                                 <!-- E'tibor talab qiladigan holat (hozircha faqat yangi versiya).
-                                     Ataylab kichik: banner emas, shunchaki sezilib turadigan nuqta. -->
+                                     Ataylab kichik: banner emas, shunchaki sezilib turadigan nuqta.
+                                     Yon panel yig'ilganda u nishonning burchagiga ko'chadi —
+                                     yo'qolib qolsa, yangi versiya haqidagi ishora ham yo'qolardi. -->
                                 <Ellipse Grid.Column="2"
                                          Width="8" Height="8"
-                                         Margin="8,0,0,0"
-                                         VerticalAlignment="Center"
                                          Fill="{DynamicResource AccentBrush}"
                                          ToolTip="Yangi versiya mavjud"
-                                         Visibility="{Binding HasNotification, Converter={StaticResource BoolToVisibility}}" />
+                                         Visibility="{Binding HasNotification, Converter={StaticResource BoolToVisibility}}">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Margin" Value="8,0,0,0" />
+                                            <Setter Property="VerticalAlignment" Value="Center" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DataContext.IsNavigationCollapsed,
+                                                                               RelativeSource={RelativeSource AncestorType=Window}}"
+                                                             Value="True">
+                                                    <Setter Property="Grid.Column" Value="0" />
+                                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                                    <Setter Property="HorizontalAlignment" Value="Right" />
+                                                    <Setter Property="VerticalAlignment" Value="Top" />
+                                                    <Setter Property="Margin" Value="0,6,6,0" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
 
                 <!-- Quyi qism: mavzu kaliti, versiya va muallif -->
-                <StackPanel Grid.Row="2" Margin="24,8,24,22">
+                <StackPanel Grid.Row="3">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Margin" Value="24,8,24,22" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsNavigationCollapsed}" Value="True">
+                                    <Setter Property="Margin" Value="12,8,12,18" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
                     <Border Style="{DynamicResource SeparatorLineStyle}" Margin="0,0,0,16" />
 
+                    <!--
+                        Yig'ilgan holatda faqat mavzu kaliti qoladi: yorliqlar ham, "Dastur
+                        haqida" imzosi ham 68 nuqtaga sig'maydi. Mavzu kaliti esa eng ko'p
+                        bosiladigan sozlama, uni ochib-yopib turishga majburlash keraksiz.
+                    -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -120,12 +294,14 @@
                                    FontFamily="{DynamicResource IconFontFamily}"
                                    FontSize="15"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center" />
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding IsNavigationCollapsed, Converter={StaticResource BoolToVisibilityInverted}}" />
 
                         <TextBlock Grid.Column="1"
                                    Text="Qorong'i rejim"
                                    Margin="12,0,0,0"
-                                   VerticalAlignment="Center" />
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding IsNavigationCollapsed, Converter={StaticResource BoolToVisibilityInverted}}" />
 
                         <ToggleButton Grid.Column="2"
                                       Style="{DynamicResource AppToggleSwitchStyle}"
@@ -138,9 +314,11 @@
                             Style="{DynamicResource SubtleButtonStyle}"
                             HorizontalAlignment="Left"
                             Margin="-12,6,0,0"
-                            Command="{Binding UseSystemThemeCommand}" />
+                            Command="{Binding UseSystemThemeCommand}"
+                            Visibility="{Binding IsNavigationCollapsed, Converter={StaticResource BoolToVisibilityInverted}}" />
 
-                    <Border Style="{DynamicResource SeparatorLineStyle}" Margin="0,14,0,12" />
+                    <Border Style="{DynamicResource SeparatorLineStyle}" Margin="0,14,0,12"
+                            Visibility="{Binding IsNavigationCollapsed, Converter={StaticResource BoolToVisibilityInverted}}" />
 
                     <!-- Versiya va muallif — bosilganda "Dastur haqida" sahifasi ochiladi -->
                     <Button Style="{DynamicResource SubtleButtonStyle}"
@@ -150,7 +328,8 @@
                             Margin="-12,0,0,0"
                             Padding="12,8"
                             Command="{Binding ShowAboutCommand}"
-                            ToolTip="Dastur haqida — muallif va aloqa">
+                            ToolTip="Dastur haqida — muallif va aloqa"
+                            Visibility="{Binding IsNavigationCollapsed, Converter={StaticResource BoolToVisibilityInverted}}">
                         <StackPanel>
                             <TextBlock Text="{Binding VersionText}"
                                        Style="{DynamicResource CaptionTextStyle}"

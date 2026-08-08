@@ -14,7 +14,8 @@ Yordamchi — kundalik ishda kerak bo'ladigan barcha PDF amallarini bitta oynada
 dastur: sahifalarni tartiblash va birlashtirishdan tortib, Word/Excel/PowerPoint ga
 konvertatsiya, OCR va sun'iy intellekt bilan rasm fonini olib tashlashgacha. Bularga
 qo'shimcha — **arxivlash**, **ekranni ovoz bilan videoga yozib olish**, **kirill ↔ lotin
-o'girish** va **sanoq sistemalari kalkulyatori** modullari. Yozuv
+o'girish**, **sanoq sistemalari kalkulyatori** va **kompyuterlarni masofadan boshqarish**
+modullari. Yozuv
 davomida boshqaruv ekrandagi kichik **suzuvchi panelga** chiqadi: u monitorda ko'rinadi,
 lekin videoga tushmaydi. Yangi versiya chiqqanini dastur o'zi sezadi va **"Dastur haqida"**
 sahifasida xabar beradi — o'rnatgichni esa siz o'zingiz yuklab olasiz.
@@ -26,7 +27,7 @@ versiya qaysi" degan bitta so'rovni GitHub ga yuborganda. Bu so'rovda foydalanuv
 haqidagi hech qanday ma'lumot yo'q — unda faqat dastur nomi va versiyasi ko'rsatiladi
 (batafsil: [🔄 Yangilanish](#-yangilanish)).
 
-Chap yon paneldagi navigatsiya olti bo'limdan iborat:
+Chap yon paneldagi navigatsiya yetti bo'limdan iborat (yuqoridagi **≡** tugmasi panelni yig'adi):
 
 | Bo'lim | Nima ochiladi |
 |---|---|
@@ -34,8 +35,14 @@ Chap yon paneldagi navigatsiya olti bo'limdan iborat:
 | **Arxiv** | Fayllarni ZIP ga jamlash va arxivlarni ochish (parolli arxivlar ham) |
 | **Ekran yozuvi** | Ekranni videoga yozib olish sahifasi |
 | **Kirill ↔ Lotin** | Matn yoki Word hujjatini bir alifbodan ikkinchisiga o'girish |
-| **Sanoq sistemasi** | Sonni 2 dan 32 gacha bo'lgan asoslarga o'tkazish, qadam-baqadam yechim bilan |
+| **Sanoq sistemasi** | Sonni 2, 4, 8, 10, 16, 32, 64, 128 va 256-lik asoslarga o'tkazish, qadam-baqadam yechim bilan |
+| **Kompyuterlarni boshqarish** | Boshqa kompyuterlarni masofadan boshqarish agentini GitHub'dan yuklab olish va o'rnatish tartibi |
 | **Dastur haqida** | Versiya, muallif, qo'shimcha komponentlar holati va loyihani qo'llab-quvvatlash |
+
+Panelning tepasidagi **burger tugmasi (≡)** uni yig'ib qo'yadi: nomlar yashirinadi, faqat
+nishonlar qoladi va ishchi hudud ~200 nuqtaga kengayadi. Yig'ilgan holatda nishon ustiga
+sichqonchani olib borsangiz bo'lim nomi va tavsifi chiqadi, yangi versiya haqidagi nuqta esa
+nishonning burchagida ko'rinib turadi. Holat shu seans davomida saqlanadi.
 
 <!-- screenshot -->
 <!--
@@ -249,14 +256,23 @@ Fayllarni oynaga tashlang yoki **"Fayl qo'shish"** orqali tanlang.
 
 ### Sozlamalar
 
+Ikkala sozlama ham sahifaning **tepasida**, rejim tugmalari ostidagi bitta qatorda turadi —
+alohida sozlamalar paneli yo'q, shuning uchun manba va natija maydonlari butun kenglikni
+oladi.
+
 | Sozlama | Tanlovlar | Standart |
 |---|---|---|
 | Yo'nalish | **Avtomatik** · Kirill → Lotin · Lotin → Kirill | Avtomatik |
 | Apostrof belgisi | **Oddiy** (`o'`, `g'`) · **Rasmiy** (`oʻ`, `gʻ`, `ʼ`) | Oddiy |
 
-Avtomatik rejimda matndagi harflar sanab chiqiladi va teskari yo'nalish tanlanadi —
-fayl rejimida bu **har bir hujjat uchun alohida** hal qilinadi, ya'ni bitta ro'yxatda
-kirill va lotin hujjatlari aralash bo'lishi mumkin.
+Yo'nalish bitta tugma: unda aynan **qo'llanayotgan** yo'nalish yozilgan, bosilsa esa
+teskarisiga buriladi va **"Avtomatik"** belgisi o'chadi — aks holda keyingi harfda aniqlagich
+tanlovingizni bekor qilardi. Avtomatik holatda matndagi harflar sanab chiqiladi; fayl
+rejimida bu **har bir hujjat uchun alohida** hal qilinadi, ya'ni bitta ro'yxatda kirill va
+lotin hujjatlari aralash bo'lishi mumkin.
+
+Fayl rejimida **natija papkasi** fayllar ro'yxatining ostida — u faqat o'sha ro'yxatga
+tegishli.
 
 ### Qoidalar haqida
 
@@ -292,21 +308,40 @@ ko'rinishlari (`'`, `‘`, `’`, `ʻ`, `` ` ``) tushuniladi.
 
 ## 🔢 Sanoq sistemasi
 
-Sonni **2 dan 32 gacha** bo'lgan istalgan sanoq sistemasiga o'tkazadigan kalkulyator.
-Ishlash tartibi sodda: tepaga son kiritiladi va uning asosi tanlanadi — pastda natija
-**barcha sanoq sistemalarida bir vaqtning o'zida** paydo bo'ladi. Tugma bosish shart emas,
-har bir belgidan keyin jadval o'zi yangilanadi.
+Sonni **2, 4, 8, 10, 16, 32, 64, 128 va 256-lik** sanoq sistemalari orasida o'tkazadigan
+kalkulyator — ikkining darajalari va kundalik o'nlik. Ishlash tartibi sodda: tepaga son
+kiritiladi va uning asosi tanlanadi — pastda natija **hamma asosda bir vaqtning o'zida**
+paydo bo'ladi. Tugma bosish shart emas, har bir belgidan keyin jadval o'zi yangilanadi.
 
 ### Kiritish
 
 | Xususiyat | Qiymat |
 |---|---|
-| Asoslar | **2–32**; tepada 2 · 8 · 10 · 16 uchun tezkor tugmalar, qolgani ro'yxatdan |
+| Asoslar | **2, 4, 8, 10, 16, 32, 64, 128, 256**; tepada 2 · 8 · 10 · 16 uchun tezkor tugmalar, qolgani ro'yxatdan |
 | Butun son | Uzunligi cheklanmagan — 100 xonali son ham aniq o'tkaziladi |
 | Kasr son | Nuqta ham, vergul ham qabul qilinadi: `25.5` va `25,5` bir xil |
 | Manfiy son | `-` bilan boshlanadi |
 | Katta-kichik harf | Farqi yo'q: `ff` ham, `FF` ham — 255 |
 | Bo'shliqlar | E'tiborsiz qoldiriladi, ya'ni jadvaldan nusxa olingan `1111 1111` ni qaytarib qo'yish ishlaydi |
+
+### Ikki xil yozuv
+
+32-likkacha har bir raqam bitta belgi bilan yoziladi: `0–9`, so'ng `A–V`. **64, 128 va
+256-lik** uchun bunday belgi yetmaydi, shuning uchun bu asoslarda har bir raqam o'nlikda
+yoziladi va `:` bilan ajratiladi:
+
+```
+12345678₁₀ = 47:6:5:14₆₄ = 5:113:66:78₁₂₈ = 188:97:78₂₅₆
+
+255.5₁₀ = 255.128₂₅₆        (nuqtadan keyin ham xuddi shunday)
+```
+
+Kiritishda bo'sh joy ham ajratkich bo'lib ishlaydi (`188 97 78`), ya'ni ekrandagi natijani
+nusxa olib qaytarib qo'yish mumkin. Ajratkichsiz yozilgan son — bitta raqam: 256-likda
+`255` bu 255, `2:5:5` emas.
+
+> Base64 alifbosi 64-lik uchun ixchamroq bo'lardi, lekin 128 va 256-likka baribir yetmaydi —
+> uchala asos uchun bitta qoida ishlagani ma'qul.
 
 Kiritilgan belgi tanlangan asosga mos kelmasa, maydonning ostida aniq xabar chiqadi —
 masalan ikkilik sistemada `2` yozilsa: *«2» — 2-lik sanoq sistemasining raqami emas.
@@ -314,9 +349,8 @@ Ruxsat etilgan belgilar: 0 va 1.*
 
 ### Natijalar jadvali
 
-Har bir qatorda asos raqami, uning nomi va natija turadi. 2 · 8 · 10 · 16 — eng ko'p
-ishlatiladigan asoslar — rangli nishon bilan ajratilgan; **"Faqat 2 · 8 · 10 · 16"**
-belgisi ro'yxatni faqat shu to'rttasiga qisqartiradi.
+Har bir qatorda asos raqami, uning nomi va natija turadi. To'qqizta qator bir ekranga
+sig'adi; 2 · 8 · 10 · 16 — eng ko'p ishlatiladigan asoslar — rangli nishon bilan ajratilgan.
 
 | Tugma | Nima qiladi |
 |---|---|
@@ -379,6 +413,44 @@ Hisob `double` ustida emas, **butun sonlar va oddiy kasrlar** ustida olib borila
 > **Kesilgan natijani orqaga o'tkazish.** `≈` bilan belgilangan qiymatni "Almashtirish"
 > orqali qaytarsangiz, asl sondan bir oz farq qilishi mumkin — ma'lumot allaqachon
 > kesilgan bo'ladi. Dastur bu haqda pastki panelda ogohlantiradi.
+
+---
+
+## 🖥 Kompyuterlarni boshqarish
+
+Boshqa kompyuterlarni **masofadan kuzatish va boshqarish** uchun mo'ljallangan bo'lim. Bu
+sahifa — **tarqatish markazi**: unda boshqariladigan kompyuterlarga o'rnatiladigan **agent
+(server)** faylini GitHub relizidan yuklab olish va uni o'rnatish tartibi bor. Agentning o'zi
+(ekran uzatish, boshqaruv, tarmoq) — alohida katta loyiha; u GitHub'ga qo'yiladi va shu
+sahifadan yuklab olinadi.
+
+> **Ruxsat va shaffoflik.** Masofaviy boshqaruvni faqat **o'zingiz administratsiya qiladigan**
+> kompyuterlarga (sinf, laboratoriya, ofis) va **foydalanuvchilar xabardor** holatda o'rnating.
+> Agent maqsadli kompyuterda **ko'rinadigan belgi** qoldiradi — kuzatuv yashirin emas. Bu
+> NetSupport School / Veyon kabi qonuniy sinf boshqaruvi dasturlari ishlaydigan yo'l.
+
+### Yuklab olish
+
+| Xususiyat | Qiymat |
+|---|---|
+| Manba | Faqat **GitHub** (`https`) — begona serverdan yuklab olishga yo'l qo'yilmaydi |
+| Manzil | Agent fayli GitHub relizining to'g'ridan-to'g'ri havolasi; hozircha **placeholder**, real fayl chiqqach kiritiladi |
+| Saqlanadigan joy | `%LOCALAPPDATA%\Yordamchi\RemoteControl\` |
+| Ishga tushirish | Dastur faylni **faqat yuklab oladi** — o'zi ishga tushirmaydi |
+
+Manzil maydoniga real havola kiritilgunga qadar "Yuklab olish" tugmasi faol bo'lmaydi.
+Kiritilgan manzil `https` va GitHub xostida bo'lishi shart, aks holda rad etiladi.
+
+### O'rnatish tartibi
+
+1. **Agentni yuklab oling** — shu sahifadan agent faylini oling.
+2. **Maqsadli kompyuterga ko'chiring** — USB, umumiy tarmoq papkasi yoki guruh siyosati (GPO).
+3. **Administrator huquqida o'rnating** — agent Windows xizmati sifatida o'rnatiladi va tizim
+   majmuasida (tray) ko'rinadigan belgi qoldiradi.
+4. **Tarmoq va portni tekshiring** — ikkala kompyuter bir lokal tarmoqda, kerakli port
+   (masalan 5405) brandmauerda ochiq.
+5. **Ro'yxatda paydo bo'ladi** — o'rnatilgach kompyuter boshqaruv oynasida ko'rinadi.
+   *(Boshqaruv oynasi keyingi bosqichda qo'shiladi.)*
 
 ---
 
@@ -688,8 +760,8 @@ To'liq tavsif, papkalar xaritasi, ma'lumot oqimi va yangi vosita qo'shish qo'lla
 - O'girish uchun `.txt` fayllar UTF-8 kodlashida bo'lishi shart; Windows-1251 dagi eski
   fayllar o'qilmaydi (bu haqda aniq xabar beriladi).
 - O'girishda `.doc` (eski Word) qo'llab-quvvatlanmaydi — hujjatni avval `.docx` ga saqlash kerak.
-- Sanoq sistemalari kalkulyatorida asos **2 dan 32 gacha**; kiritilgan son 512 belgidan
-  oshmasligi kerak.
+- Sanoq sistemalari kalkulyatorida asoslar ro'yxati qat'iy: **2, 4, 8, 10, 16, 32, 64, 128,
+  256**. Oraliqdagi asoslar (3, 5, 6, 7, …) yo'q. Kiritilgan son 512 belgidan oshmasligi kerak.
 - Cheksiz kasr tanlangan xonada kesiladi (yaxlitlanmaydi) — bunday natija `≈` bilan
   belgilanadi va uni orqaga o'tkazganda kichik farq bo'lishi mumkin.
 - Ekran yozuvi Windows 10 1903 (build 18362) va undan yangi tizimlarni talab qiladi;

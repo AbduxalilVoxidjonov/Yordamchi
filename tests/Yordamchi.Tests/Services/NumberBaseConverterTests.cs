@@ -22,15 +22,97 @@ public sealed class NumberBaseConverterTests
 
     [Theory]
     [InlineData("255", 10, 2, "11111111")]
+    [InlineData("255", 10, 4, "3333")]
     [InlineData("255", 10, 8, "377")]
     [InlineData("255", 10, 16, "FF")]
     [InlineData("255", 10, 32, "7V")]
     [InlineData("11111111", 2, 10, "255")]
+    [InlineData("3333", 4, 10, "255")]
     [InlineData("377", 8, 10, "255")]
     [InlineData("FF", 16, 10, "255")]
     [InlineData("7V", 32, 10, "255")]
     public void Whole_numbers_move_between_the_usual_bases(string text, int from, int to, string expected)
         => Assert.Equal(expected, Convert(text, from, to));
+
+    // =================================================================================
+    //  64, 128 va 256-lik — raqamlar «:» bilan ajratiladi
+    // =================================================================================
+
+    [Theory]
+    [InlineData("12345678", 10, 64, "47:6:5:14")]
+    [InlineData("12345678", 10, 128, "5:113:66:78")]
+    [InlineData("12345678", 10, 256, "188:97:78")]
+    [InlineData("47:6:5:14", 64, 10, "12345678")]
+    [InlineData("5:113:66:78", 128, 10, "12345678")]
+    [InlineData("188:97:78", 256, 10, "12345678")]
+    public void Large_bases_write_each_digit_as_a_number(string text, int from, int to, string expected)
+        => Assert.Equal(expected, Convert(text, from, to));
+
+    [Fact]
+    public void A_single_digit_needs_no_separator()
+    {
+        // 255₁₀ — 256-likda bu bitta raqam, ya'ni "2:5:5" emas.
+        Assert.Equal("255", Convert("255", 10, 256));
+        Assert.Equal("255", Convert("255", 256, 10));
+    }
+
+    [Fact]
+    public void A_fraction_keeps_the_dot_and_separates_the_digits_after_it()
+    {
+        Assert.Equal("255.128", Convert("255.5", 10, 256));
+        Assert.Equal("255.5", Convert("255.128", 256, 10));
+
+        // 0.7₁₀ 256-likda cheksiz kasr: har bir raqam «:» bilan ajratiladi.
+        Assert.Equal("0.179:51:51:51", Convert("0.7", 10, 256, 4));
+    }
+
+    [Fact]
+    public void Spaces_work_as_a_separator_too()
+    {
+        // Nusxa olingan yoki qo'lda bo'sh joy bilan yozilgan son ham o'qilishi kerak.
+        Assert.Equal("12345678", Convert("188 97 78", 256, 10));
+        Assert.Equal("12345678", Convert("188 : 97:78", 256, 10));
+    }
+
+    [Fact]
+    public void A_half_typed_number_is_not_yet_an_error()
+    {
+        // "188:" — foydalanuvchi hali yozayapti; har bosishda qizil xabar xalaqit berardi.
+        Assert.Null(NumberBaseConverter.Validate("188:", 256));
+        Assert.Equal("188", Convert("188:", 256, 10));
+    }
+
+    [Fact]
+    public void A_digit_that_does_not_fit_the_base_is_named_in_the_message()
+    {
+        var error = NumberBaseConverter.Validate("1:300", 256);
+
+        Assert.NotNull(error);
+        Assert.Contains("«300»", error);
+        Assert.Contains("0 dan 255", error);
+    }
+
+    [Fact]
+    public void The_largest_digit_of_the_base_is_still_a_digit()
+    {
+        Assert.Null(NumberBaseConverter.Validate("255:255", 256));
+        Assert.NotNull(NumberBaseConverter.Validate("256", 256));
+        Assert.Null(NumberBaseConverter.Validate("63:63", 64));
+        Assert.NotNull(NumberBaseConverter.Validate("64", 64));
+    }
+
+    [Fact]
+    public void Leading_zeros_inside_a_group_are_allowed()
+        => Assert.Equal("12345678", Convert("188:097:078", 256, 10));
+
+    [Fact]
+    public void Letters_are_not_digits_in_the_large_bases()
+    {
+        var error = NumberBaseConverter.Validate("FF", 256);
+
+        Assert.NotNull(error);
+        Assert.Contains("«F»", error);
+    }
 
     [Fact]
     public void Lower_case_hexadecimal_letters_are_understood()
@@ -114,7 +196,7 @@ public sealed class NumberBaseConverterTests
     [Fact]
     public void Every_pair_of_bases_survives_a_round_trip()
     {
-        // Butun son har qanday asosda aniq ifodalanadi, ya'ni 31 × 31 juftlikning hammasi
+        // Butun son har qanday asosda aniq ifodalanadi, ya'ni 9 × 9 juftlikning hammasi
         // asl qiymatni qaytarishi shart.
         foreach (var from in NumberBaseConverter.SupportedBases)
         {
@@ -193,10 +275,18 @@ public sealed class NumberBaseConverterTests
 
     [Theory]
     [InlineData(1)]
-    [InlineData(33)]
     [InlineData(0)]
-    public void A_base_outside_the_supported_range_is_a_programming_error(int radix)
+    [InlineData(3)]     // oraliqdagi asoslar ataylab olib tashlangan
+    [InlineData(5)]
+    [InlineData(33)]
+    [InlineData(100)]
+    [InlineData(257)]
+    public void A_base_outside_the_supported_list_is_a_programming_error(int radix)
         => Assert.Throws<ArgumentOutOfRangeException>(() => NumberBaseConverter.Validate("1", radix));
+
+    [Fact]
+    public void The_supported_list_is_the_powers_of_two_plus_ten()
+        => Assert.Equal(new[] { 2, 4, 8, 10, 16, 32, 64, 128, 256 }, NumberBaseConverter.SupportedBases);
 
     // =================================================================================
     //  Nomlash
@@ -204,13 +294,14 @@ public sealed class NumberBaseConverterTests
 
     [Theory]
     [InlineData(2, "ikkilik")]
+    [InlineData(4, "to'rtlik")]
     [InlineData(8, "sakkizlik")]
     [InlineData(10, "o'nlik")]
     [InlineData(16, "o'n oltilik")]
-    [InlineData(20, "yigirmalik")]
-    [InlineData(21, "yigirma birlik")]
-    [InlineData(30, "o'ttizlik")]
     [InlineData(32, "o'ttiz ikkilik")]
+    [InlineData(64, "oltmish to'rtlik")]
+    [InlineData(128, "bir yuz yigirma sakkizlik")]
+    [InlineData(256, "ikki yuz ellik oltilik")]
     public void Bases_are_named_in_uzbek(int radix, string expected)
         => Assert.Equal(expected, NumberBaseConverter.DescribeBase(radix));
 
@@ -220,16 +311,19 @@ public sealed class NumberBaseConverterTests
 
     [Theory]
     [InlineData(2, "0 va 1")]
+    [InlineData(4, "0–3")]
     [InlineData(8, "0–7")]
     [InlineData(16, "0–9 va A–F")]
     [InlineData(32, "0–9 va A–V")]
+    [InlineData(64, "0 dan 63 gacha bo'lgan sonlar, «:» bilan ajratiladi")]
+    [InlineData(256, "0 dan 255 gacha bo'lgan sonlar, «:» bilan ajratiladi")]
     public void The_allowed_digits_are_spelled_out(int radix, string expected)
         => Assert.Equal(expected, NumberBaseConverter.DigitsOf(radix));
 
     [Fact]
     public void Every_supported_base_has_a_name_and_a_digit_list()
     {
-        Assert.Equal(31, NumberBaseConverter.SupportedBases.Count);
+        Assert.Equal(9, NumberBaseConverter.SupportedBases.Count);
 
         foreach (var radix in NumberBaseConverter.SupportedBases)
         {
@@ -248,8 +342,9 @@ public sealed class NumberBaseConverterTests
     [InlineData("1234567", 10, "1 234 567")]
     [InlineData("-11111111", 2, "-1111 1111")]
     [InlineData("11001.1011001", 2, "1 1001.1011 001")]
-    [InlineData("12341234", 5, "12341234")]   // 5-likda guruhlashning odatiy qoidasi yo'q
+    [InlineData("1234567V", 32, "1234567V")]  // 32-likda guruhlashning odatiy qoidasi yo'q
     [InlineData("101", 2, "101")]             // guruhdan qisqa
+    [InlineData("188:97:78", 256, "188:97:78")]   // raqamlar allaqachon ajratilgan
     public void Long_results_are_grouped_for_reading(string value, int radix, string expected)
         => Assert.Equal(expected, NumberBaseConverter.Group(value, radix));
 
@@ -318,6 +413,28 @@ public sealed class NumberBaseConverterTests
         Assert.Equal("1 × 16¹ = 16", lines[0]);
         Assert.Equal("A (10) × 16⁰ = 10", lines[1]);
         Assert.Equal("8 × 16⁻¹ = 0.5", lines[2]);
+    }
+
+    [Fact]
+    public void The_expansion_of_a_large_base_needs_no_parentheses()
+    {
+        // 32-likkacha harf bilan yozilgan raqam yonida uning qiymati qavsda ko'rsatiladi.
+        // 256-likda raqamning o'zi allaqachon o'nlikda — qavs ortiqcha bo'lardi.
+        var lines = NumberBaseConverter.Explain("188:97:78", 256, 10, Digits)[0].Lines;
+
+        Assert.Equal("188 × 256² = 12320768", lines[0]);
+        Assert.Equal("97 × 256¹ = 24832", lines[1]);
+        Assert.Equal("78 × 256⁰ = 78", lines[2]);
+    }
+
+    [Fact]
+    public void The_division_of_a_large_base_writes_the_remainders_as_numbers()
+    {
+        var sections = NumberBaseConverter.Explain("12345678", 10, 256, Digits);
+
+        Assert.Equal("12345678 ÷ 256 = 48225, qoldiq 78", sections[0].Lines[0]);
+        Assert.Contains("188:97:78", sections[0].Summary);
+        Assert.Equal("12345678₁₀ = 188:97:78₂₅₆", sections[^1].Summary);
     }
 
     [Fact]

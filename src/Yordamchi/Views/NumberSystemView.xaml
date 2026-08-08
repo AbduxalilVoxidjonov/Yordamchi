@@ -77,8 +77,9 @@
             </Style>
 
             <!-- Asos raqami turadigan kichik nishon -->
+            <!-- Kengligi "256" ham sig'adigan qilib olingan -->
             <Style x:Key="NumBadgeStyle" TargetType="Border">
-                <Setter Property="Width" Value="38" />
+                <Setter Property="Width" Value="46" />
                 <Setter Property="Height" Value="26" />
                 <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
                 <Setter Property="Background" Value="{DynamicResource LayerFillAltBrush}" />
@@ -111,7 +112,8 @@
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="104" />
+                            <!-- Eng uzun nom — "bir yuz yigirma sakkizlik" — kesilmasin -->
+                            <ColumnDefinition Width="180" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
@@ -249,7 +251,7 @@
                               DisplayMemberPath="Label"
                               SelectedValuePath="Value"
                               SelectedValue="{Binding SourceBase, Mode=TwoWay}"
-                              ToolTip="2 dan 32 gacha istalgan asos" />
+                              ToolTip="Asos: 2, 4, 8, 10, 16, 32, 64, 128 yoki 256" />
                 </Grid>
 
                 <TextBox Style="{DynamicResource AppTextBoxStyle}"
@@ -288,26 +290,13 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0" Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Text="Barcha sanoq sistemalari"
-                                       Style="{DynamicResource SectionHeaderTextStyle}" />
-                            <TextBlock Text="Qatorni bosing — o'sha sanoq sistemasi uchun yechim o'ngda ochiladi."
-                                       Style="{DynamicResource CaptionTextStyle}"
-                                       Margin="0,2,0,0" />
-                        </StackPanel>
-
-                        <CheckBox Grid.Column="1"
-                                  Style="{DynamicResource AppCheckBoxStyle}"
-                                  Content="Faqat 2 · 8 · 10 · 16"
-                                  VerticalAlignment="Center"
-                                  IsChecked="{Binding OnlyPopularBases}" />
-                    </Grid>
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Text="Barcha sanoq sistemalari"
+                                   Style="{DynamicResource SectionHeaderTextStyle}" />
+                        <TextBlock Text="Qatorni bosing — o'sha sanoq sistemasi uchun yechim o'ngda ochiladi."
+                                   Style="{DynamicResource CaptionTextStyle}"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
 
                     <ScrollViewer Grid.Row="1"
                                   Style="{DynamicResource AppScrollViewerStyle}"

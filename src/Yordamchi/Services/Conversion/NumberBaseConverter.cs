@@ -6,8 +6,9 @@ using Yordamchi.Models;
 namespace Yordamchi.Services.Conversion;
 
 /// <summary>
-/// Sanoq sistemalari orasida o'tkazish qoidalari: 2 dan 32 gacha istalgan asos, butun va kasr
-/// qism, hamda qadam-baqadam yechim. Sof mantiq — fayl ham, UI ham bilmaydi.
+/// Sanoq sistemalari orasida o'tkazish qoidalari: ikkining darajalari (2, 4, 8, 16, 32, 64,
+/// 128, 256) va kundalik 10-lik; butun va kasr qism, hamda qadam-baqadam yechim. Sof mantiq —
+/// fayl ham, UI ham bilmaydi.
 /// <para>
 /// <b>Aniqlik.</b> Hisob <see cref="BigInteger"/> ustida olib boriladi, ya'ni butun qism
 /// uzunligidan qat'i nazar aniq qoladi. Kasr qism esa <c>surat/maxraj</c> ko'rinishida —
@@ -21,11 +22,38 @@ namespace Yordamchi.Services.Conversion;
 /// qadam-baqadam yechim bilan bir xil chiqadi. Bunday natija
 /// <see cref="NumberConversionResult.IsExact"/> orqali belgilanadi.
 /// </para>
+/// <para>
+/// <b>Ikki xil yozuv.</b> 32-likkacha har bir raqam bitta belgi bilan yoziladi: 0–9, so'ng
+/// A–V. 64, 128 va 256-lik uchun bunday belgi yetmaydi, shuning uchun har bir raqam o'nlikda
+/// yoziladi va <c>:</c> bilan ajratiladi — <c>12345678₁₀</c> = <c>188:97:78₂₅₆</c>. Base64
+/// alifbosi 64-lik uchun ixcham bo'lardi, lekin 128 va 256-likka baribir yetmaydi: bitta
+/// qoida uchala asos uchun ham ishlagani ma'qul.
+/// </para>
 /// </summary>
 public static class NumberBaseConverter
 {
+    /// <summary>
+    /// Qo'llab-quvvatlanadigan asoslar: ikkining darajalari va kundalik 10-lik. Oraliqdagi
+    /// asoslar (3, 5, 6, 7, …) ataylab yo'q — amalda ular ishlatilmaydi.
+    /// </summary>
+    public static IReadOnlyList<int> SupportedBases { get; } = [2, 4, 8, 10, 16, 32, 64, 128, 256];
+
+    private static readonly HashSet<int> SupportedSet = [.. SupportedBases];
+
+    /// <summary>Eng kichik asos (2).</summary>
     public const int MinBase = 2;
-    public const int MaxBase = 32;
+
+    /// <summary>Eng katta asos (256).</summary>
+    public const int MaxBase = 256;
+
+    /// <summary>
+    /// Shu asosgacha raqam bitta belgi bilan yoziladi; undan kattasida raqamlar o'nlikda
+    /// yozilib <see cref="DigitSeparator"/> bilan ajratiladi.
+    /// </summary>
+    public const int MaxSymbolBase = 32;
+
+    /// <summary>64, 128 va 256-likda raqamlarni ajratuvchi belgi.</summary>
+    public const char DigitSeparator = ':';
 
     /// <summary>Kiritish uzunligi chegarasi — juda uzun sondan UI sekinlashmasligi uchun.</summary>
     public const int MaxInputLength = 512;
@@ -47,14 +75,13 @@ public static class NumberBaseConverter
 
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-    /// <summary>Qo'llab-quvvatlanadigan barcha asoslar: 2, 3, …, 32.</summary>
-    public static IReadOnlyList<int> SupportedBases { get; } =
-        [.. Enumerable.Range(MinBase, MaxBase - MinBase + 1)];
-
     /// <summary>Eng ko'p ishlatiladigan to'rttasi — UI ularni ajratib ko'rsatadi.</summary>
     public static IReadOnlyList<int> PopularBases { get; } = [2, 8, 10, 16];
 
-    public static bool IsSupportedBase(int radix) => radix is >= MinBase and <= MaxBase;
+    public static bool IsSupportedBase(int radix) => SupportedSet.Contains(radix);
+
+    /// <summary>Shu asosda raqamlar o'nlikda yozilib «:» bilan ajratiladimi.</summary>
+    public static bool UsesDigitGroups(int radix) => radix > MaxSymbolBase;
 
     // =================================================================================
     //  Nomlash
@@ -63,20 +90,32 @@ public static class NumberBaseConverter
     private static readonly string[] UnitNames =
         ["", "bir", "ikki", "uch", "to'rt", "besh", "olti", "yetti", "sakkiz", "to'qqiz"];
 
-    private static readonly string[] TensNames = ["", "o'n", "yigirma", "o'ttiz"];
+    private static readonly string[] TensNames =
+        ["", "o'n", "yigirma", "o'ttiz", "qirq", "ellik", "oltmish", "yetmish", "sakson", "to'qson"];
 
-    /// <summary>Asosning o'zbekcha nomi: <c>2</c> → "ikkilik", <c>16</c> → "o'n oltilik".</summary>
+    /// <summary>Asosning o'zbekcha nomi: <c>2</c> → "ikkilik", <c>256</c> → "ikki yuz ellik oltilik".</summary>
     public static string DescribeBase(int radix)
     {
         EnsureBase(radix);
+        return SpellOut(radix) + "lik";
+    }
 
-        var tens = TensNames[radix / 10];
-        var units = UnitNames[radix % 10];
+    /// <summary>Sonni o'zbekcha yozadi: <c>16</c> → "o'n olti", <c>128</c> → "bir yuz yigirma sakkiz".</summary>
+    private static string SpellOut(int number)
+    {
+        // Bo'sh qismlar (o'nlik yoki birlik nol bo'lsa) tushib qoladi: 10 → "o'n", 200 → "ikki yuz".
+        var parts = new List<string>(3);
 
-        // 10, 20, 30 — birlik qismi yo'q: "o'nlik", "yigirmalik", "o'ttizlik".
-        var name = units.Length == 0 ? tens : (tens.Length == 0 ? units : $"{tens} {units}");
+        if (number / 100 > 0)
+            parts.Add($"{UnitNames[number / 100]} yuz");
 
-        return name + "lik";
+        if (number / 10 % 10 > 0)
+            parts.Add(TensNames[number / 10 % 10]);
+
+        if (number % 10 > 0)
+            parts.Add(UnitNames[number % 10]);
+
+        return string.Join(' ', parts);
     }
 
     /// <summary>Ro'yxatlar uchun to'liq yorliq: "16-lik — o'n oltilik".</summary>
@@ -93,11 +132,26 @@ public static class NumberBaseConverter
         if (radix <= 10)
             return $"0–{radix - 1}";
 
-        if (radix == 11)
-            return "0–9 va A";
+        if (radix <= MaxSymbolBase)
+            return $"0–9 va A–{DigitAlphabet[radix - 1]}";
 
-        return $"0–9 va A–{DigitAlphabet[radix - 1]}";
+        return $"0 dan {(radix - 1).ToString(Inv)} gacha bo'lgan sonlar, «{DigitSeparator}» bilan ajratiladi";
     }
+
+    /// <summary>Bitta raqamning yozuvi: 32-likkacha belgi, undan keyin o'nlikdagi son.</summary>
+    private static string DigitSymbol(int digit, int radix)
+        => UsesDigitGroups(radix) ? digit.ToString(Inv) : DigitAlphabet[digit].ToString();
+
+    /// <summary>Raqamlarni bitta songa yig'adi: 32-likkacha yonma-yon, undan keyin «:» bilan.</summary>
+    private static string JoinDigits(IEnumerable<string> digits, int radix)
+        => UsesDigitGroups(radix) ? string.Join(DigitSeparator, digits) : string.Concat(digits);
+
+    /// <summary>
+    /// O'qishga qulaylik uchun qo'yilgan bezak belgisimi. Bunday belgilar qiymatga ta'sir
+    /// qilmaydi va e'tiborsiz qoldiriladi — ekrandagi guruhlangan natijani ("1111 1111")
+    /// nusxa olib qaytadan kiritish ishlashi uchun.
+    /// </summary>
+    private static bool IsSpacer(char symbol) => char.IsWhiteSpace(symbol) || symbol is '_' or '\'';
 
     // =================================================================================
     //  Tekshirish va o'tkazish
@@ -128,9 +182,10 @@ public static class NumberBaseConverter
     }
 
     /// <summary>
-    /// Uzun natijani o'qishga qulay qilib ajratadi: ikkilik va o'n oltilikda 4 talab,
-    /// sakkizlik va o'nlikda 3 talab. Qolgan asoslarda guruhlashning odatiy qoidasi yo'q,
-    /// shuning uchun son o'zgarishsiz qaytadi.
+    /// Uzun natijani o'qishga qulay qilib ajratadi: ikkilik, to'rtlik va o'n oltilikda 4 talab,
+    /// sakkizlik va o'nlikda 3 talab. O'ttiz ikkilikda guruhlashning odatiy qoidasi yo'q,
+    /// 64/128/256-likda esa raqamlar allaqachon «:» bilan ajratilgan — bu asoslarda son
+    /// o'zgarishsiz qaytadi.
     /// </summary>
     /// <remarks>Bu faqat <b>ko'rsatish</b> uchun: nusxa olishda doim toza qiymat ishlatiladi.</remarks>
     public static string Group(string? value, int radix)
@@ -140,7 +195,7 @@ public static class NumberBaseConverter
 
         var size = radix switch
         {
-            2 or 16 => 4,
+            2 or 4 or 16 => 4,
             8 or 10 => 3,
             _ => 0
         };
@@ -229,7 +284,7 @@ public static class NumberBaseConverter
             return [];
 
         var digits = ClampDigits(fractionDigits);
-        var source = Compose(parsed);
+        var source = Compose(parsed, fromBase);
         var (target, exact) = Render(parsed, toBase, digits);
 
         if (fromBase == toBase)
@@ -270,7 +325,7 @@ public static class NumberBaseConverter
         const string title = "1-qadam — 10-lik sanoq sistemasiga o'tkazish";
 
         var decimalValue = FormatDecimal(number, fractionDigits, out var exact);
-        var summary = $"{Compose(number)}{Sub(fromBase)} {(exact ? "=" : "≈")} {decimalValue}{Sub(10)}";
+        var summary = $"{Compose(number, fromBase)}{Sub(fromBase)} {(exact ? "=" : "≈")} {decimalValue}{Sub(10)}";
 
         var total = number.IntegerDigits.Length + number.FractionDigits.Length;
 
@@ -311,10 +366,11 @@ public static class NumberBaseConverter
 
     private static string DescribeTerm(int digit, int fromBase, int power, string product)
     {
-        var symbol = DigitAlphabet[digit];
+        var symbol = DigitSymbol(digit, fromBase);
 
-        // Harf bilan yozilgan raqam uchun uning o'nlikdagi qiymati ham ko'rsatiladi.
-        var head = char.IsLetter(symbol)
+        // Harf bilan yozilgan raqam uchun uning o'nlikdagi qiymati ham ko'rsatiladi. 64-likdan
+        // boshlab raqamning o'zi allaqachon o'nlikda yozilgan — qavs ortiqcha bo'lardi.
+        var head = symbol.Length == 1 && char.IsLetter(symbol[0])
             ? $"{symbol} ({digit.ToString(Inv)}) × {fromBase.ToString(Inv)}{Sup(power)}"
             : $"{symbol} × {fromBase.ToString(Inv)}{Sup(power)}";
 
@@ -338,7 +394,7 @@ public static class NumberBaseConverter
             while (value > BigInteger.Zero)
             {
                 var quotient = BigInteger.DivRem(value, radix, out var remainder);
-                lines.Add($"{value.ToString(Inv)} ÷ {toBase.ToString(Inv)} = {quotient.ToString(Inv)}, qoldiq {DigitAlphabet[(int)remainder]}");
+                lines.Add($"{value.ToString(Inv)} ÷ {toBase.ToString(Inv)} = {quotient.ToString(Inv)}, qoldiq {DigitSymbol((int)remainder, toBase)}");
                 value = quotient;
             }
         }
@@ -358,7 +414,7 @@ public static class NumberBaseConverter
         var value = number.FractionNumerator;
 
         var lines = new List<string>();
-        var collected = new StringBuilder();
+        var collected = new List<string>(fractionDigits);
 
         for (var i = 0; i < fractionDigits && !value.IsZero; i++)
         {
@@ -369,15 +425,17 @@ public static class NumberBaseConverter
             value -= digit * denominator;
 
             var after = FormatRational(digit, value, denominator, fractionDigits, out var afterExact);
-            var symbol = DigitAlphabet[(int)digit];
+            var symbol = DigitSymbol((int)digit, toBase);
 
-            collected.Append(symbol);
+            collected.Add(symbol);
             lines.Add($"{Approx(beforeExact)}{before} × {toBase.ToString(Inv)} = {Approx(afterExact)}{after} → {symbol}");
         }
 
+        var fraction = JoinDigits(collected, toBase);
+
         var summary = value.IsZero
-            ? $"Butun qismlarni tartib bilan yozamiz: 0.{collected}"
-            : $"Kasr cheksiz davom etadi — {fractionDigits.ToString(Inv)} ta xonada kesildi: 0.{collected}";
+            ? $"Butun qismlarni tartib bilan yozamiz: 0.{fraction}"
+            : $"Kasr cheksiz davom etadi — {fractionDigits.ToString(Inv)} ta xonada kesildi: 0.{fraction}";
 
         return new ConversionExplanationSection(title, Shorten(lines), summary);
     }
@@ -455,6 +513,15 @@ public static class NumberBaseConverter
 
         var integerDigits = new List<int>();
         var fractionDigits = new List<int>();
+
+        // 64, 128 va 256-likda raqam bitta belgiga sig'maydi va yozuv butunlay boshqacha —
+        // shuning uchun o'qish ham alohida yo'ldan boradi.
+        if (UsesDigitGroups(fromBase))
+        {
+            return TryReadGroups(trimmed, start, fromBase, integerDigits, fractionDigits, out error)
+                && Build(negative, integerDigits, fractionDigits, fromBase, out parsed, out error);
+        }
+
         var separatorSeen = false;
 
         for (var i = start; i < trimmed.Length; i++)
@@ -475,7 +542,7 @@ public static class NumberBaseConverter
 
             // Guruhlash belgilari e'tiborsiz qoldiriladi — ko'rsatilgan natijani qaytarib
             // qo'yish (nusxa olib, yana kiritish) ishlashi uchun.
-            if (symbol is ' ' or '\u00A0' or '_' or '\'')
+            if (IsSpacer(symbol))
                 continue;
 
             var value = DigitAlphabet.IndexOf(char.ToUpperInvariant(symbol));
@@ -489,6 +556,129 @@ public static class NumberBaseConverter
 
             (separatorSeen ? fractionDigits : integerDigits).Add(value);
         }
+
+        return Build(negative, integerDigits, fractionDigits, fromBase, out parsed, out error);
+    }
+
+    /// <summary>
+    /// 64, 128 va 256-lik uchun o'qish: har bir raqam o'nlikda yozilgan va «:» bilan
+    /// ajratilgan — <c>188:97:78</c>. Bo'shliq ham ajratkich bo'lib ishlaydi, ya'ni ekrandagi
+    /// natijani nusxa olib qaytadan kiritish mumkin. Ketma-ket kelgan ajratkichlar bittadek
+    /// qaraladi va oxiridagi ajratkich xato emas: foydalanuvchi hali yozayotgan bo'lishi
+    /// mumkin, har bosishda qizil xabar chiqarish xalaqit berardi.
+    /// </summary>
+    private static bool TryReadGroups(
+        string text,
+        int start,
+        int fromBase,
+        List<int> integerDigits,
+        List<int> fractionDigits,
+        out string? error)
+    {
+        error = null;
+
+        var integerGroups = new List<string>();
+        var fractionGroups = new List<string>();
+        var target = integerGroups;
+        var current = new StringBuilder(3);
+        var separatorSeen = false;
+
+        for (var i = start; i < text.Length; i++)
+        {
+            var symbol = text[i];
+
+            if (symbol is '.' or ',')
+            {
+                if (separatorSeen)
+                {
+                    error = "Kasr belgisi faqat bitta bo'lishi mumkin.";
+                    return false;
+                }
+
+                separatorSeen = true;
+                Flush(current, target);
+                target = fractionGroups;
+                continue;
+            }
+
+            if (symbol == DigitSeparator || IsSpacer(symbol))
+            {
+                Flush(current, target);
+                continue;
+            }
+
+            if (symbol is >= '0' and <= '9')
+            {
+                current.Append(symbol);
+                continue;
+            }
+
+            error = $"«{symbol}» — {fromBase.ToString(Inv)}-lik sanoq sistemasida ishlatilmaydi. "
+                + $"Ruxsat etilgan belgilar: {DigitsOf(fromBase)}.";
+            return false;
+        }
+
+        Flush(current, target);
+
+        return TryConvertGroups(integerGroups, fromBase, integerDigits, out error)
+            && TryConvertGroups(fractionGroups, fromBase, fractionDigits, out error);
+
+        static void Flush(StringBuilder current, List<string> groups)
+        {
+            if (current.Length == 0)
+                return;
+
+            groups.Add(current.ToString());
+            current.Clear();
+        }
+    }
+
+    /// <summary>Guruhlarni raqamga aylantiradi; biror guruh asosga sig'masa — tushunarli xabar.</summary>
+    private static bool TryConvertGroups(List<string> groups, int fromBase, List<int> digits, out string? error)
+    {
+        error = null;
+
+        foreach (var group in groups)
+        {
+            // "007" — bu 7; "000" esa haqiqiy nol raqami, shuning uchun bo'sh qolgani ham 0.
+            var body = group.TrimStart('0');
+
+            if (body.Length == 0)
+            {
+                digits.Add(0);
+                continue;
+            }
+
+            // Eng katta raqam 255, ya'ni uch xonadan uzuni albatta xato — bunday satr
+            // int.Parse ga ham yetib bormasligi kerak.
+            if (body.Length > 3 || !int.TryParse(body, NumberStyles.None, Inv, out var value) || value >= fromBase)
+            {
+                error = $"«{group}» — {fromBase.ToString(Inv)}-lik sanoq sistemasining raqami emas: "
+                    + $"har bir raqam 0 dan {(fromBase - 1).ToString(Inv)} gacha bo'lishi va "
+                    + $"«{DigitSeparator}» bilan ajratilishi kerak.";
+                return false;
+            }
+
+            digits.Add(value);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// O'qib olingan raqamlardan aniq qiymat yasaydi: butun qism <see cref="BigInteger"/>,
+    /// kasr qism esa surat/maxraj juftligi. Ikkala yozuv uchun ham bir xil ishlaydi.
+    /// </summary>
+    private static bool Build(
+        bool negative,
+        List<int> integerDigits,
+        List<int> fractionDigits,
+        int fromBase,
+        out ParsedNumber parsed,
+        out string? error)
+    {
+        parsed = default;
+        error = null;
 
         if (integerDigits.Count == 0 && fractionDigits.Count == 0)
         {
@@ -566,16 +756,16 @@ public static class NumberBaseConverter
             return "0";
 
         var radix = new BigInteger(toBase);
-        var digits = new Stack<char>();
+        var digits = new Stack<string>();
         var rest = BigInteger.Abs(value);
 
         while (rest > BigInteger.Zero)
         {
             rest = BigInteger.DivRem(rest, radix, out var remainder);
-            digits.Push(DigitAlphabet[(int)remainder]);
+            digits.Push(DigitSymbol((int)remainder, toBase));
         }
 
-        return new string(digits.ToArray());
+        return JoinDigits(digits, toBase);
     }
 
     /// <summary>
@@ -590,19 +780,19 @@ public static class NumberBaseConverter
         out bool exact)
     {
         var radix = new BigInteger(toBase);
-        var builder = new StringBuilder(maxDigits);
+        var digits = new List<string>(maxDigits);
         var value = numerator;
 
         for (var i = 0; i < maxDigits && !value.IsZero; i++)
         {
             value *= radix;
             var digit = BigInteger.Divide(value, denominator);
-            builder.Append(DigitAlphabet[(int)digit]);
+            digits.Add(DigitSymbol((int)digit, toBase));
             value -= digit * denominator;
         }
 
         exact = value.IsZero;
-        return builder.ToString();
+        return JoinDigits(digits, toBase);
     }
 
     /// <summary>Sonning o'nlikdagi ko'rinishi — tushuntirish matnlari uchun.</summary>
@@ -639,25 +829,21 @@ public static class NumberBaseConverter
     }
 
     /// <summary>Tahlildan keyingi tozalangan manba: ortiqcha nollarsiz va bitta nuqta bilan.</summary>
-    private static string Compose(in ParsedNumber number)
+    private static string Compose(in ParsedNumber number, int fromBase)
     {
         var builder = new StringBuilder();
 
         if (number.IsNegative)
             builder.Append('-');
 
-        if (number.IntegerDigits.Length == 0)
-            builder.Append('0');
-        else
-            foreach (var digit in number.IntegerDigits)
-                builder.Append(DigitAlphabet[digit]);
+        builder.Append(number.IntegerDigits.Length == 0
+            ? "0"
+            : JoinDigits(number.IntegerDigits.Select(digit => DigitSymbol(digit, fromBase)), fromBase));
 
         if (number.FractionDigits.Length > 0)
         {
             builder.Append('.');
-
-            foreach (var digit in number.FractionDigits)
-                builder.Append(DigitAlphabet[digit]);
+            builder.Append(JoinDigits(number.FractionDigits.Select(digit => DigitSymbol(digit, fromBase)), fromBase));
         }
 
         return builder.ToString();
@@ -700,7 +886,8 @@ public static class NumberBaseConverter
         if (!IsSupportedBase(radix))
         {
             throw new ArgumentOutOfRangeException(
-                nameof(radix), radix, $"Sanoq sistemasi asosi {MinBase}–{MaxBase} oralig'ida bo'lishi kerak.");
+                nameof(radix), radix,
+                $"Sanoq sistemasi asosi quyidagilardan biri bo'lishi kerak: {string.Join(", ", SupportedBases)}.");
         }
     }
 }

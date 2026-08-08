@@ -85,10 +85,12 @@ public sealed partial class TransliterationViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DirectionHint))]
+    [NotifyPropertyChangedFor(nameof(DirectionLabel))]
     private bool _autoDetectDirection = true;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DirectionHint))]
+    [NotifyPropertyChangedFor(nameof(DirectionLabel))]
     private TransliterationDirection _direction = TransliterationDirection.CyrillicToLatin;
 
     [ObservableProperty]
@@ -97,25 +99,43 @@ public sealed partial class TransliterationViewModel : ViewModelBase
     /// <summary>Manba matndan aniqlangan yo'nalish; hech nima aniqlanmasa <c>null</c>.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DirectionHint))]
+    [NotifyPropertyChangedFor(nameof(DirectionLabel))]
     private TransliterationDirection? _detectedDirection;
 
-    /// <summary>Sozlamalar panelida ko'rinadigan izoh: qaysi yo'nalish amalda qo'llanadi.</summary>
+    /// <summary>Yo'nalish tugmasidagi matn: amalda qo'llanadigan yo'nalish.</summary>
+    public string DirectionLabel => Describe(EffectiveDirection);
+
+    /// <summary>Yo'nalish tugmasining izohi: qaysi yo'nalish va nima uchun tanlangani.</summary>
     public string DirectionHint
     {
         get
         {
             if (!AutoDetectDirection)
-                return Describe(Direction);
+                return $"Qo'lda tanlangan: {Describe(Direction)}. Almashtirish uchun bosing.";
 
             return DetectedDirection is null
-                ? "Matn kiritilgach yo'nalish o'zi aniqlanadi."
-                : $"Aniqlandi: {Describe(DetectedDirection.Value)}";
+                ? "Yo'nalish matndan o'zi aniqlanadi. Qo'lda tanlash uchun bosing."
+                : $"Matndan aniqlandi: {Describe(DetectedDirection.Value)}. Almashtirish uchun bosing.";
         }
     }
 
     /// <summary>Amalda qo'llanadigan yo'nalish — natija fayl nomi ham shunga qarab tanlanadi.</summary>
     public TransliterationDirection EffectiveDirection =>
         AutoDetectDirection ? DetectedDirection ?? Direction : Direction;
+
+    /// <summary>
+    /// Yo'nalishni teskarisiga buradi. Tanlash avtomatik holatdan chiqaradi: aks holda
+    /// keyingi harfda aniqlagich foydalanuvchining tanlovini bekor qilardi.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleDirection()
+    {
+        Direction = EffectiveDirection == TransliterationDirection.CyrillicToLatin
+            ? TransliterationDirection.LatinToCyrillic
+            : TransliterationDirection.CyrillicToLatin;
+
+        AutoDetectDirection = false;
+    }
 
     private TransliterationOptions BuildOptions() => new()
     {
