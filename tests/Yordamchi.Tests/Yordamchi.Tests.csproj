@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Yordamchi\Yordamchi.csproj" />
+    <ProjectReference Include="..\..\src\Yordamchi.Remoting\Yordamchi.Remoting.csproj" />
   </ItemGroup>
 
 </Project>

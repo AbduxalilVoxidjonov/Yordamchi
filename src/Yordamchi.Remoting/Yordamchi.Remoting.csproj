@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Masofaviy boshqaruvning umumiy poydevori: protokol paketlari, shifrlash va lokal
+    tarmoqda topilish. Ataylab oynasiz (net8.0, WPF emas) va platformaga bog'lanmagan —
+    uni ham "master" (Yordamchi), ham "agent" (alohida xizmat) bir xil ishlatadi va sof
+    mantiq bo'lgani uchun to'liq sinovga olinadi.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Yordamchi.Remoting</RootNamespace>
+    <AssemblyName>Yordamchi.Remoting</AssemblyName>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+</Project>
