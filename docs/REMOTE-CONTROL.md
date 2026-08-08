@@ -14,8 +14,8 @@ tavsiflaydi: u nima, qanday qismlardan iborat va qaysi bosqichlari tayyor.
 | Qism | Nima | Holati |
 |---|---|---|
 | **Master** | Yordamchi ilovasidagi "Kompyuterlarni boshqarish" bo'limi — agentni tarqatish, keyin kompyuterlar ro'yxati va boshqaruv | Tarqatish sahifasi tayyor; boshqaruv oynasi — keyingi bosqich |
-| **Agent (server)** | Boshqariladigan kompyuterdagi Windows xizmati: ekran uzatish, kirish qabul qilish | Hali qurilmagan |
-| **`Yordamchi.Remoting`** | Ikkala tomon uchun umumiy poydevor: protokol, shifrlash, discovery | **Tayyor va sinovdan o'tgan** |
+| **Agent (server)** | Boshqariladigan kompyuterdagi dastur: ulanish, ekran uzatish, kirish qabul qilish | **Ulanish yadrosi tayyor** (konsol); DXGI, kirish va xizmat — keyingi bosqich |
+| **`Yordamchi.Remoting`** | Ikkala tomon uchun umumiy poydevor: protokol, shifrlash, handshake, discovery | **Tayyor va sinovdan o'tgan** |
 
 `Yordamchi.Remoting` ataylab oynasiz (`net8.0`) va platformaga bog'lanmagan — sof mantiq
 bo'lgani uchun to'liq unit-test bilan qamrab olingan (haqiqiy apparatsiz).
@@ -52,7 +52,29 @@ ofset 14..   payload     yuk baytlari
   bilan o'raydi. Maxfiy kalit tarmoqqa chiqmaydi, sessiya kaliti faqat o'ralgan holda uzatiladi.
 
 Handshake oqimi: `Handshake` (ochiq kalit) → `HandshakeAck` (o'ralgan sessiya kaliti) →
-keyingi barcha yuklar `PacketFlags.Encrypted` bilan.
+keyingi barcha yuklar `PacketFlags.Encrypted` bilan. Handshake va shifrlangan kanal
+(`RemoteHandshake`, `SecureChannel`) `Yordamchi.Remoting` da — ikkala tomon bir kodni
+ishlatadi va u haqiqiy TCP loopback ustida sinovdan o'tgan.
+
+## Agent (`Yordamchi.Agent`)
+
+Boshqariladigan kompyuterdagi dastur. Hozircha **konsol ilovasi** — ochiq konsol oynasi
+foydalanuvchi uchun "bu kompyuter kuzatilishi mumkin" degan **ko'rinadigan belgi** vazifasini
+bajaradi.
+
+Tayyor qismlar:
+- **`AgentServer`** — TCP ulanishlarni qabul qiladi (5406-port), har biriga alohida ulanish.
+- **`AgentConnection`** — handshake, so'ng shifrlangan paketlar halqasi: `Ping`→`Pong`,
+  `ScreenRequest`→ekran kadrlarini uzatish, `Disconnect`→yopish. Yozuvlar bitta qulf bilan
+  tartibga solingan (kadr oqimi va javoblar aralashmasin).
+- **`IScreenSource`** — ekran manbasi abstraksiyasi. Hozir `SyntheticScreenSource` (apparatsiz,
+  sinov uchun) ishlatiladi; haqiqiy DXGI manbasi shu interfeys ustiga qo'yiladi.
+- **`DiscoveryAnnouncer`** — UDP mayoqni muntazam yuboradi.
+
+> **Buyruq bajarish ataylab yo'q.** `PacketType.Command` hozircha e'tiborsiz qoldiriladi:
+> ixtiyoriy tizim buyrug'ini masofadan bajarish eng xavfli imkoniyat. U keyin faqat
+> **ruxsat etilgan, cheklangan** amallar (xabar ko'rsatish, ekranni qulflash) sifatida
+> qo'shiladi — ochiq qobiq (shell) sifatida emas.
 
 ## Topilish (`Yordamchi.Remoting.Discovery`)
 
@@ -67,16 +89,19 @@ keyingi barcha yuklar `PacketFlags.Encrypted` bilan.
   yuklab olish + o'rnatish tartibi. *(2.3.1)*
 - [x] **1-bosqich — Umumiy poydevor.** `Yordamchi.Remoting`: protokol, AES-256-GCM, RSA
   handshake, UDP discovery — to'liq sinovdan o'tgan.
-- [ ] **2-bosqich — Agent xizmati.** `net8.0-windows` Windows xizmati: TCP tinglash, handshake,
-  DXGI Desktop Duplication bilan ekran olish (Vortice.Windows), tray belgisi. SYSTEM kontekstida
-  ishlaydi, boot'da ishga tushadi.
-- [ ] **3-bosqich — Boshqaruv.** Agentda `SendInput` orqali sichqoncha/klaviatura yuborish;
-  masterda to'liq ekran ko'rish/boshqarish oynasi.
+- [x] **2a-bosqich — Agent ulanish yadrosi.** `Yordamchi.Agent`: TCP server, handshake,
+  shifrlangan halqa, ekran uzatish quvuri (sintetik manba bilan), discovery mayoq — konsol
+  ilovasi sifatida ishlaydi, TCP loopback ustida sinovdan o'tgan.
+- [ ] **2b-bosqich — Haqiqiy ekran + xizmat.** DXGI Desktop Duplication (Vortice.Windows) bilan
+  haqiqiy ekran olish; Windows xizmati va tray belgisi; SYSTEM va faol seans orasidagi ko'prik
+  (session 0 izolyatsiyasi). **Apparat va ikkita kompyuterda sinov talab qiladi.**
+- [ ] **3-bosqich — Boshqaruv.** Agentda `SendInput` orqali sichqoncha/klaviatura yuborish
+  (faqat ruxsat etilgan buyruqlar bilan); masterda to'liq ekran ko'rish/boshqarish oynasi.
 - [ ] **4-bosqich — Master paneli.** Yordamchi bo'limida discovery orqali topilgan kompyuterlar
   ro'yxati, ko'p oynali eskizlar (thumbnail grid), fayl tarqatish.
 - [ ] **5-bosqich — Reliz.** Agent o'rnatgichi GitHub relizga qo'yiladi, uning URL'i dasturga
   o'zgarmas qilib bog'lanadi; app va agent birga chiqariladi.
 
-> **2–3-bosqichlar apparatga bog'liq** (GPU/DXGI, kirish yuborish, Windows xizmati) va ikkita
+> **2b–3-bosqichlar apparatga bog'liq** (GPU/DXGI, kirish yuborish, Windows xizmati) va ikkita
 > haqiqiy kompyuterda sinov talab qiladi — ular "foydalanishga tayyor" deb belgilanishidan
 > oldin real muhitda ishlatib ko'riladi.

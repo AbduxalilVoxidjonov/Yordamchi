@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Boshqariladigan kompyuterdagi agent. Hozircha konsol ilovasi sifatida ishlaydi (ochiq
+    konsol oynasi = "bu kompyuter kuzatilishi mumkin" degan ko'rinadigan belgi). Keyingi
+    bosqichda u Windows xizmatiga va tizim majmuasidagi (tray) belgiga aylantiriladi.
+    net8.0-windows: kelgusi DXGI ekran olish, kirish yuborish va xizmat API'lari Windowsga tegishli.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Yordamchi.Agent</RootNamespace>
+    <AssemblyName>YordamchiAgent</AssemblyName>
+    <PlatformTarget>x64</PlatformTarget>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Yordamchi.Remoting\Yordamchi.Remoting.csproj" />
+  </ItemGroup>
+
+</Project>
