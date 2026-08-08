@@ -13,8 +13,8 @@ tavsiflaydi: u nima, qanday qismlardan iborat va qaysi bosqichlari tayyor.
 
 | Qism | Nima | Holati |
 |---|---|---|
-| **Master** | Yordamchi ilovasidagi "Kompyuterlarni boshqarish" bo'limi — agentni tarqatish, keyin kompyuterlar ro'yxati va boshqaruv | Tarqatish sahifasi tayyor; boshqaruv oynasi — keyingi bosqich |
-| **Agent (server)** | Boshqariladigan kompyuterdagi dastur: ulanish, ekran uzatish, kirish qabul qilish | **Ulanish yadrosi tayyor** (konsol); DXGI, kirish va xizmat — keyingi bosqich |
+| **Master** | Yordamchi: "Kompyuterlarni boshqarish" (tarqatish) va "Kompyuter ekranlari" (topish + ekran ko'rish) bo'limlari | Tarqatish + **ekran ko'rish paneli tayyor**; boshqaruv (kirish) — keyingi bosqich |
+| **Agent (server)** | Boshqariladigan kompyuterdagi dastur: ulanish, **haqiqiy ekran uzatish**, kirish qabul qilish | Ulanish yadrosi + **GDI ekran olish tayyor** (konsol); DXGI, kirish va xizmat — keyingi bosqich |
 | **`Yordamchi.Remoting`** | Ikkala tomon uchun umumiy poydevor: protokol, shifrlash, handshake, discovery | **Tayyor va sinovdan o'tgan** |
 
 `Yordamchi.Remoting` ataylab oynasiz (`net8.0`) va platformaga bog'lanmagan — sof mantiq
@@ -67,9 +67,20 @@ Tayyor qismlar:
 - **`AgentConnection`** — handshake, so'ng shifrlangan paketlar halqasi: `Ping`→`Pong`,
   `ScreenRequest`→ekran kadrlarini uzatish, `Disconnect`→yopish. Yozuvlar bitta qulf bilan
   tartibga solingan (kadr oqimi va javoblar aralashmasin).
-- **`IScreenSource`** — ekran manbasi abstraksiyasi. Hozir `SyntheticScreenSource` (apparatsiz,
-  sinov uchun) ishlatiladi; haqiqiy DXGI manbasi shu interfeys ustiga qo'yiladi.
+- **`IScreenSource`** — ekran manbasi abstraksiyasi. **`GdiScreenSource`** haqiqiy ekranni GDI
+  (BitBlt) bilan olib JPEG qiladi; `SyntheticScreenSource` apparatsiz sinov manbasi. Agent
+  ishga tushganda haqiqiy manbani sinab ko'radi, olib bo'lmasa (seans yo'q) sintetikka tushadi.
+  Tezroq DXGI Desktop Duplication keyin shu bir interfeys ustiga qo'yiladi.
 - **`DiscoveryAnnouncer`** — UDP mayoqni muntazam yuboradi.
+
+## Master paneli (`Yordamchi.Remoting.Master` + Yordamchi)
+
+- **`MasterSession`** — masterning agentga ulanishi: handshake, fon halqasida kadrlarni o'qib
+  `FrameReceived` orqali chiqaradi. UI'ni bilmaydi — loopback ustida sinaladi.
+- **`DiscoveryListener`** — UDP mayoqlarni tinglaydi, topilgan kompyuterlarni chiqaradi.
+- Yordamchida **"Kompyuter ekranlari"** bo'limi: "Qidirish" (discovery), qo'lda IP kiritish,
+  ulanish va ekranni ko'rsatish (`FrameImage` kadrlarni WPF rasmiga o'giradi). Discovery faqat
+  foydalanuvchi bosganda yoqiladi — dastur ochilishida brandmauer so'rovini chiqarmaslik uchun.
 
 > **Buyruq bajarish ataylab yo'q.** `PacketType.Command` hozircha e'tiborsiz qoldiriladi:
 > ixtiyoriy tizim buyrug'ini masofadan bajarish eng xavfli imkoniyat. U keyin faqat
@@ -92,15 +103,17 @@ Tayyor qismlar:
 - [x] **2a-bosqich — Agent ulanish yadrosi.** `Yordamchi.Agent`: TCP server, handshake,
   shifrlangan halqa, ekran uzatish quvuri (sintetik manba bilan), discovery mayoq — konsol
   ilovasi sifatida ishlaydi, TCP loopback ustida sinovdan o'tgan.
-- [ ] **2b-bosqich — Haqiqiy ekran + xizmat.** DXGI Desktop Duplication (Vortice.Windows) bilan
-  haqiqiy ekran olish; Windows xizmati va tray belgisi; SYSTEM va faol seans orasidagi ko'prik
-  (session 0 izolyatsiyasi). **Apparat va ikkita kompyuterda sinov talab qiladi.**
+- [x] **2b-bosqich (qisman) — Haqiqiy ekran.** `GdiScreenSource`: GDI (BitBlt) bilan haqiqiy
+  ekranni olib JPEG qiladi. **Qoldi:** tezroq DXGI Desktop Duplication; Windows xizmati + tray;
+  SYSTEM va faol seans orasidagi ko'prik (session 0 izolyatsiyasi); o'rnatgich (.exe/.msi).
+  Bular apparat va ikkita kompyuterda sinov talab qiladi.
+- [x] **4-bosqich — Master paneli.** `MasterSession` + `DiscoveryListener`; Yordamchida
+  "Kompyuter ekranlari" bo'limi — topish, ulanish, ekranni ko'rish. **Qoldi:** ko'p oynali
+  eskizlar (thumbnail grid), fayl tarqatish.
 - [ ] **3-bosqich — Boshqaruv.** Agentda `SendInput` orqali sichqoncha/klaviatura yuborish
-  (faqat ruxsat etilgan buyruqlar bilan); masterda to'liq ekran ko'rish/boshqarish oynasi.
-- [ ] **4-bosqich — Master paneli.** Yordamchi bo'limida discovery orqali topilgan kompyuterlar
-  ro'yxati, ko'p oynali eskizlar (thumbnail grid), fayl tarqatish.
-- [ ] **5-bosqich — Reliz.** Agent o'rnatgichi GitHub relizga qo'yiladi, uning URL'i dasturga
-  o'zgarmas qilib bog'lanadi; app va agent birga chiqariladi.
+  (faqat ruxsat etilgan buyruqlar bilan); masterda ekranni boshqarish rejimi.
+- [ ] **5-bosqich — Reliz.** Agent o'rnatgichi (2b tugagach) GitHub relizga qo'yiladi, uning
+  URL'i dasturga o'zgarmas qilib bog'lanadi; app va agent birga chiqariladi.
 
 > **2b–3-bosqichlar apparatga bog'liq** (GPU/DXGI, kirish yuborish, Windows xizmati) va ikkita
 > haqiqiy kompyuterda sinov talab qiladi — ular "foydalanishga tayyor" deb belgilanishidan

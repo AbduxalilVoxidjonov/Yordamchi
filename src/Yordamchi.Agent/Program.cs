@@ -34,7 +34,7 @@ internal static class Program
             stopping.Cancel();
         };
 
-        var server = new AgentServer(port, () => new SyntheticScreenSource(), Console.WriteLine);
+        var server = new AgentServer(port, CreateScreenSource, Console.WriteLine);
         var announcer = new DiscoveryAnnouncer(port, machineName);
 
         try
@@ -50,6 +50,25 @@ internal static class Program
 
         Console.WriteLine("Agent to'xtatildi.");
         return 0;
+    }
+
+    /// <summary>
+    /// Haqiqiy ekran manbasini beradi; olib bo'lmasa (masalan seans yo'q, CI) sintetik
+    /// manbaga tushadi — shunda ulanish quvuri baribir ishlaydi.
+    /// </summary>
+    private static IScreenSource CreateScreenSource()
+    {
+        try
+        {
+            var source = new GdiScreenSource();
+            _ = source.Capture(); // ishga tushirishda bir marta sinab ko'ramiz
+            return source;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Haqiqiy ekran olinmadi ({ex.Message}) — sintetik manbaga o'tildi.");
+            return new SyntheticScreenSource();
+        }
     }
 
     private static int? ParsePort(string[] args)

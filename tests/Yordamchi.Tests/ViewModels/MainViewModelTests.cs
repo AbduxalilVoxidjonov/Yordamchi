@@ -175,6 +175,7 @@ public sealed class MainViewModelTests
             new TransliterationViewModel(Substitute.For<ITransliterationService>(), _dialogs),
             new NumberSystemViewModel(new NumberSystemService(), _dialogs),
             new RemoteControlViewModel(new RemoteControlService(), _dialogs),
+            new RemoteViewerViewModel(_dialogs),
             about ?? CreateAbout(),
             Substitute.For<IThemeService>());
     }

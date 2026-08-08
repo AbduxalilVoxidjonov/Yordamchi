@@ -61,9 +61,10 @@ public sealed class AgentConnectionTests
             var frame = await SecureChannel.ReceiveAsync(masterStream, key, guard.Token);
 
             Assert.Equal(PacketType.ScreenFrame, frame.Type);
-            Assert.True(ScreenFrameCodec.TryParse(frame.Payload, out var width, out var height, out var image));
+            Assert.True(ScreenFrameCodec.TryParse(frame.Payload, out var width, out var height, out var format, out var image));
             Assert.Equal(32, width);
             Assert.Equal(32, height);
+            Assert.Equal(ScreenImageFormat.RawBgra, format);
             Assert.NotEmpty(image);
 
             await SecureChannel.SendAsync(masterStream, key, PacketType.Disconnect, [], guard.Token);

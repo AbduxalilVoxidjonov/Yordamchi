@@ -68,6 +68,10 @@
                 <views:RemoteControlView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type viewModels:RemoteViewerViewModel}">
+                <views:RemoteViewerView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type viewModels:AboutViewModel}">
                 <views:AboutView />
             </DataTemplate>

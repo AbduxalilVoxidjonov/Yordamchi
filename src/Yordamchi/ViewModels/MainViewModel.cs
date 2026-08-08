@@ -28,6 +28,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly TransliterationViewModel _transliteration;
     private readonly NumberSystemViewModel _numberSystem;
     private readonly RemoteControlViewModel _remoteControl;
+    private readonly RemoteViewerViewModel _remoteViewer;
     private readonly AboutViewModel _about;
 
     public MainViewModel(
@@ -39,6 +40,7 @@ public sealed partial class MainViewModel : ObservableObject
         TransliterationViewModel transliteration,
         NumberSystemViewModel numberSystem,
         RemoteControlViewModel remoteControl,
+        RemoteViewerViewModel remoteViewer,
         AboutViewModel about,
         IThemeService themeService)
     {
@@ -50,6 +52,7 @@ public sealed partial class MainViewModel : ObservableObject
         _transliteration = transliteration;
         _numberSystem = numberSystem;
         _remoteControl = remoteControl;
+        _remoteViewer = remoteViewer;
         _about = about;
         _themeService = themeService;
 
@@ -69,6 +72,7 @@ public sealed partial class MainViewModel : ObservableObject
             new NavigationItemViewModel("\uF2B7", transliteration), // Kirill ↔ Lotin
             new NavigationItemViewModel("\uE8EF", numberSystem),    // Sanoq sistemasi
             new NavigationItemViewModel("\uE977", remoteControl),   // Kompyuterlarni boshqarish
+            new NavigationItemViewModel("\uE7F4", remoteViewer),    // Kompyuter ekranlari
             new NavigationItemViewModel("\uE946", about)            // Dastur haqida
         ];
 

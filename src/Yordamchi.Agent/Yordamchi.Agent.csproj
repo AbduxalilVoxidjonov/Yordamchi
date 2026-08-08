@@ -22,4 +22,12 @@
     <ProjectReference Include="..\Yordamchi.Remoting\Yordamchi.Remoting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      GDI ekran olish uchun (BitBlt + JPEG). Bu v1 uchun yetarli va oddiy; keyingi bosqichda
+      tezroq DXGI Desktop Duplication (Vortice.Windows) shu bir IScreenSource ortiga qo'yiladi.
+    -->
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+  </ItemGroup>
+
 </Project>

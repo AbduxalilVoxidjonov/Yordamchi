@@ -1,3 +1,5 @@
+using Yordamchi.Remoting.Protocol;
+
 namespace Yordamchi.Agent.Capture;
 
 /// <summary>
@@ -29,7 +31,7 @@ public sealed class SyntheticScreenSource : IScreenSource
             image[i + 3] = 0xFF;                         // A
         }
 
-        return new ScreenFrame(Width, Height, image);
+        return new ScreenFrame(Width, Height, ScreenImageFormat.RawBgra, image);
     }
 
     public void Dispose()

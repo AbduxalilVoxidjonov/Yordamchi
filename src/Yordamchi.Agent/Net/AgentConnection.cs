@@ -100,7 +100,7 @@ public sealed class AgentConnection
             while (!cancellationToken.IsCancellationRequested)
             {
                 var frame = _screen.Capture();
-                var payload = ScreenFrameCodec.Encode(frame.Width, frame.Height, frame.Image);
+                var payload = ScreenFrameCodec.Encode(frame.Width, frame.Height, frame.Format, frame.Image);
 
                 await SendAsync(sessionKey, PacketType.ScreenFrame, payload, cancellationToken).ConfigureAwait(false);
                 await Task.Delay(FrameInterval, cancellationToken).ConfigureAwait(false);

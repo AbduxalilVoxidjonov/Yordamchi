@@ -86,6 +86,7 @@ public partial class App : Application
         services.AddSingleton<TransliterationViewModel>();
         services.AddSingleton<NumberSystemViewModel>();
         services.AddSingleton<RemoteControlViewModel>();
+        services.AddSingleton<RemoteViewerViewModel>();
         services.AddSingleton<AboutViewModel>();
         services.AddSingleton<MainViewModel>();
 
