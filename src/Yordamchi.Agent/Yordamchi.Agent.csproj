@@ -1,14 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Boshqariladigan kompyuterdagi agent. Hozircha konsol ilovasi sifatida ishlaydi (ochiq
-    konsol oynasi = "bu kompyuter kuzatilishi mumkin" degan ko'rinadigan belgi). Keyingi
-    bosqichda u Windows xizmatiga va tizim majmuasidagi (tray) belgiga aylantiriladi.
-    net8.0-windows: kelgusi DXGI ekran olish, kirish yuborish va xizmat API'lari Windowsga tegishli.
+    Boshqariladigan kompyuterdagi agent. Uch xil ishga tushadi: oddiy jarayon (konsol + tray),
+    Windows xizmati va xizmat ochadigan seans jarayoni. Foydalanuvchi uchun ko'rinadigan belgi —
+    tizim majmuasidagi (tray) nishon va konsol oynasi.
+
+    OutputType=Exe (konsol) ataylab: shunda terminaldan ishga tushirilganda jurnal ko'rinadi va
+    Ctrl+C ishlaydi. Xizmat ochgan jarayonda oyna chiqmasligi uchun CreateProcessAsUser
+    CREATE_NO_WINDOW bilan chaqiriladi (Service/SessionBridge).
+
+    net8.0-windows + UseWindowsForms: tray belgisi (NotifyIcon), DXGI ekran olish, SendInput va
+    xizmat API'lari — hammasi Windowsga tegishli.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
@@ -16,6 +23,13 @@
     <AssemblyName>YordamchiAgent</AssemblyName>
     <PlatformTarget>x64</PlatformTarget>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <!-- Tray belgisi nishonni dastur faylining o'zidan oladi — asosiy dastur bilan bir xil. -->
+    <ApplicationIcon>..\Yordamchi\Assets\Yordamchi.ico</ApplicationIcon>
+
+    <AssemblyTitle>Yordamchi Agent</AssemblyTitle>
+    <Product>Yordamchi</Product>
+    <Company>Abduxalil Voxidjonov</Company>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,11 +37,23 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!--
-      GDI ekran olish uchun (BitBlt + JPEG). Bu v1 uchun yetarli va oddiy; keyingi bosqichda
-      tezroq DXGI Desktop Duplication (Vortice.Windows) shu bir IScreenSource ortiga qo'yiladi.
-    -->
+    <!-- GDI ekran olish (BitBlt), JPEG siqish va ko'rsatgichni chizish uchun. -->
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+
+    <!--
+      DXGI Desktop Duplication (asosiy, tez ekran olish yo'li) uchun Direct3D 11 bog'lamalari.
+      Xom COM interop'ni qo'lda yozish o'rniga tayyor bog'lama: DXGI vtable'lari o'nlab
+      metoddan iborat va bitta xato siljish tushunarsiz nosozlikka olib keladi.
+      Paket faqat bog'lama — o'zi bilan ish vaqti (runtime) olib kelmaydi, Direct3D Windows
+      tarkibida.
+    -->
+    <PackageReference Include="Vortice.Direct3D11" Version="3.6.2" />
+
+    <!--
+      Windows xizmati sifatida ishlash uchun (ServiceBase). .NET tarkibida bu tur yo'q —
+      xizmatlar Windowsga xos, shuning uchun alohida paketda.
+    -->
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

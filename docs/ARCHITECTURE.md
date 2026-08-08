@@ -882,13 +882,15 @@ oxiri qoldirilib qisqartiriladi — aks holda o'ng panel o'qib bo'lmas holga kel
 ### `IRemoteControlService` — kompyuterlarni boshqarish
 
 "Kompyuterlarni boshqarish" bo'limi — boshqa kompyuterlarni masofadan boshqarish uchun
-**tarqatish markazi**. Agentning o'zi (DXGI ekran uzatish, kirish yuborish, SYSTEM xizmati,
-TCP/UDP tarmoq) — bu dasturga kirmaydigan **alohida katta loyiha**; u GitHub relizlariga
-qo'yiladi va shu bo'limdan yuklab olinadi. Bu yerdagi xizmat faqat **yuklab oladi**.
+**tarqatish markazi**. Agentning o'zi (DXGI ekran uzatish, kirish yuborish, Windows xizmati,
+TCP/UDP tarmoq) — alohida loyiha: `src\Yordamchi.Agent` va u tayanadigan umumiy poydevor
+`src\Yordamchi.Remoting`. Agent WPF dasturiga kirmaydi, alohida o'rnatgich sifatida yig'ilib
+GitHub relizlariga qo'yiladi (batafsil: [REMOTE-CONTROL.md](REMOTE-CONTROL.md)). Bu yerdagi
+xizmat faqat **yuklab oladi**.
 
 | A'zo | Nima qiladi |
 |---|---|
-| `DefaultDownloadUrl` / `ExampleDownloadUrl` | Sozlangan manzil (hozircha bo'sh placeholder) va namuna GitHub havolasi |
+| `DefaultDownloadUrl` / `ExampleDownloadUrl` | Sozlangan manzil — `agent-v1` relizidagi `YordamchiAgentSetup.exe` (versiyasiz nom: yangi agent chiqqanda aktiv almashtiriladi, dastur qayta yig'ilmaydi) |
 | `DownloadFolder` / `AgentFilePath` / `AgentFileName` | `%LOCALAPPDATA%\Yordamchi\RemoteControl\` va undagi fayl |
 | `IsAgentDownloaded` | Fayl allaqachon bormi |
 | `IsDownloadUrlReady(url)` | Manzil bo'sh emas, `https` va faqat GitHub xostida — `UpdateService.IsTrustedDownloadUrl` bilan |
@@ -901,7 +903,7 @@ qo'yiladi va shu bo'limdan yuklab olinadi. Bu yerdagi xizmat faqat **yuklab olad
 | Yuklab olish faqat GitHub xostlaridan | Boshqa kompyuterlarga o'rnatiladigan dasturni begona serverdan tortib olish xavfli; ishonch ro'yxati butun dasturda bitta (`UpdateService`) |
 | Dastur faylni ishga tushirmaydi | Faqat yuklab oladi; o'rnatishni foydalanuvchi maqsadli kompyuterda administrator huquqida o'zi bajaradi |
 | O'rnatish qadamlarida "ko'rinadigan belgi" ochiq yozilgan | Masofaviy boshqaruv qonuniy bo'lishi uchun — faqat o'zing administratsiya qiladigan kompyuter, foydalanuvchi xabardor; agent yashirin ishlamaydi |
-| Manzil doimiy emas, UI maydonidan olinadi | Placeholder holatda real fayl hali yo'q; manzilni qayta yig'masdan kiritish mumkin (holat faqat shu seansda) |
+| Manzil doimiy bo'lsa ham UI maydonidan tahrirlanadi | Standart qiymat sozlangan, lekin boshqa relizdagi nusxani ko'rsatish kerak bo'lishi mumkin — dasturni qayta yig'masdan (holat faqat shu seansda) |
 
 ### Yordamchi UI servislari
 

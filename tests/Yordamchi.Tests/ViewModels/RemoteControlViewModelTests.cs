@@ -15,11 +15,23 @@ public sealed class RemoteControlViewModelTests
     private RemoteControlViewModel CreateViewModel() => new(new RemoteControlService(), _dialogs);
 
     [Fact]
-    public void The_page_starts_with_no_url_and_download_disabled()
+    public void The_page_starts_with_the_configured_url_and_download_enabled()
     {
         var vm = CreateViewModel();
 
-        Assert.Equal(string.Empty, vm.AgentDownloadUrl);
+        // Manzil oldindan sozlangan (agent relizidagi aktiv), shuning uchun foydalanuvchi hech
+        // narsa yozmasdan yuklab olishi mumkin bo'lishi kerak.
+        Assert.Equal(new RemoteControlService().DefaultDownloadUrl, vm.AgentDownloadUrl);
+        Assert.True(vm.DownloadAgentCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void An_empty_url_disables_the_download_button()
+    {
+        var vm = CreateViewModel();
+
+        vm.AgentDownloadUrl = string.Empty;
+
         Assert.False(vm.DownloadAgentCommand.CanExecute(null));
     }
 

@@ -1,4 +1,7 @@
 using System.Net.Sockets;
+using System.Text;
+using Yordamchi.Remoting.Command;
+using Yordamchi.Remoting.Input;
 using Yordamchi.Remoting.Protocol;
 using Yordamchi.Remoting.Security;
 
@@ -41,6 +44,12 @@ public sealed class MasterSession : IAsyncDisposable
     /// <summary>Ulanish uzilganda (xato yoki tomon yopganda).</summary>
     public event Action? Disconnected;
 
+    /// <summary>
+    /// Agent so'rovni rad etganda yoki xatoni xabar qilganda — matn foydalanuvchiga
+    /// ko'rsatish uchun (masalan "bu kompyuterda boshqarish o'chirilgan").
+    /// </summary>
+    public event Action<string>? ErrorReported;
+
     /// <summary>Agentga ulanadi va handshake'ni bajaradi.</summary>
     public static async Task<MasterSession> ConnectAsync(string host, int port, CancellationToken cancellationToken = default)
     {
@@ -71,6 +80,20 @@ public sealed class MasterSession : IAsyncDisposable
     public Task StopScreenAsync(CancellationToken cancellationToken = default) =>
         SendAsync(PacketType.ScreenRequest, [0], cancellationToken);
 
+    /// <summary>
+    /// Bitta kirish hodisasini (sichqoncha/klaviatura) agentga yuboradi. Agent uni faqat
+    /// boshqaruvga ruxsat berilgan holatda bajaradi — aks holda jimgina rad etadi.
+    /// </summary>
+    public Task SendInputAsync(in InputEvent input, CancellationToken cancellationToken = default) =>
+        SendAsync(PacketType.InputEvent, InputEventCodec.Encode(input), cancellationToken);
+
+    /// <summary>
+    /// Cheklangan buyruqni yuboradi (xabar ko'rsatish, ekranni qulflash). Ixtiyoriy tizim
+    /// buyrug'i yo'q — <see cref="RemoteCommandKind"/> ro'yxati yopiq.
+    /// </summary>
+    public Task SendCommandAsync(in RemoteCommand command, CancellationToken cancellationToken = default) =>
+        SendAsync(PacketType.Command, RemoteCommandCodec.Encode(command), cancellationToken);
+
     private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
     {
         try
@@ -83,6 +106,12 @@ public sealed class MasterSession : IAsyncDisposable
                     && ScreenFrameCodec.TryParse(packet.Payload, out var width, out var height, out var format, out var image))
                 {
                     FrameReceived?.Invoke(new RemoteFrame(width, height, format, image));
+                }
+                else if (packet.Type == PacketType.Error)
+                {
+                    // Xato yuki — oddiy UTF-8 matn. Buzuq baytlar istisno tashlamasligi uchun
+                    // almashtiruvchi belgilar bilan o'qiladi: xato xabari ulanishni uzmasligi kerak.
+                    ErrorReported?.Invoke(Encoding.UTF8.GetString(packet.Payload));
                 }
             }
         }

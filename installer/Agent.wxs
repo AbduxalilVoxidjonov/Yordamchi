@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Yordamchi Agent MSI.
+
+    O'zi-yetarli (self-contained) publish natijasini "Program Files\Yordamchi Agent" ga
+    o'rnatadi va agentni Windows xizmati sifatida ro'yxatga qo'shadi.
+
+    Xizmatni ro'yxatga qo'shishni MSI o'zi emas, agentning "install" rejimi bajaradi
+    (deferred custom action). Sabab: xizmat nomi, buyruq satri, nosozlikdan keyin qayta ishga
+    tushish va brandmauer qoidasi — bularning hammasi allaqachon agent ichida, sinovdan
+    o'tgan kodda. Ikkinchi nusxasini WiX tilida takrorlash — ikkita haqiqat manbasi degani.
+
+    build-agent-installer.ps1 tomonidan quriladi; `-d PublishDir=<papka>` va `-arch x64` kutadi.
+
+    Muallif: Abduxalil Voxidjonov — https://t.me/abduxalilvoxidjonov
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Package Name="Yordamchi Agent"
+           Manufacturer="Abduxalil Voxidjonov"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="3D6F1A57-9B24-4C8E-9E7F-2C1B7A5D40E8"
+           Scope="perMachine"
+           Compressed="yes"
+           InstallerVersion="500">
+
+    <!--
+        Yangi versiya eskisini avval olib tashlaydi: agent xizmat sifatida ishlaganda ikkita
+        nusxa bir portni egallashga urinishi mumkin emas.
+    -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="Kompyuterda Yordamchi Agentning yangiroq versiyasi o'rnatilgan. Avval uni olib tashlang." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="YordamchiIcon" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="YordamchiIcon" />
+    <Property Id="ARPHELPLINK" Value="https://t.me/abduxalilvoxidjonov" />
+    <Property Id="ARPURLINFOABOUT" Value="https://t.me/abduxalilvoxidjonov" />
+    <Property Id="ARPCONTACT" Value="Abduxalil Voxidjonov" />
+    <Property Id="ARPCOMMENTS" Value="Yordamchi Agent — masofaviy boshqaruv agenti. Agent ishlayotgani tizim majmuasidagi belgidan ko'rinadi." />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <Feature Id="Main" Title="Yordamchi Agent" Level="1">
+      <ComponentGroupRef Id="AgentFiles" />
+    </Feature>
+
+    <!--
+        Xizmatni ro'yxatga qo'shish/olib tashlash. Impersonate="no" — bu amallar administrator
+        huquqini talab qiladi, foydalanuvchi nomidan bajarilsa ishlamaydi.
+        Return="ignore" olib tashlashda ataylab: xizmat allaqachon to'xtatilgan yoki qo'lda
+        o'chirilgan bo'lsa ham, dasturni olib tashlash oxirigacha borishi kerak.
+    -->
+    <CustomAction Id="InstallAgentService"
+                  FileRef="AgentExe"
+                  ExeCommand="--install"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="RemoveAgentService"
+                  FileRef="AgentExe"
+                  ExeCommand="--uninstall"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="InstallAgentService" After="InstallFiles" Condition="NOT REMOVE" />
+      <Custom Action="RemoveAgentService" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+  </Package>
+
+  <!-- ================= Papkalar ================= -->
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="Yordamchi Agent" />
+    </StandardDirectory>
+  </Fragment>
+
+  <!-- ================= Yuk (payload) =================
+       Agent faylining o'zi alohida komponentda: custom action unga FileRef bilan murojaat
+       qiladi, buning uchun faylning aniq Id'si bo'lishi kerak.
+
+       Qolgani naqsh bo'yicha yig'iladi va bu ataylab tanlab olingan: kutubxonalar (til
+       papkalari bilan birga) va ikkita sozlama fayli kiradi, .pdb (nosozlik belgilari) va
+       createdump.exe esa kirmaydi — ular ishlashga kerak emas, faqat o'rnatuvchini
+       kattalashtiradi. <Files> papka tuzilmasini o'zi saqlaydi.
+  -->
+  <Fragment>
+    <ComponentGroup Id="AgentFiles" Directory="INSTALLFOLDER">
+      <Component Id="AgentExecutable" Guid="B5A9E4C7-1F3D-4A62-8E10-7C4D9B2F6A31">
+        <File Id="AgentExe" Source="$(var.PublishDir)\YordamchiAgent.exe" KeyPath="yes" />
+      </Component>
+
+      <Files Include="$(var.PublishDir)\**\*.dll" />
+      <Files Include="$(var.PublishDir)\*.json" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

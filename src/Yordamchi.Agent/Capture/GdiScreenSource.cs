@@ -1,74 +1,56 @@
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
-using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Yordamchi.Remoting.Protocol;
 
 namespace Yordamchi.Agent.Capture;
 
 /// <summary>
-/// Haqiqiy ekranni GDI (BitBlt) bilan oladi va JPEG qilib siqadi. Bu v1 uchun yetarli va
-/// oddiy; keyingi bosqichda tezroq DXGI Desktop Duplication shu bir <see cref="IScreenSource"/>
-/// ortiga qo'yiladi.
+/// Haqiqiy ekranni GDI (BitBlt) bilan oladi va JPEG qilib siqadi. Bu hamma joyda ishlaydigan
+/// zaxira yo'l: <see cref="DxgiScreenSource"/> tezroq, lekin u Desktop Duplication API'siga
+/// tayanadi va u har muhitda mavjud emas (eski drayver, ba'zi virtual mashinalar, masofaviy
+/// seans) — shunda GDI ishlatiladi.
+/// <para>
+/// GDI <b>butun virtual ish stolini</b> (barcha monitorlar) bitta kadrda oladi — bu DXGI'dan
+/// farqi, u faqat bitta monitorni beradi.
+/// </para>
 /// <para>
 /// <b>Cheklov.</b> GDI faqat <b>faol seansda</b> (foydalanuvchi ish stolida) ishlaydi. Agent
-/// SYSTEM xizmati sifatida "session 0" da ishlasa, ekranni ko'ra olmaydi — u holda faol
-/// seansda yordamchi jarayon ochish kerak bo'ladi (keyingi bosqich). Hozircha agent konsol
-/// sifatida foydalanuvchi seansida ishlagani uchun ekran to'g'ri olinadi.
+/// SYSTEM xizmati sifatida "session 0" da ishlasa, ekranni ko'ra olmaydi — shu sababli xizmat
+/// o'zi ekran olmaydi, faol seansda bola jarayon ochadi (<c>Service/SessionBridge</c>).
 /// </para>
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class GdiScreenSource : IScreenSource
 {
-    private const int SM_XVIRTUALSCREEN = 76;
-    private const int SM_YVIRTUALSCREEN = 77;
-    private const int SM_CXVIRTUALSCREEN = 78;
-    private const int SM_CYVIRTUALSCREEN = 79;
-
-    [DllImport("user32.dll")]
-    private static extern int GetSystemMetrics(int index);
-
-    private readonly long _jpegQuality;
-    private readonly ImageCodecInfo _jpegEncoder;
+    private readonly JpegEncoder _encoder;
 
     /// <param name="jpegQuality">1..100 — kichikroq = kam trafik, past sifat.</param>
     public GdiScreenSource(long jpegQuality = 55)
     {
-        _jpegQuality = Math.Clamp(jpegQuality, 1, 100);
-        _jpegEncoder = ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
+        _encoder = new JpegEncoder(jpegQuality);
     }
+
+    /// <summary>GDI butun virtual ish stolini oladi — barcha monitorlar bitta kadrda.</summary>
+    public ScreenRegion Bounds => VirtualScreen.Current();
 
     public ScreenFrame Capture()
     {
-        var left = GetSystemMetrics(SM_XVIRTUALSCREEN);
-        var top = GetSystemMetrics(SM_YVIRTUALSCREEN);
-        var width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-        var height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        var region = VirtualScreen.Current();
 
-        // Metrik 0 qaytarsa (masalan seans yo'q) — kichik xavfsiz o'lcham.
-        if (width <= 0 || height <= 0)
-        {
-            width = 1;
-            height = 1;
-        }
-
-        using var bitmap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
+        using var bitmap = new Bitmap(region.Width, region.Height, PixelFormat.Format24bppRgb);
         using (var graphics = Graphics.FromImage(bitmap))
         {
-            graphics.CopyFromScreen(left, top, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
+            graphics.CopyFromScreen(
+                region.Left, region.Top, 0, 0,
+                new Size(region.Width, region.Height),
+                CopyPixelOperation.SourceCopy);
+
+            CursorPainter.Draw(graphics, region);
         }
 
-        using var stream = new MemoryStream();
-        using var parameters = new EncoderParameters(1);
-        parameters.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, _jpegQuality);
-        bitmap.Save(stream, _jpegEncoder, parameters);
-
-        return new ScreenFrame(width, height, ScreenImageFormat.Jpeg, stream.ToArray());
+        return new ScreenFrame(region.Width, region.Height, ScreenImageFormat.Jpeg, _encoder.Encode(bitmap));
     }
 
-    public void Dispose()
-    {
-        // JPEG kodlagichi umumiy resurs — bo'shatiladigan narsa yo'q.
-    }
+    public void Dispose() => _encoder.Dispose();
 }

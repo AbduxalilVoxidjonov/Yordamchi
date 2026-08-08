@@ -30,10 +30,13 @@ public sealed class RemoteControlServiceTests
         => Assert.False(_service.IsDownloadUrlReady(url));
 
     [Fact]
-    public void The_default_url_is_a_placeholder_and_is_not_ready()
+    public void The_default_url_points_at_the_agent_release_and_is_ready_to_use()
     {
-        // Placeholder holatda manzil bo'sh — foydalanuvchi real havolani o'zi kiritadi.
-        Assert.False(_service.IsDownloadUrlReady(_service.DefaultDownloadUrl));
+        // Sozlangan manzil bo'lmasa "Yuklab olish" tugmasi ishlamaydi — shuning uchun uning
+        // ishonch tekshiruvidan o'tishi va aynan agent aktiviga ishora qilishi tekshiriladi.
+        Assert.True(_service.IsDownloadUrlReady(_service.DefaultDownloadUrl));
+        Assert.Contains("github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/", _service.DefaultDownloadUrl);
+        Assert.EndsWith(_service.AgentFileName, _service.DefaultDownloadUrl);
     }
 
     [Fact]

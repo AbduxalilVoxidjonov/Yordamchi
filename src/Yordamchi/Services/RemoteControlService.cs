@@ -18,15 +18,19 @@ namespace Yordamchi.Services;
 public sealed class RemoteControlService : IRemoteControlService
 {
     /// <summary>
-    /// Agentning oldindan sozlangan manzili. <b>Placeholder</b>: agent fayli hali GitHub'ga
-    /// qo'yilmagan. Real reliz aktivi chiqqach, bu doimiyni (yoki UI dagi maydonni) haqiqiy
-    /// havolaga almashtiring — masalan <see cref="ExampleUrl"/> shaklida.
+    /// Agentning oldindan sozlangan manzili — GitHub relizidagi <c>agent-v1</c> aktivi.
+    /// <para>
+    /// Havola <b>versiyasiz</b> nomga bog'langan (<c>YordamchiAgentSetup.exe</c>): agentning yangi
+    /// nusxasi chiqqanda shu tegdagi aktiv almashtiriladi va dasturni qayta yig'ish kerak
+    /// bo'lmaydi. Manzil <see cref="UpdateService.IsTrustedDownloadUrl"/> tekshiruvidan o'tadi,
+    /// ya'ni bu doimiy o'zgartirilsa ham faqat GitHub xostiga yo'l qoladi.
+    /// </para>
     /// </summary>
-    private const string ConfiguredDownloadUrl = "";
-
-    /// <summary>UI da namuna sifatida ko'rsatiladigan kutilayotgan manzil.</summary>
-    private const string ExampleUrl =
+    private const string ConfiguredDownloadUrl =
         "https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/agent-v1/YordamchiAgentSetup.exe";
+
+    /// <summary>UI da namuna sifatida ko'rsatiladigan manzil (sozlangani bilan bir xil shakl).</summary>
+    private const string ExampleUrl = ConfiguredDownloadUrl;
 
     /// <summary>Agent o'rnatgichi bir necha o'nlab megabayt bo'lishi mumkin, shuning uchun uzoqroq muhlat.</summary>
     private static readonly TimeSpan DownloadTimeout = TimeSpan.FromMinutes(15);

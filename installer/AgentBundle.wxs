@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+    YordamchiAgentSetup.exe — Yordamchi Agent MSI ni o'rab turuvchi WiX Burn bootstrapper.
+
+    Nima uchun bundle: foydalanuvchi bitta faylni yuklab olib ishga tushiradi, litsenziya va
+    jarayon ko'rsatkichini ko'radi, ichkaridagi MSI esa jimgina bajariladi. Fayl nomi
+    ataylab versiyasiz — dasturdagi yuklab olish havolasi shu nomga bog'langan
+    (RemoteControlService.AgentFileName).
+
+    Asosiy dasturdan farqi: bu yerda Visual C++ ish vaqti kerak emas (agent faqat .NET va
+    Windows API'lariga tayanadi) va o'rnatish oxirida hech narsa ishga tushirilmaydi — agent
+    xizmat sifatida o'zi ishlaydi.
+
+    Muallif: Abduxalil Voxidjonov — https://t.me/abduxalilvoxidjonov
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+
+  <Bundle Name="Yordamchi Agent"
+          Manufacturer="Abduxalil Voxidjonov"
+          Version="$(var.ProductVersion)"
+          UpgradeCode="7E2C8B41-5A6D-4F93-B0C7-1D8E3A94F5B2"
+          IconSourceFile="$(var.IconFile)"
+          AboutUrl="https://t.me/abduxalilvoxidjonov"
+          HelpUrl="https://t.me/abduxalilvoxidjonov"
+          Compressed="yes">
+
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+          Theme="rtfLicense"
+          LicenseFile="$(var.LicenseFile)"
+          LogoFile="$(var.LogoFile)"
+          ShowVersion="yes" />
+    </BootstrapperApplication>
+
+    <Chain>
+      <MsiPackage SourceFile="$(var.MsiFile)" Vital="yes" Compressed="yes" />
+    </Chain>
+  </Bundle>
+</Wix>

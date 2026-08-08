@@ -1,6 +1,6 @@
 <div align="center">
 
-# Yordamchi 2.3.0
+# Yordamchi 2.4.0
 
 **Windows uchun to'liq funksional ish vositalari to'plami — 17 ta PDF vositasi, arxivlash, ekran yozuvi, kirill ↔ lotin o'girish va sanoq sistemalari kalkulyatori, bitta dastur.**
 
@@ -420,9 +420,18 @@ Hisob `double` ustida emas, **butun sonlar va oddiy kasrlar** ustida olib borila
 
 Boshqa kompyuterlarni **masofadan kuzatish va boshqarish** uchun mo'ljallangan bo'lim. Bu
 sahifa — **tarqatish markazi**: unda boshqariladigan kompyuterlarga o'rnatiladigan **agent
-(server)** faylini GitHub relizidan yuklab olish va uni o'rnatish tartibi bor. Agentning o'zi
-(ekran uzatish, boshqaruv, tarmoq) — alohida katta loyiha; u GitHub'ga qo'yiladi va shu
-sahifadan yuklab olinadi.
+(server)** faylini GitHub relizidan yuklab olish va uni o'rnatish tartibi bor.
+
+Agentning o'zi shu loyihada — `src\Yordamchi.Agent` (ekran uzatish, boshqaruv, tarmoq, Windows
+xizmati). U alohida o'rnatgich sifatida yig'iladi (`build-agent-installer.ps1` →
+`YordamchiAgentSetup.exe`) va GitHub relizlariga qo'yiladi. Batafsil:
+[docs/REMOTE-CONTROL.md](docs/REMOTE-CONTROL.md).
+
+**Agent nimalarni qiladi:** ekranni uzatadi (DXGI Desktop Duplication, zaxirada GDI),
+ruxsat berilgan bo'lsa sichqoncha va klaviaturani qabul qiladi, cheklangan buyruqlarni
+bajaradi (xabar ko'rsatish, ekranni qulflash), Windows xizmati sifatida ishlaydi va tizim
+majmuasida (tray) **ko'rinadigan belgi** qoldiradi. Boshqaruv va buyruq ruxsatlarini shu
+belgidan bir bosishda o'chirib qo'yish mumkin.
 
 > **Ruxsat va shaffoflik.** Masofaviy boshqaruvni faqat **o'zingiz administratsiya qiladigan**
 > kompyuterlarga (sinf, laboratoriya, ofis) va **foydalanuvchilar xabardor** holatda o'rnating.
@@ -434,23 +443,30 @@ sahifadan yuklab olinadi.
 | Xususiyat | Qiymat |
 |---|---|
 | Manba | Faqat **GitHub** (`https`) — begona serverdan yuklab olishga yo'l qo'yilmaydi |
-| Manzil | Agent fayli GitHub relizining to'g'ridan-to'g'ri havolasi; hozircha **placeholder**, real fayl chiqqach kiritiladi |
+| Manzil | Oldindan sozlangan: `agent-v1` relizidagi `YordamchiAgentSetup.exe`. Kerak bo'lsa boshqa GitHub havolasiga o'zgartirish mumkin |
 | Saqlanadigan joy | `%LOCALAPPDATA%\Yordamchi\RemoteControl\` |
 | Ishga tushirish | Dastur faylni **faqat yuklab oladi** — o'zi ishga tushirmaydi |
 
-Manzil maydoniga real havola kiritilgunga qadar "Yuklab olish" tugmasi faol bo'lmaydi.
-Kiritilgan manzil `https` va GitHub xostida bo'lishi shart, aks holda rad etiladi.
+Manzil maydoni oldindan to'ldirilgan — "Yuklab olish" tugmasi darhol ishlaydi. Manzilni
+o'zgartirsangiz, u `https` va GitHub xostida bo'lishi shart, aks holda rad etiladi.
 
 ### O'rnatish tartibi
 
-1. **Agentni yuklab oling** — shu sahifadan agent faylini oling.
+1. **Agentni yuklab oling** — shu sahifadan `YordamchiAgentSetup.exe` faylini oling.
 2. **Maqsadli kompyuterga ko'chiring** — USB, umumiy tarmoq papkasi yoki guruh siyosati (GPO).
-3. **Administrator huquqida o'rnating** — agent Windows xizmati sifatida o'rnatiladi va tizim
-   majmuasida (tray) ko'rinadigan belgi qoldiradi.
-4. **Tarmoq va portni tekshiring** — ikkala kompyuter bir lokal tarmoqda, kerakli port
-   (masalan 5405) brandmauerda ochiq.
-5. **Ro'yxatda paydo bo'ladi** — o'rnatilgach kompyuter boshqaruv oynasida ko'rinadi.
-   *(Boshqaruv oynasi keyingi bosqichda qo'shiladi.)*
+3. **Administrator huquqida o'rnating** — o'rnatgich agentni Windows xizmati sifatida ro'yxatga
+   qo'shadi (kompyuter yonganda o'zi ishga tushadi), brandmauerda faqat shu dastur uchun
+   kiruvchi portni ochadi va tizim majmuasida (tray) ko'rinadigan belgi qoldiradi.
+4. **Foydalanuvchini xabardor qiling** — tray belgisi ustiga bosilsa holat va ruxsatlar
+   ko'rinadi; boshqaruvni shu yerdan o'chirish mumkin.
+5. **Tarmoqni tekshiring** — ikkala kompyuter bir lokal tarmoqda bo'lsin. Portlar: boshqaruv
+   uchun **TCP 5406**, kompyuterlarni topish uchun **UDP 5405**.
+6. **Ro'yxatda paydo bo'ladi** — "Kompyuter ekranlari" bo'limida "Qidirish" bosilsa agent
+   o'rnatilgan kompyuterlar ro'yxatga tushadi; ulangach ekrani ko'rinadi.
+
+> Xizmatni qo'lda boshqarish kerak bo'lsa: `sc query YordamchiAgent`,
+> `sc stop YordamchiAgent`. Agentni xizmatsiz, bir martaga sinab ko'rish uchun uni oddiy
+> ishga tushirish ham mumkin: `YordamchiAgent.exe --help` barcha parametrlarni ko'rsatadi.
 
 ---
 
@@ -470,7 +486,7 @@ tushirmaydi.
    qo'ymaydi va hech narsa yuklamaydi — shunchaki sahifaga ishora qiladi.
 3. **Batafsili "Dastur haqida" sahifasida.** *"Dastur yangilanishi"* kartochkasi holatni
    matn bilan aytadi — *"Eng so'nggi versiya o'rnatilgan"* yoki *"Yangi versiya mavjud:
-   2.3.0 (103 MB)"*.
+   2.4.0 (103 MB)"*.
 4. **Ikkita tugma.** **"Tekshirish"** — qo'lda qayta tekshirish; **"Relizlar sahifasi"** —
    GitHub dagi relizni brauzerda ochadi, u yerda o'zgarishlar ro'yxati va o'rnatgich fayli
    turadi.
@@ -485,7 +501,7 @@ tushirmaydi.
 
 | Xususiyat | Qiymat |
 |---|---|
-| Nima yuboriladi | GitHub relizlar API siga bitta `GET` so'rovi; foydalanuvchi haqidagi ma'lumot yo'q, faqat dastur nomi va versiyasi (`Yordamchi/2.3.0`) — GitHub API `User-Agent` siz so'rovlarni rad etadi |
+| Nima yuboriladi | GitHub relizlar API siga bitta `GET` so'rovi; foydalanuvchi haqidagi ma'lumot yo'q, faqat dastur nomi va versiyasi (`Yordamchi/2.4.0`) — GitHub API `User-Agent` siz so'rovlarni rad etadi |
 | Qachon xabar beriladi | Faqat joriy versiyadan **yangi** reliz uchun; qoralama (draft) va sinov (prerelease) relizlari e'tiborga olinmaydi |
 | Dastur nima yuklab oladi | **Hech nima.** Havola brauzerda ochiladi, qolgani sizning qo'lingizda |
 | Tekshiruvni o'tkazib yuborish | Internet yo'q bo'lsa dastur baribir normal ishlaydi — tekshiruv jimgina o'tkazib yuboriladi |
@@ -519,7 +535,7 @@ tushirmaydi.
 ## O'rnatish
 
 1. [**Releases**](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/latest) bo'limidan
-   `YordamchiSetup-2.3.0.exe` faylini yuklab oling va ishga tushiring.
+   `YordamchiSetup-2.4.0.exe` faylini yuklab oling va ishga tushiring.
 2. Litsenziyani qabul qiling, kerak bo'lsa o'rnatish papkasini o'zgartiring.
 3. "O'rnatish" tugmasini bosing — bir marta administrator ruxsati (UAC) so'raladi.
 
@@ -542,16 +558,16 @@ O'rnatuvchi:
 
 ### Korporativ (jimgina) o'rnatish
 
-MSI ham xuddi shu relizda — `Yordamchi-2.3.0-x64.msi`:
+MSI ham xuddi shu relizda — `Yordamchi-2.4.0-x64.msi`:
 
 ```powershell
-msiexec /i Yordamchi-2.3.0-x64.msi /qn INSTALLFOLDER="C:\Apps\Yordamchi"
+msiexec /i Yordamchi-2.4.0-x64.msi /qn INSTALLFOLDER="C:\Apps\Yordamchi"
 ```
 
 O'chirish:
 
 ```powershell
-msiexec /x Yordamchi-2.3.0-x64.msi /qn
+msiexec /x Yordamchi-2.4.0-x64.msi /qn
 ```
 
 ---
@@ -603,7 +619,7 @@ ishlaydi va tugagach o'zidan keyin tozalab ketadi.
 dotnet publish src\Yordamchi\Yordamchi.csproj `
     -c Release -r win-x64 --self-contained true `
     -p:PublishReadyToRun=true `
-    -p:Version=2.3.0 -p:FileVersion=2.3.0.0 -p:AssemblyVersion=2.3.0.0 `
+    -p:Version=2.4.0 -p:FileVersion=2.4.0.0 -p:AssemblyVersion=2.4.0.0 `
     -o publish\win-x64
 ```
 
@@ -624,7 +640,7 @@ wix extension add -g WixToolset.Util.wixext/5.0.2
 So'ng bitta buyruq:
 
 ```powershell
-.\build-installer.ps1                        # standart versiya: 2.3.0.0
+.\build-installer.ps1                        # standart versiya: 2.4.0.0
 .\build-installer.ps1 -Version 2.4.0.0       # boshqa versiya bilan
 .\build-installer.ps1 -SkipPublish           # mavjud publish papkasini qayta ishlatish
 ```
@@ -634,9 +650,9 @@ Skript to'rt bosqichni bajaradi va natijani `artifacts\` ga qo'yadi:
 | # | Bosqich | Natija |
 |---|---|---|
 | 1 | `dotnet publish -r win-x64 --self-contained -p:PublishReadyToRun=true` | `publish\win-x64\` (~168 MB) |
-| 2 | `wix build installer\Package.wxs` | `artifacts\Yordamchi-2.3.0-x64.msi` (LZX:high siqish bilan ~60 MB) |
+| 2 | `wix build installer\Package.wxs` | `artifacts\Yordamchi-2.4.0-x64.msi` (LZX:high siqish bilan ~60 MB) |
 | 3 | `vc_redist.x64.exe` ni `https://aka.ms/vs/17/release/vc_redist.x64.exe` dan olish | `artifacts\vc_redist.x64.exe` — **bir martalik**, keyingi yig'ilishlarda qayta ishlatiladi |
-| 4 | `wix build installer\Bundle.wxs` | `artifacts\YordamchiSetup-2.3.0.exe` — MSI va VC++ ish vaqti ichiga joylangan (`Compressed="yes"`) |
+| 4 | `wix build installer\Bundle.wxs` | `artifacts\YordamchiSetup-2.4.0.exe` — MSI va VC++ ish vaqti ichiga joylangan (`Compressed="yes"`) |
 
 > 3-bosqich — yagona joy, u yerda skript internetga chiqadi. Fayl allaqachon
 > `artifacts\vc_redist.x64.exe` da bo'lsa, u yuklab olinmaydi; qo'lda ham qo'yish mumkin.

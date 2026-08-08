@@ -30,7 +30,8 @@ public sealed partial class RemoteControlViewModel : ViewModelBase
     {
         _remote = remote;
 
-        // Placeholder holatda bo'sh bo'ladi; foydalanuvchi real manzilni shu maydonga kiritadi.
+        // Standart holatda GitHub relizidagi agent havolasi turadi; foydalanuvchi uni
+        // o'zgartirishi mumkin (masalan o'z relizidagi nusxaga).
         _agentDownloadUrl = remote.DefaultDownloadUrl;
 
         InstallSteps =
@@ -43,14 +44,15 @@ public sealed partial class RemoteControlViewModel : ViewModelBase
                 + "papkasi yoki guruh siyosati (GPO) orqali."),
             new InstallStep(3, "Administrator huquqida o'rnating",
                 "Faylni maqsadli kompyuterda administrator sifatida ishga tushiring. Agent Windows "
-                + "xizmati sifatida o'rnatiladi va tizim majmuasida (tray) ko'rinadigan belgi "
-                + "qoldiradi — foydalanuvchi kuzatuv borligini biladi."),
-            new InstallStep(4, "Tarmoq va portni tekshiring",
-                "Ikkala kompyuter bir lokal tarmoqda bo'lishi va kelishilgan port (masalan 5405) "
-                + "Windows brandmaueri (firewall) da ochiq bo'lishi kerak."),
-            new InstallStep(5, "Ro'yxatda paydo bo'ladi",
-                "O'rnatilgach, kompyuter boshqaruv oynasida ro'yxatga tushadi va uni kuzatish "
-                + "hamda boshqarish mumkin bo'ladi. (Boshqaruv oynasi keyingi bosqichda qo'shiladi.)")
+                + "xizmati sifatida o'rnatiladi, brandmauerda faqat o'zi uchun kiruvchi portni "
+                + "ochadi va tizim majmuasida (tray) ko'rinadigan belgi qoldiradi — foydalanuvchi "
+                + "kuzatuv borligini biladi va ruxsatni shu belgidan o'chirib qo'yishi mumkin."),
+            new InstallStep(4, "Tarmoqni tekshiring",
+                "Ikkala kompyuter bir lokal tarmoqda bo'lsin. Portlar: boshqaruv uchun TCP 5406, "
+                + "kompyuterlarni topish uchun UDP 5405."),
+            new InstallStep(5, "\"Kompyuter ekranlari\" bo'limida ko'rinadi",
+                "O'rnatilgach, \"Qidirish\" tugmasi bosilganda kompyuter ro'yxatga tushadi; "
+                + "ulangach uning ekrani ko'rinadi.")
         ];
 
         RefreshAgentStatus();
@@ -66,9 +68,9 @@ public sealed partial class RemoteControlViewModel : ViewModelBase
     // =================================================================================
 
     /// <summary>
-    /// Agent faylining yuklab olish manzili. Placeholder holatda bo'sh; foydalanuvchi real
-    /// GitHub havolasini shu yerga kiritadi. Holat faqat shu seansda saqlanadi — dasturda
-    /// sozlamalarni diskka yozadigan joy yo'q.
+    /// Agent faylining yuklab olish manzili. Standart qiymat — GitHub relizidagi agent aktivi;
+    /// foydalanuvchi uni boshqa GitHub havolasiga o'zgartirishi mumkin. O'zgartirilgan holat
+    /// faqat shu seansda saqlanadi — dasturda sozlamalarni diskka yozadigan joy yo'q.
     /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DownloadAgentCommand))]
@@ -90,7 +92,7 @@ public sealed partial class RemoteControlViewModel : ViewModelBase
     /// <summary>Yuklab olish holati haqidagi qisqa matn.</summary>
     public string AgentStatus => IsAgentDownloaded
         ? $"Agent yuklab olingan: {_remote.AgentFilePath}"
-        : "Agent hali yuklab olinmagan. Manzilni kiriting va \"Yuklab olish\" tugmasini bosing.";
+        : "Agent hali yuklab olinmagan. \"Yuklab olish\" tugmasini bosing.";
 
     private bool CanDownload() => IsIdle && _remote.IsDownloadUrlReady(AgentDownloadUrl);
 

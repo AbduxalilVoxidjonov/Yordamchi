@@ -13,17 +13,38 @@ public sealed class AgentServer
 {
     private readonly int _port;
     private readonly Func<IScreenSource> _screenSourceFactory;
+    private readonly AgentConnectionOptions _connectionOptions;
     private readonly Action<string>? _log;
+
+    private int _activeConnections;
 
     /// <param name="port">TCP boshqaruv porti.</param>
     /// <param name="screenSourceFactory">Har ulanishga alohida ekran manbasi.</param>
-    /// <param name="log">Ixtiyoriy jurnal (console yoki Windows Event Log).</param>
-    public AgentServer(int port, Func<IScreenSource> screenSourceFactory, Action<string>? log = null)
+    /// <param name="log">Ixtiyoriy jurnal (console, fayl yoki tray).</param>
+    /// <param name="connectionOptions">
+    /// Ulanishga beriladigan imkoniyatlar (kirish, buyruqlar, kadr tezligi). Berilmasa eng
+    /// cheklangan holat: faqat ekran ko'rish.
+    /// </param>
+    public AgentServer(
+        int port,
+        Func<IScreenSource> screenSourceFactory,
+        Action<string>? log = null,
+        AgentConnectionOptions? connectionOptions = null)
     {
         _port = port;
         _screenSourceFactory = screenSourceFactory ?? throw new ArgumentNullException(nameof(screenSourceFactory));
         _log = log;
+        _connectionOptions = connectionOptions ?? new AgentConnectionOptions { Log = log };
     }
+
+    /// <summary>Ulangan masterlar soni — tray belgisining holatini ko'rsatish uchun.</summary>
+    public int ActiveConnections => Volatile.Read(ref _activeConnections);
+
+    /// <summary>Master ulanganda (argument — uning manzili). Har qanday oqimdan chaqirilishi mumkin.</summary>
+    public event Action<string>? ClientConnected;
+
+    /// <summary>Master uzilganda (argument — uning manzili).</summary>
+    public event Action<string>? ClientDisconnected;
 
     /// <summary>Bekor qilinguncha ulanishlarni qabul qiladi.</summary>
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -53,7 +74,9 @@ public sealed class AgentServer
     private async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
     {
         var endpoint = client.Client.RemoteEndPoint?.ToString() ?? "noma'lum";
+        Interlocked.Increment(ref _activeConnections);
         _log?.Invoke($"Ulanish: {endpoint}");
+        Notify(ClientConnected, endpoint);
 
         using (client)
         using (var screen = _screenSourceFactory())
@@ -61,7 +84,7 @@ public sealed class AgentServer
             try
             {
                 await using var stream = client.GetStream();
-                await new AgentConnection(stream, screen).RunAsync(cancellationToken).ConfigureAwait(false);
+                await new AgentConnection(stream, screen, _connectionOptions).RunAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -70,8 +93,26 @@ public sealed class AgentServer
             }
             finally
             {
+                Interlocked.Decrement(ref _activeConnections);
                 _log?.Invoke($"Uzildi: {endpoint}");
+                Notify(ClientDisconnected, endpoint);
             }
+        }
+    }
+
+    /// <summary>
+    /// Hodisa obunachisi (masalan tray) istisno tashlasa, u ulanishlarni qabul qilishni
+    /// to'xtatib qo'ymasligi kerak — shuning uchun chaqiruv o'ralgan.
+    /// </summary>
+    private void Notify(Action<string>? handler, string endpoint)
+    {
+        try
+        {
+            handler?.Invoke(endpoint);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _log?.Invoke($"Hodisa ishlovchisidagi xato: {ex.Message}");
         }
     }
 }

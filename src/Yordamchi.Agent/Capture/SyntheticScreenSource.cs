@@ -15,6 +15,9 @@ public sealed class SyntheticScreenSource : IScreenSource
 
     private int _frameCounter;
 
+    /// <summary>Sintetik kadr haqiqiy ekranga tegishli emas — to'rtburchak ham shartli.</summary>
+    public ScreenRegion Bounds => new(0, 0, Width, Height);
+
     public ScreenFrame Capture()
     {
         // Kadr raqamiga qarab rang siljiydi, ya'ni ketma-ket kadrlar bir xil bo'lmaydi —

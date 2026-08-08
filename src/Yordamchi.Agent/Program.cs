@@ -1,29 +1,56 @@
-using Yordamchi.Agent.Capture;
-using Yordamchi.Agent.Net;
+using System.Runtime.Versioning;
+using System.ServiceProcess;
+using Yordamchi.Agent.Hosting;
+using Yordamchi.Agent.Service;
 
 namespace Yordamchi.Agent;
 
 /// <summary>
-/// Agentning kirish nuqtasi. Hozircha oddiy konsol ilovasi: ochiq konsol oynasi
-/// foydalanuvchi uchun "bu kompyuter kuzatilishi mumkin" degan ko'rinadigan belgi vazifasini
-/// bajaradi. Keyingi bosqichda bu Windows xizmatiga va tray belgisiga aylantiriladi.
+/// Agentning kirish nuqtasi. Bitta fayl to'rt xil ishga tushishni ajratadi:
+/// <list type="bullet">
+///   <item>oddiy jarayon (konsol + tray belgisi) — sinash va qo'lda ishlatish uchun;</item>
+///   <item><c>--install</c> / <c>--uninstall</c> — Windows xizmatini o'rnatish/olib tashlash;</item>
+///   <item><c>--service</c> — xizmat menejeri chaqiradigan rejim.</item>
+/// </list>
+/// <para>
+/// Ishning o'zi <see cref="AgentHost"/> da: bu yerda faqat "qaysi rejim" tanlanadi.
+/// </para>
 /// </summary>
+[SupportedOSPlatform("windows")]
 internal static class Program
 {
-    /// <summary>Boshqaruv (TCP) porti. Discovery porti (5405) dan farqli.</summary>
-    private const int ControlPort = 5406;
-
     private static async Task<int> Main(string[] args)
     {
-        var port = ParsePort(args) ?? ControlPort;
-        var machineName = Environment.MachineName;
+        var options = AgentOptions.Parse(args);
 
-        Console.WriteLine("======================================================");
-        Console.WriteLine(" Yordamchi Agent");
-        Console.WriteLine(" Bu kompyuter masofadan kuzatilishi mumkin.");
-        Console.WriteLine($" Mashina: {machineName}   Port: {port}");
-        Console.WriteLine(" To'xtatish uchun Ctrl+C bosing.");
-        Console.WriteLine("======================================================");
+        if (options.Mode == AgentRunMode.Help)
+            return ShowHelp(options);
+
+        // Xizmat rejimida konsol yo'q — jurnal faqat faylga yoziladi.
+        var log = AgentLog.Create(hasConsole: options.Mode != AgentRunMode.Service);
+
+        switch (options.Mode)
+        {
+            case AgentRunMode.Install:
+                return ServiceControl.Install(options, log);
+
+            case AgentRunMode.Uninstall:
+                return ServiceControl.Uninstall(log);
+
+            case AgentRunMode.Service:
+                // Bu chaqiruv xizmat menejeri jarayonni o'zi ochganda qaytadi. Buyruq satridan
+                // "--service" bilan ishga tushirilsa Windows xato beradi — bu kutilgan holat.
+                ServiceBase.Run(new AgentServiceHost(options, log));
+                return 0;
+
+            default:
+                return await RunInteractiveAsync(options, log).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<int> RunInteractiveAsync(AgentOptions options, AgentLog log)
+    {
+        PrintBanner(options);
 
         using var stopping = new CancellationTokenSource();
 
@@ -34,56 +61,45 @@ internal static class Program
             stopping.Cancel();
         };
 
-        var server = new AgentServer(port, CreateScreenSource, Console.WriteLine);
-        var announcer = new DiscoveryAnnouncer(port, machineName);
-
         try
         {
-            await Task.WhenAll(
-                server.RunAsync(stopping.Token),
-                announcer.RunAsync(stopping.Token)).ConfigureAwait(false);
+            await new AgentHost(options, log).RunAsync(stopping.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             // Ctrl+C — odatiy chiqish.
         }
 
-        Console.WriteLine("Agent to'xtatildi.");
         return 0;
     }
 
     /// <summary>
-    /// Haqiqiy ekran manbasini beradi; olib bo'lmasa (masalan seans yo'q, CI) sintetik
-    /// manbaga tushadi — shunda ulanish quvuri baribir ishlaydi.
+    /// Ishga tushganda ekranga chiqadigan matn. U ham <b>ko'rinadigan belgi</b> vazifasini
+    /// bajaradi: kompyuterda o'tirgan odam nima ishlayotganini o'qib ko'radi.
     /// </summary>
-    private static IScreenSource CreateScreenSource()
+    private static void PrintBanner(AgentOptions options)
     {
-        try
-        {
-            var source = new GdiScreenSource();
-            _ = source.Capture(); // ishga tushirishda bir marta sinab ko'ramiz
-            return source;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Haqiqiy ekran olinmadi ({ex.Message}) — sintetik manbaga o'tildi.");
-            return new SyntheticScreenSource();
-        }
+        Console.WriteLine("======================================================");
+        Console.WriteLine(" Yordamchi Agent");
+        Console.WriteLine(" Bu kompyuter masofadan kuzatilishi mumkin.");
+        Console.WriteLine($" Mashina: {Environment.MachineName}   Port: {options.Port}");
+        Console.WriteLine($" Boshqaruv: {(options.AllowInput ? "ruxsat" : "o'chirilgan")}"
+                          + $"   Buyruqlar: {(options.AllowCommands ? "ruxsat" : "o'chirilgan")}");
+        Console.WriteLine(" To'xtatish uchun Ctrl+C bosing.");
+        Console.WriteLine("======================================================");
     }
 
-    private static int? ParsePort(string[] args)
+    private static int ShowHelp(AgentOptions options)
     {
-        // Oddiy: "--port 5406" yoki "-p 5406".
-        for (var i = 0; i < args.Length - 1; i++)
+        if (options.Error is not null)
         {
-            if (args[i] is "--port" or "-p"
-                && int.TryParse(args[i + 1], out var port)
-                && port is > 0 and <= 65535)
-            {
-                return port;
-            }
+            Console.Error.WriteLine(options.Error);
+            Console.Error.WriteLine();
+            Console.WriteLine(AgentOptions.HelpText);
+            return 2;
         }
 
-        return null;
+        Console.WriteLine(AgentOptions.HelpText);
+        return 0;
     }
 }
