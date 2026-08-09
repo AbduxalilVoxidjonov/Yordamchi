@@ -532,6 +532,182 @@ tushirmaydi.
 
 ---
 
+## 📦 Relizlar
+
+> Barchasi Windows 10/11 x64 uchun. `.NET` o'rnatilgan bo'lishi **shart emas** — u o'rnatuvchi ichida.
+
+---
+
+### 🟢 Yordamchi 2.4.0 — Kompyuterlarni masofadan boshqarish `Latest`
+
+**Chiqarilgan:** 2026-yil 8-avgust
+
+**Yuklab olish:**
+
+| Fayl | Hajmi | Tur |
+|---|---|---|
+| [⬇ YordamchiSetup-2.4.0.exe](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.4.0/YordamchiSetup-2.4.0.exe) | 103.3 MB | O'rnatuvchi (tavsiya etiladi) |
+| [⬇ Yordamchi-2.4.0-x64.msi](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.4.0/Yordamchi-2.4.0-x64.msi) | 78.7 MB | MSI (korporativ/jimgina o'rnatish) |
+
+<details>
+<summary><b>🆕 Nima yangi</b></summary>
+
+**Asosiy yangilik — kompyuterlarni masofadan boshqarish:**
+
+- **«Kompyuter ekranlari» bo'limi** — lokal tarmoqdagi agentlarni UDP orqali **avtomatik topish**, qo'lda IP kiritish, ulanish va ekranni real vaqtda ko'rish
+- **«Kompyuterlarni boshqarish»** bo'limida agent havolasi endi **oldindan sozlangan** — «Yuklab olish» tugmasi darhol ishlaydi
+- **Yordamchi Agent 1.0** alohida reliz sifatida chiqdi → yuqoridagi `agent-v1` relizi
+- **Aloqa shifrlangan:** AES-256-GCM, kalit almashinuvi RSA-2048 (OAEP-SHA256)
+
+> ℹ️ Bu versiyada agent kompyuterining **ekranini ko'rish** mumkin. Sichqoncha/klaviaturani boshqarish keyingi versiyada.
+
+</details>
+
+---
+
+### 🖥 Yordamchi Agent 1.0 — Masofaviy boshqaruv agenti
+
+**Chiqarilgan:** 2026-yil 8-avgust · Yordamchi 2.4.0 bilan birga ishlaydi
+
+**Yuklab olish:**
+
+| Fayl | Hajmi | Tur |
+|---|---|---|
+| [⬇ YordamchiAgentSetup.exe](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/agent-v1/YordamchiAgentSetup.exe) | 54.2 MB | Boshqariladigan kompyuterga o'rnating |
+
+<details>
+<summary><b>🆕 Nima qiladi</b></summary>
+
+- **Ekran uzatish** — DXGI Desktop Duplication (tez, GPU orqali), zaxirada GDI
+- **Boshqaruv** — sichqoncha va klaviatura (`SendInput`), ruxsat berilgan bo'lsa
+- **Cheklangan buyruqlar** — xabar ko'rsatish, ekranni qulflash. Shell/ixtiyoriy dastur ishga tushirish **yo'q**
+- **Windows xizmati** — kompyuter yonganda o'zi ishga tushadi
+- **Shifrlangan aloqa** — AES-256-GCM + RSA-2048
+
+> ⚠️ Agentni faqat **o'zingiz boshqaradigan** kompyuterlarga o'rnating. Tray belgisi doim ko'rinadigan bo'ladi — yashirin kuzatuv qo'llab-quvvatlanmaydi.
+
+</details>
+
+---
+
+### Yordamchi 2.3.0 — Yangilanish faqat xabar beradi
+
+**Chiqarilgan:** 2026-yil 7-avgust
+
+**Yuklab olish:**
+
+| Fayl | Hajmi | Tur |
+|---|---|---|
+| [⬇ YordamchiSetup-2.3.0.exe](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.3.0/YordamchiSetup-2.3.0.exe) | 103.2 MB | O'rnatuvchi |
+| [⬇ Yordamchi-2.3.0-x64.msi](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.3.0/Yordamchi-2.3.0-x64.msi) | 78.5 MB | MSI |
+
+<details>
+<summary><b>🆕 Nima yangi</b></summary>
+
+**O'z-o'zini yangilash olib tashlandi — faqat xabar beradi:**
+
+Avval (2.2.0 da) dastur yangi versiyani o'zi yuklab olib, administrator huquqi bilan ishga tushirardi. Bu xavfsizlik muammosi edi: o'rnatgich kod bilan imzolanmagan, fayl haqiqiyligini ishonchli tasdiqlab bo'lmaydi. **2.3.0 dan boshlab:**
+
+1. Dastur ochilganda GitHub ga bitta so'rov yuborib versiyani tekshiradi
+2. Yangi versiya bo'lsa yon panelda kichik nuqta paydo bo'ladi
+3. «Dastur haqida» sahifasida versiya va hajm ko'rinadi + «Yuklab olish sahifasini ochish» tugmasi
+4. O'rnatishni **foydalanuvchi o'zi** bajaradi
+
+**Boshqa tuzatish:** GitHub so'rovlar cheklovi (`429`) endi «server javob bermadi» emas, to'g'ri xabar bilan tushuntiriladi.
+
+541 ta avtomatik test.
+
+</details>
+
+---
+
+### Yordamchi 2.2.0 — Yozuv boshqaruvi va yangilanish
+
+**Chiqarilgan:** 2026-yil 7-avgust
+
+**Yuklab olish:**
+
+| Fayl | Hajmi | Tur |
+|---|---|---|
+| [⬇ YordamchiSetup-2.2.0.exe](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.2.0/YordamchiSetup-2.2.0.exe) | 103.2 MB | O'rnatuvchi |
+| [⬇ Yordamchi-2.2.0-x64.msi](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.2.0/Yordamchi-2.2.0-x64.msi) | 78.5 MB | MSI |
+
+<details>
+<summary><b>🆕 Nima yangi</b></summary>
+
+**🎬 Suzuvchi boshqaruv paneli:**
+
+Yozuv boshlanganida dastur oynasi kichrayadi. Ilgari «To'xtatish» tugmasi ham yo'qolardi. Endi ekranning pastida **suzuvchi panel** ochiladi — taymer, Pauza va To'xtatish. Panel videoga tushmaydi (`WDA_EXCLUDEFROMCAPTURE`). Panelni istalgan joyga sudrab olib qo'yish mumkin.
+
+> Windows 10 2004 (build 19041) dan eski tizimda panel ochilmaydi — boshqaruv sahifaning o'zida qoladi.
+
+**🐞 Tuzatilgan:**
+- Yozuv taymeri `async void` edi — dasturni qulatishi mumkin edi. Endi `async Task`
+- Yangilanishni qo'lda tekshirish eski javobni qaytarardi
+- O'rnatgich dastur yopilmasdan ishga tushishi mumkin edi
+
+550 ta avtomatik test.
+
+</details>
+
+---
+
+### Yordamchi 2.1.0 — Arxiv bo'limi
+
+**Chiqarilgan:** 2026-yil 7-avgust
+
+**Yuklab olish:**
+
+| Fayl | Hajmi | Tur |
+|---|---|---|
+| [⬇ YordamchiSetup-2.1.0.exe](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.1.0/YordamchiSetup-2.1.0.exe) | 103.1 MB | O'rnatuvchi |
+| [⬇ Yordamchi-2.1.0-x64.msi](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v2.1.0/Yordamchi-2.1.0-x64.msi) | 78.5 MB | MSI |
+
+<details>
+<summary><b>🆕 Nima yangi</b></summary>
+
+**🗜 Arxiv — yangi bo'lim:**
+
+- ZIP yaratish: parol (AES-256 / ZipCrypto), siqish darajasi, papka tuzilishini saqlash
+- ZIP/RAR/7z/TAR/GZ/BZ2 ochish — fayllarni ro'yxatdan belgilab, tanlab chiqarish
+- **Zip Slip** himoyasi — tanlangan papkadan tashqariga yozishga urinish to'xtatiladi
+
+**⬇️ Komponentlarni dastur o'zi yuklab oladi:**
+
+Ilgari AI modeli va OCR fayllarini foydalanuvchi o'zi topib o'rnatishi kerak edi. Endi vositaning oynasidagi **«Yuklab olish»** tugmasi bor — foiz ko'rinadigan, bekor qilish mumkin.
+
+**🐞 Tuzatilgan:** shikastlangan hujjatda «Bajarish» tugmasi yoqiq qolishi; OCR tekshiruvi yolg'on natija berishi.
+
+455 ta avtomatik test.
+
+</details>
+
+---
+
+### PdfEdit 1.0.0 — Birinchi versiya
+
+**Chiqarilgan:** 2026-yil 6-avgust · Keyinchalik «Yordamchi» nomini oldi
+
+**Yuklab olish:**
+
+| Fayl | Hajmi | Tur |
+|---|---|---|
+| [⬇ PdfEditSetup-1.0.0.exe](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v1.0.0/PdfEditSetup-1.0.0.exe) | 60.5 MB | O'rnatuvchi |
+| [⬇ PdfEdit-1.0.0-x64.msi](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/download/v1.0.0/PdfEdit-1.0.0-x64.msi) | 59.9 MB | MSI |
+
+<details>
+<summary><b>📋 Birinchi versiyada nimalar bor edi</b></summary>
+
+17 ta PDF vositasi va ekran yozuvi moduli bilan chiqdi. Hali arxiv, kirill↔lotin va sanoq sistemalari modullari yo'q edi.
+
+</details>
+
+---
+
+> **Barcha relizlar:** [github.com/AbduxalilVoxidjonov/Yordamchi/releases](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases)
+
+---
+
 ## O'rnatish
 
 1. [**Releases**](https://github.com/AbduxalilVoxidjonov/Yordamchi/releases/latest) bo'limidan
